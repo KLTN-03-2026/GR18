@@ -1,6 +1,6 @@
 🍽️ RESTAURANT AI SYSTEM 🤖
 🚀 Hệ thống quản lý nhà hàng thông minh tích hợp AI & QR Ordering
-<p align="center"> <img src="https://img.shields.io/badge/Backend-SpringBoot-brightgreen"/> <img src="https://img.shields.io/badge/Frontend-JS%20%7C%20Bootstrap-blue"/> <img src="https://img.shields.io/badge/Database-MySQL-orange"/> <img src="https://img.shields.io/badge/Status-Completed-success"/> </p>
+<p align="center"> <img src="https://img.shields.io/badge/Backend-SpringBoot-brightgreen"/> <img src="https://img.shields.io/badge/Frontend-JS%20%7C%20Bootstrap-blue"/> <img src="https://img.shields.io/badge/Database-MySQL-orange"/> <img src="https://img.shields.io/badge/Status-In%20Development-yellow"/> </p>
 📌 MỤC LỤC
 📖 Giới thiệu
 ✨ Tính năng nổi bật
