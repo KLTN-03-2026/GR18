@@ -101,10 +101,10 @@ hoặc dùng Live Server
 
 STT	Họ và tên	Vai trò
 1	Phạm Phước Lợi	Backend + AI
-2	Triệu VĂn Ý	Frontend
+2	Triệu Văn Ý	Frontend
 3	Đặng Huỳnh Tường Vy	Tester
 4	Phạm Thị Thùy Linh Backend + Database
-5   Phan Văn Mạnh Frontend
+5       Phan Quốc Mạnh Frontend
 
 🚀 HƯỚNG PHÁT TRIỂN
 Thanh toán online (VNPay, Momo)
