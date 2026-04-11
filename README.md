@@ -93,30 +93,19 @@ RestaurantAiApplication.java
 Frontend
 Mở file:
 index.html
-
 hoặc dùng Live Server
 
-🔐 TÀI KHOẢN DEMO
-Vai trò	Email	Mật khẩu
-Admin	admin@gmail.com
-	123456
-Staff	staff@gmail.com
-	123456
-User	user@gmail.com
-	123456
-⚠️ LƯU Ý
-Lỗi CORS → kiểm tra backend config
-Không load API → kiểm tra URL + port
-Token lỗi → kiểm tra JWT
 👨‍💻 NHÓM PHÁT TRIỂN
 
 🎓 Đồ án tốt nghiệp – Đại học Duy Tân
 
 STT	Họ và tên	Vai trò
 1	Phạm Phước Lợi	Backend + AI
-2	...	Frontend
-3	...	Tester
-4	...	Database
+2	Triệu VĂn Ý	Frontend
+3	Đặng Huỳnh Tường Vy	Tester
+4	Phạm Thị Thùy Linh Backend + Database
+5   Phan Văn Mạnh Frontend
+
 🚀 HƯỚNG PHÁT TRIỂN
 Thanh toán online (VNPay, Momo)
 Mobile App (Flutter)
