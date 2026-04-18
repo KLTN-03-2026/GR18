@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quản lý Thực đơn | Restaurant AI</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='0.9em' font-size='56'%3E%F0%9F%8D%BD%EF%B8%8F%3C/text%3E%3C/svg%3E">
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -25,10 +26,9 @@
             <div class="row align-items-center mb-5 mt-2">
     <div class="col-md-6">
         <h2 class="page-title mb-1">Quản lý Thực đơn</h2>
-        <p class="text-secondary mb-0">Thiết kế và tối ưu hóa danh mục món ăn với sự hỗ trợ của AI.</p>
     </div>
     <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
-        <button class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+        <button onclick="openCategoryModal()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
             <span class="material-symbols-outlined fs-5">edit_attributes</span> 
             <span>Sửa danh mục</span>
         </button>
@@ -44,8 +44,8 @@
                 </div>
                 <div class="d-flex gap-3 text-secondary align-items-center">
                     <span class="small fw-bold text-uppercase opacity-50 d-none d-sm-inline">Chế độ xem:</span>
-                    <span class="material-symbols-outlined text-primary cursor-pointer">grid_view</span>
-                    <span class="material-symbols-outlined cursor-pointer">format_list_bulleted</span>
+                    <span id="view-grid-btn" class="material-symbols-outlined text-primary cursor-pointer" onclick="changeViewMode('grid')">grid_view</span>
+                    <span id="view-list-btn" class="material-symbols-outlined cursor-pointer" onclick="changeViewMode('list')">format_list_bulleted</span>
                 </div>
             </div>
 
@@ -62,22 +62,76 @@
     <script src="component-loader.js"></script>
     <script src="menu.js"></script>
 
-    <div class="modal fade" id="menuModal">
-  <div class="modal-dialog">
-    <div class="modal-content p-3">
-      <h5>Thêm món</h5>
+    <div class="modal fade" id="menuModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content p-4 menu-modal-content">
+                <button
+                    type="button"
+                    class="menu-modal-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng"
+                    title="Đóng"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
 
-      <input id="name" class="form-control mb-2" placeholder="Tên món">
-      <input id="price" class="form-control mb-2" placeholder="Giá">
-      <input id="img" class="form-control mb-2" placeholder="Link ảnh">
-      <textarea id="desc" class="form-control mb-2" placeholder="Mô tả"></textarea>
+                <h5 class="mb-3 fw-bold">Thêm món</h5>
 
-      <select id="category" class="form-control mb-3"></select>
+                <input id="name" class="form-control mb-3" placeholder="Tên món">
+                <input id="price" class="form-control mb-3" placeholder="Giá">
 
-      <button onclick="createItem()" class="btn btn-primary">Lưu</button>
+                <div class="mb-3">
+                    <label for="imgFile" class="form-label fw-semibold mb-1">Tải ảnh từ máy</label>
+                    <input id="imgFile" type="file" accept="image/*" class="form-control mb-2">
+                    <img id="imgPreview" class="menu-image-preview d-none" alt="Ảnh xem trước món ăn">
+                    <small id="imgUploadNote" class="text-secondary d-block mt-1">Chua co anh duoc chon.</small>
+                </div>
+
+                <input id="img" class="form-control mb-3" placeholder="Link ảnh (hoặc tự điền khi upload file)">
+                <textarea id="desc" class="form-control mb-3" placeholder="Mô tả"></textarea>
+
+                <select id="category" class="form-control mb-4"></select>
+
+                <div class="text-end">
+                    <button onclick="createItem()" class="btn btn-primary px-4">Lưu</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-4 menu-modal-content">
+                <button
+                    type="button"
+                    class="menu-modal-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng"
+                    title="Đóng"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h5 class="mb-3 fw-bold">Sửa danh mục</h5>
+
+                <label for="categoryEditSelect" class="form-label">Chọn danh mục</label>
+                <select id="categoryEditSelect" class="form-control mb-3"></select>
+
+                <input id="categoryEditName" class="form-control mb-3" placeholder="Tên danh mục">
+                <textarea id="categoryEditDescription" class="form-control mb-3" placeholder="Mô tả"></textarea>
+                <input id="categoryEditImageUrl" class="form-control mb-3" placeholder="Link ảnh">
+                <input id="categoryEditSortOrder" class="form-control mb-4" type="number" placeholder="Thứ tự hiển thị">
+
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-outline-danger" onclick="deleteSelectedCategory()">
+                        <i class="fa-solid fa-trash me-1"></i>Xóa danh mục
+                    </button>
+                    <button class="btn btn-primary px-4" onclick="saveSelectedCategory()">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

@@ -1,0 +1,44 @@
+.qr-menu-body {
+    background: #f6f7fb;
+}
+
+.qr-menu-body .menu-item-card {
+    background: #fff;
+    border: 1px solid #eceef4 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.qr-menu-body .menu-item-card h5 {
+    font-size: 1.02rem;
+}
+
+.qr-menu-body .search-container .form-control {
+    height: 44px;
+}
+
+.qr-menu-body #table-qr-banner {
+    border-radius: 12px;
+}
+
+.qr-cat-btn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.qr-category-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 220px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e9ecf2;
+    border-radius: 12px;
+    z-index: 1040;
+}

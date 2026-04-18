@@ -1,4 +1,4 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -6,29 +6,29 @@ html<!DOCTYPE html>
     <title>Thực đơn - Restaurant AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/index/menu.css">
+    <link rel="stylesheet" href="menu.css">
 </head>
 <body>
      <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-orange" href="#">
+            <a class="navbar-brand fw-bold text-orange" href="home.html">
                 <i class="fa-solid fa-robot me-2"></i>Restaurant AI
             </a>
             <div class="collapse navbar-collapse justify-content-center">
                 <ul class="navbar-nav gap-3">
-                    <li class="nav-item"><a class="nav-link " href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
+                    <li class="nav-item"><a class="nav-link " href="home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" href="datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
+                    <li class="nav-item"><a class="nav-link" href="danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
+                    <li class="nav-item"><a class="nav-link" href="lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
+                    <li class="nav-item"><a class="nav-link" href="danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
                 </ul>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <i class="fa-solid fa-magnifying-glass cursor-pointer"></i>
-                <button class="btn btn-orange px-3" onclick="window.location.href='/index/datban.html'">Đặt bàn ngay</button>
+                <button class="btn btn-orange px-3" onclick="window.location.href='datban.html'">Đặt bàn ngay</button>
                 <div class="user-avatar-small"></div>
-                <div class="position-relative" style="cursor:pointer" onclick="window.location.href='/index/giohang.html'">
+                <div class="position-relative" style="cursor:pointer" onclick="window.location.href=(window.appendQrToHref?window.appendQrToHref('giohang.html'):'giohang.html')">
                     <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
                     <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;font-size:10px">0</span>
                 </div>
@@ -44,6 +44,7 @@ html<!DOCTYPE html>
 
     <div class="menu-bg-wrapper">
     <main class="container-xl py-4">
+        <div id="table-qr-banner" class="d-none" role="status" aria-live="polite"></div>
         <h2 class="text-center fw-bold mb-4">MENU</h2>
 <div class="search-container mx-auto mb-5 position-relative">
             <input type="text" id="searchInput" class="form-control rounded-pill ps-4 shadow-sm" placeholder="Tìm kiếm món ăn...">
@@ -85,7 +86,11 @@ html<!DOCTYPE html>
                 </div>
                 <div class="col-md-6 text-end">
                     <div class="map-box shadow-sm border">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d30673…024!2i768!4f13.1!5e0!3m2!1svi!2s!4v1774418715679!5m2!1svi!2s" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        <!-- Embed OSM: khong can API key; tranh URL Google bi dut ky tu ... -->
+                        <iframe title="Ban do"
+                            src="https://www.openstreetmap.org/export/embed.html?bbox=108.195%2C16.045%2C108.235%2C16.075&amp;layer=mapnik&amp;marker=16.060,108.215"
+                            width="100%" height="220" style="border:0;" loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
                 </div>
             </div>
@@ -93,7 +98,7 @@ html<!DOCTYPE html>
     </footer>
 
     <!-- Chatbot -->
-    <link rel="stylesheet" href="/index/chatbot.css">
+    <link rel="stylesheet" href="chatbot.css">
     <div id="chatbot-container"></div>
     <!-- Modal chọn số lượng -->
     <div class="modal fade" id="soLuongModal" tabindex="-1" aria-hidden="true">
@@ -138,14 +143,16 @@ html<!DOCTYPE html>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/index/menu.js"></script>
+    <script src="qr-session.js"></script>
+    <script src="customer-header.js"></script>
+    <script src="menu.js"></script>
     <script>
     (function () {
         var imgs = [
-            'https://media.istockphoto.com/id/1428412216/vi/anh/m%E1%BB%…612&w=0&k=20&c=XlkgdgWuZyFTHDHNcL1up-zsMZrQRfXQXqwGvrbyshc=',
-'https://media.istockphoto.com/id/649672568/vi/anh/c%E1%BA%B…612&w=0&k=20&c=SqQRCcX8_oLLUwCx1JJU-6JRbWgQLPx3aWDU8vaHJ_w=',
-            'https://media.istockphoto.com/id/111861571/vi/anh/nh%C3%A0-…612&w=0&k=20&c=yIRU-JKWWSxBgGO4Xoj2mHwjOApFc_YAoeZj5N1yvTQ=',
-            'https://media.istockphoto.com/id/483874502/vi/anh/b%E1%BB%9…48&w=is&k=20&c=_nsZ7c9-4bcEx1bNDH-j6CV1uKByfBlDx2h3jLX3j88='
+            'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80',
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+            'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80',
+            'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1920&q=80'
         ];
         var slides = imgs.map(function (url, i) {
             var el = document.getElementById('bg-slide-' + i);
@@ -162,18 +169,18 @@ html<!DOCTYPE html>
     </script>
     <script>
     // Load chatbot HTML
-    fetch('/index/chatbot.html')
+    fetch('chatbot.html')
         .then(res => res.text())
         .then(data => {
             document.getElementById('chatbot-container').innerHTML = data;
 
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/index/chatbot.css';
+            link.href = 'chatbot.css';
             document.head.appendChild(link);
 
             const script = document.createElement('script');
-            script.src = '/index/chatbot.js';
+            script.src = 'chatbot.js';
             script.onload = () => console.log("✅ Chatbot loaded OK");
             document.body.appendChild(script);
         })

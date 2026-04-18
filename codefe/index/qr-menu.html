@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu tại bàn - Restaurant AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="menu.css">
+    <link rel="stylesheet" href="qr-menu.css">
+</head>
+<body class="qr-menu-body">
+    <header class="navbar navbar-expand-lg navbar-light bg-white px-3 py-2 sticky-top shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-orange" href="/index/qr-menu.html">
+                <i class="fa-solid fa-utensils me-2"></i>Menu tại bàn
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <div class="position-relative" style="cursor:pointer" onclick="window.location.href=(window.appendQrToHref?window.appendQrToHref('giohang.html'):'giohang.html')">
+                    <i class="fa-solid fa-cart-shopping fs-5"></i>
+                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;font-size:10px">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-3">
+        <div id="table-qr-banner" class="d-none mb-3" role="status" aria-live="polite"></div>
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="position-relative">
+                <button
+                    class="btn btn-light border rounded-circle qr-cat-btn"
+                    type="button"
+                    id="qr-cat-toggle-btn"
+                    title="Chọn danh mục"
+                    onclick="toggleQrCategoryDropdown()"
+                >
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div id="qr-category-dropdown" class="qr-category-dropdown d-none shadow">
+                    <div id="qr-category-list" class="list-group"></div>
+                </div>
+            </div>
+            <div class="search-container mx-auto position-relative flex-grow-1 mb-0">
+                <input type="text" id="searchInput" class="form-control rounded-pill ps-4 shadow-sm" placeholder="Tìm món tại bàn...">
+                <i class="fa-solid fa-magnifying-glass position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+            </div>
+        </div>
+
+        <section id="section-tatca" class="menu-section mb-4">
+            <div id="menu-list">
+                <p class="text-center text-muted py-4">Đang tải món ăn...</p>
+            </div>
+        </section>
+
+        <div class="text-center pb-3">
+            <button id="btn-xem-them" class="btn btn-light border rounded-pill px-5 shadow-sm"
+                    style="display:none" onclick="xemThem()">
+                Xem thêm
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal chọn số lượng -->
+    <div class="modal fade" id="soLuongModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modal-ten-mon">Tên món</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3 px-4">
+                    <p class="text-muted mb-1">Giá: <span id="modal-gia-mon" class="fw-bold text-orange"></span></p>
+                    <p class="text-muted mb-3">Chọn số lượng:</p>
+                    <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                        <button class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px" onclick="thayDoiSoLuong(-1)">−</button>
+                        <input type="number" id="soLuong-input" class="form-control text-center fw-bold fs-5" style="width:80px" min="1" max="99" value="1">
+                        <button class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px" onclick="thayDoiSoLuong(1)">+</button>
+                    </div>
+                    <div class="text-start">
+                        <label class="text-muted small fw-semibold mb-1 d-block">
+                            <i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú <span class="fw-normal">(tuỳ chọn)</span>
+                        </label>
+                        <textarea id="ghichu-input" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"
+                                  placeholder="VD: ít cay, không hành, thêm đá..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light border rounded-pill px-4" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="button" class="btn btn-orange rounded-pill px-4" onclick="xacNhanThemGio()">Thêm vào giỏ hàng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast thông báo -->
+    <div id="cart-toast" style="
+        display:none; position:fixed; bottom:24px; right:16px; left:16px; z-index:9999;
+        background:#333; color:#fff; padding:12px 16px; border-radius:10px;
+        font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.3)">
+        <i class="fa-solid fa-check me-2 text-success"></i>
+        <span id="cart-toast-msg">Đã thêm vào giỏ hàng!</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="qr-session.js"></script>
+    <script src="customer-header.js"></script>
+    <script src="menu.js"></script>
+</body>
+</html>

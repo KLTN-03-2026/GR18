@@ -71,6 +71,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+/** Chỉ cho phép đường dẫn tương đối an toàn sau đăng nhập (chống open redirect). */
+function safeNextPath(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const next = raw.trim();
+    if (next.includes('..') || next.startsWith('/') || next.includes('://')) return null;
+    if (next.startsWith('index/') || next.startsWith('admin/')) return next;
+    return null;
+}
+
 // 3. HÀM DÙNG CHUNG: LƯU TOKEN & ĐIỀU HƯỚNG
 function saveUserAndRedirect(userData) {
     // Lưu các loại token
@@ -78,17 +87,32 @@ function saveUserAndRedirect(userData) {
     localStorage.setItem('refreshToken', userData.refreshToken);
     localStorage.setItem('token', userData.accessToken); // Dự phòng cho các script khác dùng key 'token'
     
+    // Giữ lại contact cũ nếu API login chưa trả về email/phone
+    let oldUser = {};
+    try {
+        oldUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    } catch (e) {
+        oldUser = {};
+    }
+
     // Lưu thông tin người dùng
     localStorage.setItem('userInfo', JSON.stringify({
         userId: userData.userId,
         fullName: userData.fullName,
-        role: userData.role
+        role: userData.role,
+        email: userData.email || oldUser.email || "",
+        phone: userData.phone || oldUser.phone || ""
     }));
 
     toastr.success(`Chào mừng ${userData.fullName} quay trở lại!`, 'Thành công');
 
     // Chờ 1.2s để Toast hiển thị đẹp rồi chuyển hướng
     setTimeout(() => {
+        const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
+        if (next) {
+            window.location.href = next;
+            return;
+        }
         if (userData.role === 'ADMIN' || userData.role === 'STAFF') {
             window.location.href = 'admin/tongquan.html';
         } else {

@@ -1,33 +1,58 @@
 /**
  * Project: Restaurant AI - Nhóm 18
  * Chức năng: Xử lý đặt bàn trực tuyến
+ * Khách vãng lai: xem trang + điền form; chỉ khi bấm xác nhận mới cần đăng nhập.
  */
+
+const LOGIN_PAGE = '../dangnhap.html';
+const AFTER_LOGIN_PATH = 'index/datban.html';
+
+function getAccessToken() {
+    return localStorage.getItem('accessToken') || localStorage.getItem('token');
+}
+
+function redirectToLogin() {
+    const next = encodeURIComponent(AFTER_LOGIN_PATH);
+    window.location.href = `${LOGIN_PAGE}?next=${next}`;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const reservationForm = document.getElementById('reservationForm');
     const submitBtn = document.getElementById('submitBtn');
+    const guestHint = document.getElementById('guest-login-hint');
 
-    // 1. Lấy thông tin xác thực từ LocalStorage
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
 
-    // Kiểm tra quyền truy cập nhanh
-    if (!token) {
-        alert("Vui lòng đăng nhập trước khi đặt bàn!");
-        window.location.href = '/dangnhap.html';
-        return;
+    if (!token && guestHint) {
+        guestHint.classList.remove('d-none');
     }
 
     if (reservationForm) {
         reservationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const authToken = getAccessToken();
+            if (!authToken) {
+                alert('Vui lòng đăng nhập để xác nhận đặt bàn.');
+                redirectToLogin();
+                return;
+            }
+
             // 2. Lấy dữ liệu từ Form
             const date = document.getElementById('resDate').value;
             const time = document.getElementById('resTime').value;
             const guests = document.getElementById('guests').value;
+            const phoneEl = document.getElementById('customerPhone');
+            const customerPhone = (phoneEl?.value || '').trim();
             const note = document.getElementById('note').value;
             const area = document.querySelector('input[name="area"]:checked').value;
+
+            if (!customerPhone) {
+                alert('Vui lòng nhập số điện thoại liên hệ.');
+                phoneEl?.focus();
+                return;
+            }
 
             // 3. Định dạng lại thời gian cho đúng LocalDateTime của Backend (YYYY-MM-DDTHH:mm:ss)
             const reservationTime = `${date}T${time}:00`;
@@ -36,8 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const payload = {
                 reservationTime: reservationTime,
                 numberOfGuests: parseInt(guests),
-                customerName: userInfo.fullName || "Khách hàng mới",
-                customerPhone: "0708072270", // Nên lấy từ input hoặc userInfo nếu có
+                customerName: userInfo.fullName || "Khách hàng",
+                customerPhone: customerPhone,
                 tableId: null, // Hệ thống tự động xếp bàn trống
                 note: `Khu vực mong muốn: ${area}. Ghi chú: ${note}`
             };
@@ -50,14 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 5. Gọi API Backend
                 const response = await axios.post('http://localhost:8080/api/reservations', payload, {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${authToken}`
                     }
                 });
 
                 if (response.data.success) {
                     alert('Đặt bàn thành công! Hẹn gặp bạn vào ' + new Date(reservationTime).toLocaleString('vi-VN'));
                     // Chuyển hướng tới trang lịch sử để xem chi tiết
-                    window.location.href = '/index/lichsu.html';
+                    window.location.href = 'lichsu.html';
                 }
 
             } catch (error) {

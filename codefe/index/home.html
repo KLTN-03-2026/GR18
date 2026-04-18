@@ -7,27 +7,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link rel="stylesheet" href="/index/home.css">
+    <link rel="stylesheet" href="home.css">
 </head>
 <body>
     <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-orange" href="#">
+            <a class="navbar-brand fw-bold text-orange" href="home.html">
                 <i class="fa-solid fa-robot me-2"></i>Restaurant AI
             </a>
             <div class="collapse navbar-collapse justify-content-center">
                 <ul class="navbar-nav gap-3">
-                    <li class="nav-item"><a class="nav-link active" href="#"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" href="datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
+                    <li class="nav-item"><a class="nav-link" href="danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
+                    <li class="nav-item"><a class="nav-link" href="lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
+                    <li class="nav-item"><a class="nav-link" href="danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
                 </ul>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <i class="fa-solid fa-magnifying-glass cursor-pointer"></i>
-                <button class="btn btn-orange px-3">Đặt bàn ngay</button>
+                <button type="button" class="btn btn-orange px-3" onclick="window.location.href='datban.html'">Đặt bàn ngay</button>
                 <div class="user-avatar-small"></div>
                 <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
             </div>
@@ -36,7 +36,7 @@
 
     <section class="container-fluid p-0 mb-5">
         <div class="hero-placeholder d-flex align-items-center justify-content-center">
-            <img src="/img/home.jpeg" alt="">
+            <img src="../img/home.jpeg" alt="">
         </div>
     </section>
 
@@ -45,25 +45,25 @@
         <div class="row g-4">
             <div class="col-md-3">
                 <div class="dish-card">
-                    <div class="img-box mb-2"><img src="/img/hai-san-tuoi.jpg" alt=""></div>
+                    <div class="img-box mb-2"><img src="../img/hai-san-tuoi.jpg" alt=""></div>
                     <p class="fst-italic fw-medium">Hải sản tươi sống</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="dish-card">
-                    <div class="img-box mb-2"><img src="/img/sushi.jpg" alt=""></div>
+                    <div class="img-box mb-2"><img src="../img/sushi.jpg" alt=""></div>
                     <p class="fst-italic fw-medium">Sushi đa dạng</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="dish-card">
-                    <div class="img-box mb-2"><img src="/img/thit nuong.jpg" alt=""></div>
+                    <div class="img-box mb-2"><img src="../img/thit nuong.jpg" alt=""></div>
                     <p class="fst-italic fw-medium">Thịt nướng</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="dish-card">
-                    <div class="img-box mb-2"><img src="/img/lau.jpg" alt=""></div>
+                    <div class="img-box mb-2"><img src="../img/lau.jpg" alt=""></div>
                     <p class="fst-italic fw-medium">Lẩu</p>
                 </div>
             </div>
@@ -73,7 +73,7 @@
 
     <section class="container mb-5">
         <div class="combo-box p-5 d-flex align-items-center gap-5">
-            <div class="combo-img-placeholder"><img src="/img/combo.png" alt=""></div>
+            <div class="combo-img-placeholder"><img src="../img/combo.png" alt=""></div>
             <div class="combo-content">
                 <h2 class="display-6 fst-italic mb-4">Combo lẩu - nướng chỉ từ 199k</h2>
                 <div class="divider mb-4"></div>
@@ -108,15 +108,17 @@
             </div>
         </div>
     </footer>
-    <link rel="stylesheet" href="/index/chatbot.css">
+    <link rel="stylesheet" href="chatbot.css">
 
 <div id="chatbot-container"></div> 
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="customer-header.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
     // Load chatbot HTML
-    fetch('/index/chatbot.html')
+    fetch('chatbot.html')
         .then(res => res.text())
         .then(data => {
             document.getElementById('chatbot-container').innerHTML = data;
@@ -124,12 +126,12 @@
             // Load CSS
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/index/chatbot.css';
+            link.href = 'chatbot.css';
             document.head.appendChild(link);
 
             // 🔥 Load JS SAU KHI HTML ĐÃ CÓ
             const script = document.createElement('script');
-            script.src = '/index/chatbot.js';
+            script.src = 'chatbot.js';
 
             script.onload = () => {
                 console.log("✅ Chatbot loaded OK");

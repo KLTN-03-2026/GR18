@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!token) {
         alert("Vui lòng đăng nhập để xem lịch sử!");
-        window.location.href = '/dangnhap.html';
+        window.location.href = '../dangnhap.html';
         return;
     }
 

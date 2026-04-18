@@ -1,0 +1,120 @@
+package com.restaurant.controller;
+
+import com.restaurant.dto.response.ApiResponse;
+import com.restaurant.dto.response.RestaurantTableResponse;
+import com.restaurant.entity.RestaurantTable;
+import com.restaurant.entity.enums.TableStatus;
+import com.restaurant.service.TableService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/tables")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
+@Tag(name = "Table", description = "Quản lý bàn và mã QR")
+public class TableController {
+
+    private final TableService tableService;
+
+    private List<RestaurantTableResponse> toTableResponses(List<RestaurantTable> tables) {
+        return tables.stream().map(RestaurantTableResponse::from).toList();
+    }
+
+    // ===== PUBLIC: Khách quét QR =====
+    @GetMapping("/qr/{token}")
+    @Operation(summary = "Quét mã QR → lấy thông tin bàn và menu (Public)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> scanQrCode(@PathVariable String token) {
+        RestaurantTable table = tableService.getTableByQrToken(token);
+        Map<String, Object> data = Map.of(
+                "tableId", table.getId(),
+                "tableNumber", table.getTableNumber(),
+                "capacity", table.getCapacity(),
+                "location", table.getLocation() != null ? table.getLocation() : ""
+        );
+        return ResponseEntity.ok(ApiResponse.success(data, "Chào mừng bạn đến với nhà hàng!"));
+    }
+
+    // ===== STAFF =====
+    @PatchMapping("/staff/tables/{id}/status")
+    @Operation(summary = "Nhân viên: Cập nhật trạng thái bàn", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<RestaurantTableResponse>> updateStatus(
+            @PathVariable Long id,
+            @RequestParam TableStatus status) {
+        RestaurantTable updated = tableService.updateTableStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success(RestaurantTableResponse.from(updated)));
+    }
+
+    // ===== ADMIN =====
+    @GetMapping("/admin/tables")
+    @Operation(summary = "Admin: Danh sách tất cả bàn (QR / sơ đồ)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<RestaurantTableResponse>>> listAllTablesForAdmin() {
+        List<RestaurantTable> tables = tableService.getAllTables();
+        List<RestaurantTableResponse> dtoList = toTableResponses(tables);
+        return ResponseEntity.ok(ApiResponse.success(dtoList));
+    }
+
+    @PostMapping("/admin/tables")
+    @Operation(summary = "Admin: Tạo bàn mới", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<RestaurantTableResponse>> createTable(
+            @RequestParam String tableNumber,
+            @RequestParam Integer capacity,
+            @RequestParam(required = false) String location) {
+        RestaurantTable table = tableService.createTable(tableNumber, capacity, location);
+        return ResponseEntity.ok(ApiResponse.success(RestaurantTableResponse.from(table), "Tạo bàn thành công"));
+    }
+
+    @PutMapping("/admin/tables/{id}")
+    @Operation(summary = "Admin: Cập nhật thông tin bàn (US22)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<RestaurantTableResponse>> updateTable(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer capacity,
+            @RequestParam(required = false) String location) {
+        RestaurantTable table = tableService.updateTableInfo(id, capacity, location);
+        return ResponseEntity.ok(ApiResponse.success(RestaurantTableResponse.from(table), "Cập nhật bàn thành công"));
+    }
+
+    @DeleteMapping("/admin/tables/{id}")
+    @Operation(summary = "Admin: Xóa bàn (soft delete) (US22)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteTable(@PathVariable Long id) {
+        tableService.deleteTable(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa bàn"));
+    }
+
+    @PatchMapping("/admin/tables/{id}/deactivate-qr")
+    @Operation(summary = "Admin: Vô hiệu hóa mã QR của bàn (US22)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<RestaurantTableResponse>> deactivateQr(@PathVariable Long id) {
+        RestaurantTable table = tableService.regenerateQrCode(id);
+        return ResponseEntity.ok(ApiResponse.success(
+                RestaurantTableResponse.from(table), "Mã QR đã được tạo lại (QR cũ vô hiệu)"));
+    }
+
+    @GetMapping("/admin/tables/{id}/qr")
+    @Operation(summary = "Admin: Tải xuống mã QR của bàn", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> downloadQrCode(@PathVariable Long id) {
+        RestaurantTable table = tableService.getTableById(id);
+        byte[] qrBytes = tableService.generateQrCode(table);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"table_" + table.getTableNumber() + "_qr.png\"")
+                .body(qrBytes);
+    }
+}

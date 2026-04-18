@@ -15,7 +15,7 @@
 /* Nền toàn trang có ảnh */
 .booking-wrapper {
     min-height: 100vh;
-    background: url('/img/restaurant-bg.jpg') center/cover no-repeat; /* Thay bằng ảnh nhà hàng thực tế */
+    background: url('../img/restaurant-bg.jpg') center/cover no-repeat; /* Thay bằng ảnh nhà hàng thực tế */
     position: relative;
     padding: 20px;
 }

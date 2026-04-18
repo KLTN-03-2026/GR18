@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -24,6 +24,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 gap-3">
                 <div>
                     <h2 class="page-title mb-1 text-on-surface">Quản lý Sơ đồ bàn & QR</h2>
+                    <p class="small text-secondary mb-0 mt-1">Danh sách bàn: <code class="small">GET /api/tables/admin/tables</code> (chỉ ADMIN), kèm JWT. Mỗi phần tử <code class="small">data[]</code>: <code class="small">tableNumber</code>, <code class="small">qrCodeToken</code>, …</p>
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-surface-container d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold border-outline-variant">
@@ -38,56 +39,18 @@
             <div class="row g-4">
                 <div class="col-12 col-xl-8">
                     <div class="qr-action-card p-4 rounded-4 shadow-sm h-100 border border-outline-variant">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0 fw-bold">Danh sách QR & Thao tác nhanh</h5>
-                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold small">Tải xuống tất cả QR</button>
+                            <button type="button" id="btn-download-all-qr" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold small">Tải xuống tất cả QR</button>
                         </div>
-                        
-                        <div class="qr-list custom-scrollbar pe-2 overflow-y-auto" style="max-height: 480px;">
-                            <div class="qr-item d-flex align-items-center justify-content-between p-3 rounded-4 mb-3 border border-outline-variant/10">
-                                <div class="d-flex align-items-center gap-4">
-                                    <div class="qr-box bg-white rounded-3 p-1 shadow-sm">
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=T01" alt="QR" class="img-fluid rounded-1">
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-bold text-on-surface fs-6">Bàn 01 (Table 01)</p>
-                                        <p class="mb-0 text-secondary smaller">Gian hàng • Sảnh chính</p>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-icon-tool"><span class="material-symbols-outlined fs-5">visibility</span></button>
-                                    <button class="btn btn-icon-tool btn-primary-soft"><span class="material-symbols-outlined fs-5">download</span></button>
-                                </div>
-                            </div>
-
-                            <div class="qr-item d-flex align-items-center justify-content-between p-3 rounded-4 mb-3 border border-outline-variant/10">
-                                <div class="d-flex align-items-center gap-4">
-                                    <div class="qr-box bg-white rounded-3 p-1 shadow-sm">
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=T02" alt="QR" class="img-fluid rounded-1">
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-bold text-on-surface fs-6">Bàn 02 (Table 02)</p>
-                                        <p class="mb-0 text-secondary smaller">Bàn tròn • Cửa sổ</p>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-icon-tool"><span class="material-symbols-outlined fs-5">visibility</span></button>
-                                    <button class="btn btn-icon-tool btn-primary-soft"><span class="material-symbols-outlined fs-5">download</span></button>
-                                </div>
-                            </div>
-
-                            <div class="qr-item d-flex align-items-center justify-content-between p-3 rounded-4 mb-3 border border-outline-variant/10">
-                                <div class="d-flex align-items-center gap-4">
-                                    <div class="qr-box-empty rounded-3 d-flex align-items-center justify-content-center">
-                                        <span class="material-symbols-outlined text-secondary fs-3">qr_code_2</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-bold text-on-surface fs-6">Bàn 03 (Table 03)</p>
-                                        <p class="mb-0 text-secondary smaller">Bàn lớn • Trung tâm</p>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">TẠO MÃ QR</button>
-                            </div>
+                        <div class="mb-4 p-3 rounded-3 bg-surface-container-low border border-outline-variant/10">
+                            <label class="form-label small fw-bold mb-1" for="qr-menu-base-url">URL trang menu khách (QR chứa link này + mã bàn)</label>
+                            <input type="url" class="form-control form-control-sm rounded-xl" id="qr-menu-base-url"
+                                   placeholder="http://127.0.0.1:5500/index/menu.html">
+                            <p class="small text-secondary mb-0 mt-2">Để trống khi mở lần đầu: tự suy ra từ đường dẫn tới <code>index/menu.html</code>. Đổi khi deploy (HTTPS, domain thật).</p>
+                        </div>
+                        <div class="qr-list custom-scrollbar pe-2 overflow-y-auto" style="max-height: 480px;" id="qr-list-root">
+                            <p class="text-secondary small mb-0">Đang tải danh sách bàn…</p>
                         </div>
                     </div>
                 </div>
@@ -100,13 +63,13 @@
                                 <div class="col-6">
                                     <div class="stat-box p-3 rounded-3 bg-surface-container-low border border-outline-variant/10 text-center">
                                         <p class="smaller text-secondary text-uppercase fw-bold mb-1">Tổng số bàn</p>
-                                        <p class="h3 fw-800 text-primary mb-0">24</p>
+                                        <p class="h3 fw-800 text-primary mb-0" id="stat-total-tables">—</p>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="stat-box p-3 rounded-3 bg-surface-container-low border border-outline-variant/10 text-center">
                                         <p class="smaller text-secondary text-uppercase fw-bold mb-1">Mã QR active</p>
-                                        <p class="h3 fw-800 text-secondary mb-0">21</p>
+                                        <p class="h3 fw-800 text-secondary mb-0" id="stat-qr-active">—</p>
                                     </div>
                                 </div>
                             </div>
@@ -140,29 +103,8 @@
                                         <th class="text-end pe-3 py-3">THAO TÁC</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr class="table-row-item">
-                                        <td class="ps-3 fw-bold">T-01</td>
-                                        <td class="text-secondary">Gian hàng</td>
-                                        <td><span class="badge bg-surface-container-highest text-white px-3 py-2 rounded-pill">Khách</span></td>
-                                        <td><span class="badge-status-glow bg-secondary-container/20 text-secondary fw-bold">Hoạt động</span></td>
-                                        <td class="text-secondary small">14 phút trước</td>
-                                        <td class="text-end pe-3">
-                                            <button class="btn btn-icon-tool-sm me-2"><span class="material-symbols-outlined fs-5">download</span></button>
-                                            <button class="btn btn-icon-tool-sm text-danger"><span class="material-symbols-outlined fs-5">delete</span></button>
-                                        </td>
-                                    </tr>
-                                    <tr class="table-row-item">
-                                        <td class="ps-3 fw-bold">T-03</td>
-                                        <td class="text-secondary">Bàn gia đình</td>
-                                        <td><span class="badge bg-surface-container-highest text-white px-3 py-2 rounded-pill">Khách</span></td>
-                                        <td><span class="badge-status-neutral bg-surface-highest text-secondary fw-bold">Đang chờ</span></td>
-                                        <td class="text-secondary small">--</td>
-                                        <td class="text-end pe-3">
-                                            <button class="btn btn-primary-soft btn-sm px-3 rounded-pill fw-bold smaller">Tạo QR</button>
-                                            <button class="btn btn-icon-tool-sm text-danger ms-2"><span class="material-symbols-outlined fs-5">delete</span></button>
-                                        </td>
-                                    </tr>
+                                <tbody id="tables-qr-tbody">
+                                    <tr class="table-row-item"><td colspan="6" class="text-secondary small ps-3 py-3">Đang tải…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -177,6 +119,8 @@
     </button>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="component-loader.js"></script>
+    <script src="sodoban.js"></script>
 </body>
 </html>

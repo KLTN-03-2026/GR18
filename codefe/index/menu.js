@@ -1,18 +1,88 @@
 // ============================================================
-// CONFIG
+// CONFIG (qr-session.js đặt RESTAURANT_API_BASE trước khi load file này)
 // ============================================================
-const API_BASE = "http://localhost:8080/api";
+let API_BASE = window.RESTAURANT_API_BASE || "http://192.168.1.27:8080/api";
+const API_BASE_CANDIDATES = [
+    API_BASE,
+    "http://192.168.1.27:8080/api",
+    "http://localhost:8080/api",
+    "http://127.0.0.1:8080/api"
+];
+
+/** Anh mac dinh + fallback: data URI (khong goi mang) tranh via.placeholder.com va vong lap onerror */
+const MENU_IMAGE_FALLBACK =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">' +
+            '<rect fill="#e9ecef" width="80" height="80"/>' +
+            '<text x="40" y="44" text-anchor="middle" font-size="11" fill="#6c757d" font-family="system-ui,sans-serif">No img</text>' +
+            "</svg>"
+    );
 
 // State
 let danhSachMon = [];
 let monDangChon = null;
 let _pageSize = 6;       // số món hiển thị mỗi lần
 let _hienTai = 6;        // số món đang hiện
+let _qrCategoryKey = "__all";
+const DEMO_MENU = [
+    { id: 9001, name: "Cơm chiên hải sản", price: 89000, avgRating: 4.5 },
+    { id: 9002, name: "Mỳ Ý bò bằm", price: 99000, avgRating: 4.3 },
+    { id: 9003, name: "Salad cá ngừ", price: 79000, avgRating: 4.2 },
+    { id: 9004, name: "Trà đào cam sả", price: 45000, avgRating: 4.7 }
+];
+
+// ============================================================
+// QR BÀN (khách vãng lai)
+// ============================================================
+function escapeHtml(s) {
+    if (s == null) return "";
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+}
+
+async function initQrBanner() {
+    const el = document.getElementById("table-qr-banner");
+    if (!el) return;
+    const token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
+    if (!token) {
+        el.className =
+            "alert alert-light border-bottom mb-0 rounded-0 py-2 small text-muted text-center";
+        el.innerHTML =
+            '<i class="fa-solid fa-qrcode me-1"></i>Quét mã QR tại bàn để đặt món đúng số bàn (thêm <code>?t=</code> token vào URL khi demo).';
+        el.classList.remove("d-none");
+        return;
+    }
+    try {
+        const json = await fetchMenuWithFallback(`/tables/qr/${encodeURIComponent(token)}`);
+        if (!json || json.success === false) throw new Error("invalid");
+        const d = json.data != null ? json.data : json;
+        el.className = "alert alert-success border-0 mb-0 rounded-0 py-2 text-center shadow-none";
+        el.innerHTML =
+            '<i class="fa-solid fa-chair me-2"></i><strong>Bàn ' +
+            escapeHtml(d.tableNumber) +
+            "</strong>" +
+            (d.location ? " · " + escapeHtml(d.location) : "") +
+            ' <span class="small opacity-75">— đã nhận diện bàn</span>';
+        el.classList.remove("d-none");
+    } catch (err) {
+        console.error("QR validation error:", err);
+        el.className = "alert alert-warning border-0 mb-0 rounded-0 py-2 text-center";
+        el.innerHTML =
+            '<i class="fa-solid fa-triangle-exclamation me-2"></i>Không xác thực được mã bàn (BE hoặc token). Token: <code>' +
+            escapeHtml(token) +
+            '</code>';
+        el.classList.remove("d-none");
+    }
+}
 
 // ============================================================
 // INIT
 // ============================================================
-window.onload = () => {
+window.onload = async () => {
+    await initQrBanner();
     capNhatBadgeGioHang();
     loadMenu();
 
@@ -58,6 +128,14 @@ window.onload = () => {
     });
 
     icon?.addEventListener("click", handleSearch);
+
+    document.addEventListener("click", (e) => {
+        const panel = document.getElementById("qr-category-dropdown");
+        const btn = document.getElementById("qr-cat-toggle-btn");
+        if (!panel || panel.classList.contains("d-none")) return;
+        if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+        closeQrCategoryDropdown();
+    });
 };
 
 // ============================================================
@@ -67,24 +145,26 @@ window.onload = () => {
 // Load toàn bộ menu
 async function loadMenu() {
     try {
-        const res = await fetch(`${API_BASE}/menu`);
-        const json = await res.json();
+        const json = await fetchMenuWithFallback("/menu");
 
         // FIX CHÍNH Ở ĐÂY
         danhSachMon = json.data || [];
+        renderQrCategoryList(danhSachMon);
 
         renderMenu(danhSachMon);
     } catch (err) {
         console.error("Lỗi load menu:", err);
-        hienThongBao("Không tải được menu");
+        danhSachMon = DEMO_MENU.slice();
+        renderQrCategoryList(danhSachMon);
+        renderMenu(danhSachMon);
+        hienThongBao("Không tải được menu từ backend. Đang hiển thị dữ liệu demo. API hiện tại: " + API_BASE);
     }
 }
 
 // Search từ API
 async function searchMenu(keyword) {
     try {
-        const res = await fetch(`${API_BASE}/menu/search?keyword=${encodeURIComponent(keyword)}`);
-        const json = await res.json();
+        const json = await fetchMenuWithFallback(`/menu/search?keyword=${encodeURIComponent(keyword)}`);
 
         // API search có content
         const data = json.data?.content || [];
@@ -95,14 +175,34 @@ async function searchMenu(keyword) {
         hienThongBao("Lỗi tìm kiếm");
     }
 }
+
+async function fetchMenuWithFallback(path) {
+    const deduped = [...new Set(API_BASE_CANDIDATES.filter(Boolean))];
+    let lastErr;
+
+    for (const base of deduped) {
+        try {
+            const res = await fetch(`${base}${path}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            API_BASE = base;
+            window.RESTAURANT_API_BASE = base;
+            return json;
+        } catch (err) {
+            lastErr = err;
+        }
+    }
+    throw lastErr || new Error("Không thể kết nối backend");
+}
 // ============================================================
 // RENDER
 // ============================================================
 function renderMenu(items, reset) {
     const el = document.getElementById("menu-list");
     if (!el) return;
+    const filteredItems = locTheoDanhMucQr(items || []);
 
-    if (!items || items.length === 0) {
+    if (!filteredItems || filteredItems.length === 0) {
         el.innerHTML = `<p class="text-center text-muted">Không tìm thấy món ăn</p>`;
         _capNhatNutXemThem(0, 0);
         return;
@@ -110,7 +210,7 @@ function renderMenu(items, reset) {
 
     if (reset !== false) _hienTai = _pageSize;  // reset khi load mới / search mới
 
-    const hien = items.slice(0, _hienTai);
+    const hien = filteredItems.slice(0, _hienTai);
 
     el.innerHTML = `
         <div class="row g-4">
@@ -118,7 +218,7 @@ function renderMenu(items, reset) {
         </div>
     `;
 
-    _capNhatNutXemThem(hien.length, items.length);
+    _capNhatNutXemThem(hien.length, filteredItems.length);
 }
 
 function _capNhatNutXemThem(hienTai, total) {
@@ -145,8 +245,7 @@ function renderItem(item) {
     const gia = item.price || item.gia || 0;
     const rating = item.avgRating || item.rating || 0;
 
-    // SỬA TẠI ĐÂY: Kiểm tra kỹ imageUrl/image
-    const img = item.imageUrl || item.image || 'https://via.placeholder.com/300x300?text=No+Image';
+    const img = item.imageUrl || item.image || MENU_IMAGE_FALLBACK;
 
     return `
         <div class="col-md-6">
@@ -157,7 +256,8 @@ function renderItem(item) {
                 <img src="${img}" 
                      class="flex-shrink-0 me-3 rounded"
                      style="width:80px;height:80px;object-fit:cover"
-                     onerror="this.src='https://via.placeholder.com/80?text=Error'">
+                     alt=""
+                     onerror="if(!this.dataset._fb){this.dataset._fb='1';this.onerror=null;this.src='${MENU_IMAGE_FALLBACK}';}">
 
                 <div class="flex-grow-1">
                     <h5 class="fw-bold mb-1">${ten}</h5>
@@ -177,11 +277,80 @@ function renderItem(item) {
         </div>
     `;
 }
+
+function normalizeQrCategoryKey(input) {
+    const s = String(input || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    return s || "khac";
+}
+
+function getItemCategoryLabel(item) {
+    if (!item) return "Khác";
+    if (typeof item.category === "string" && item.category.trim()) return item.category.trim();
+    if (item.category && typeof item.category.name === "string" && item.category.name.trim()) return item.category.name.trim();
+    if (typeof item.categoryName === "string" && item.categoryName.trim()) return item.categoryName.trim();
+    return "Khác";
+}
+
+function locTheoDanhMucQr(items) {
+    if (_qrCategoryKey === "__all") return items || [];
+    return (items || []).filter((item) => normalizeQrCategoryKey(getItemCategoryLabel(item)) === _qrCategoryKey);
+}
+
+function renderQrCategoryList(items) {
+    const root = document.getElementById("qr-category-list");
+    if (!root) return;
+
+    const seen = new Set();
+    const categories = [{ key: "__all", label: "Tất cả món" }];
+    (items || []).forEach((item) => {
+        const label = getItemCategoryLabel(item);
+        const key = normalizeQrCategoryKey(label);
+        if (seen.has(key)) return;
+        seen.add(key);
+        categories.push({ key, label });
+    });
+
+    root.innerHTML = categories
+        .map((c) => `
+            <button type="button"
+                    class="list-group-item list-group-item-action ${_qrCategoryKey === c.key ? "active" : ""}"
+                    onclick="chonDanhMucQr('${escapeStr(c.key)}')">
+                ${c.label}
+            </button>
+        `)
+        .join("");
+}
+
+function chonDanhMucQr(key) {
+    _qrCategoryKey = key || "__all";
+    renderQrCategoryList(danhSachMon);
+    renderMenu(danhSachMon);
+    closeQrCategoryDropdown();
+}
+
+function toggleQrCategoryDropdown() {
+    const panel = document.getElementById("qr-category-dropdown");
+    if (!panel) return;
+    panel.classList.toggle("d-none");
+}
+
+function closeQrCategoryDropdown() {
+    const panel = document.getElementById("qr-category-dropdown");
+    if (!panel) return;
+    panel.classList.add("d-none");
+}
 // ============================================================
 // ACTION
 // ============================================================
 function xemChiTiet(id) {
-    window.location.href = `/index/menu-detail.html?id=${id}&from=menu`;
+    let q = `id=${encodeURIComponent(id)}&from=menu`;
+    const t = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
+    if (t) q += `&t=${encodeURIComponent(t)}`;
+    window.location.href = `menu-detail.html?${q}`;
 }
 
 function moModal(id, ten, gia, img) {
@@ -216,11 +385,17 @@ function xacNhanThemGio() {
 // CART
 // ============================================================
 function layGioHang() {
+    if (typeof window.layGioHangChung === "function") return window.layGioHangChung();
     try {
         return JSON.parse(localStorage.getItem("gioHang")) || [];
     } catch {
         return [];
     }
+}
+
+function luuGioHang(cart) {
+    if (typeof window.luuGioHangChung === "function") window.luuGioHangChung(cart);
+    else localStorage.setItem("gioHang", JSON.stringify(cart || []));
 }
 
 function themVaoGio(item, soLuong, ghiChu) {
@@ -238,7 +413,7 @@ function themVaoGio(item, soLuong, ghiChu) {
         cart.push(entry);
     }
 
-    localStorage.setItem("gioHang", JSON.stringify(cart));
+    luuGioHang(cart);
     capNhatBadgeGioHang();
 
     const ghiChuNote = ghiChu ? ` (${ghiChu})` : "";

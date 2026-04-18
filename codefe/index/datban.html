@@ -6,27 +6,27 @@
     <title>Đặt bàn trước - Restaurant AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="/index/datban.css" />
+    <link rel="stylesheet" href="datban.css" />
   </head>
   <body>
     <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
       <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-orange" href="/index/home.html">
+        <a class="navbar-brand fw-bold text-orange" href="home.html">
           <i class="fa-solid fa-robot me-2"></i>Restaurant AI
         </a>
         <div class="collapse navbar-collapse justify-content-center">
           <ul class="navbar-nav gap-3">
-            <li class="nav-item"><a class="nav-link" href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-            <li class="nav-item"><a class="nav-link" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-            <li class="nav-item"><a class="nav-link active" href="#"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-            <li class="nav-item"><a class="nav-link" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-            <li class="nav-item"><a class="nav-link" href="/index/lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
+            <li class="nav-item"><a class="nav-link" href="home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+            <li class="nav-item"><a class="nav-link active" href="datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
+            <li class="nav-item"><a class="nav-link" href="danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
+            <li class="nav-item"><a class="nav-link" href="lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
+            <li class="nav-item"><a class="nav-link" href="danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
           </ul>
         </div>
         <div class="d-flex align-items-center gap-3">
           <i class="fa-solid fa-magnifying-glass cursor-pointer"></i>
-          <button class="btn btn-orange px-3">Đặt bàn ngay</button>
+          <button type="button" class="btn btn-orange px-3" onclick="document.getElementById('reservationForm')?.scrollIntoView({ behavior: 'smooth' })">Đặt bàn ngay</button>
           <div class="user-avatar-small" id="userDisplay"></div>
           <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
         </div>
@@ -40,6 +40,11 @@
           <div class="col-lg-5 col-md-6">
             <div class="booking-card p-4 shadow-lg">
               <h4 class="fw-bold mb-4">Đặt bàn trước</h4>
+
+              <div id="guest-login-hint" class="alert alert-info small d-none mb-3" role="alert">
+                Bạn có thể xem và điền thông tin bên dưới. Khi bấm <strong>Xác nhận đặt bàn</strong>, hệ thống sẽ yêu cầu
+                <a href="../dangnhap.html?next=index%2Fdatban.html" class="alert-link">đăng nhập</a> để hoàn tất.
+              </div>
 
               <form id="reservationForm">
                 <div class="mb-3">
@@ -63,6 +68,14 @@
                   <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-users text-muted"></i></span>
                     <input type="number" id="guests" class="form-control border-start-0 ps-0" value="2" min="1" max="50" required />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Số điện thoại liên hệ</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-phone text-muted"></i></span>
+                    <input type="tel" id="customerPhone" class="form-control border-start-0 ps-0" placeholder="VD: 0912345678" required autocomplete="tel" />
                   </div>
                 </div>
 
@@ -95,7 +108,9 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="customer-header.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/index/datban.js"></script>
+    <script src="datban.js"></script>
   </body>
 </html>

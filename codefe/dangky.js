@@ -59,7 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('userInfo', JSON.stringify({
                         userId: userData.userId,
                         fullName: userData.fullName,
-                        role: userData.role
+                        role: userData.role,
+                        email: userData.email || email || "",
+                        phone: userData.phone || phone || ""
                     }));
 
                     alert('Đăng ký tài khoản thành công! Chào mừng ' + userData.fullName);

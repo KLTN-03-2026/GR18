@@ -1,0 +1,29 @@
+# Sao chép thành .env và điền giá trị (file .env đã được .gitignore bỏ qua).
+# Hoặc export biến trong shell / cấu hình IDE Run Configuration.
+# Spring Boot khong doc .env mac dinh — can IDE/plugin hoac export bien truoc khi chay.
+# Hoac dung profile local: SPRING_PROFILES_ACTIVE=local va file application-local.properties (gitignore) dat cung cap voi env.example.
+
+# MySQL
+DB_URL=jdbc:mysql://localhost:3306/restaurant_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+DB_USERNAME=root
+DB_PASSWORD=
+
+# JWT (chuỗi bí mật đủ dài, ngẫu nhiên)
+JWT_SECRET=
+
+# Gmail SMTP (App Password)
+MAIL_USERNAME=
+MAIL_PASSWORD=
+
+# Google Gemini
+GEMINI_API_KEY=
+
+# Google OAuth2 đăng nhập
+GOOGLE_OAUTH2_CLIENT_ID=
+GOOGLE_OAUTH2_CLIENT_SECRET=
+
+# Cloudinary (tùy chọn — đã dùng placeholder trong application.properties)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+CLOUDINARY_FOLDER=image_dish

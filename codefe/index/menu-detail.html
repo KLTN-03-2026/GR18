@@ -6,7 +6,7 @@
     <title>Chi tiết món ăn - Restaurant AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/index/danhmuc.css">
+    <link rel="stylesheet" href="danhmuc.css">
     <style>
         .detail-img-wrap {
             width: 100%;
@@ -56,7 +56,7 @@
 <!-- ===== NAVBAR ===== -->
 <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-orange" href="/index/home.html">
+        <a class="navbar-brand fw-bold text-orange" href="home.html">
             <i class="fa-solid fa-robot me-2"></i>Restaurant AI
         </a>
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-label="Toggle navigation">
@@ -64,18 +64,18 @@
         </button>
         <div class="collapse navbar-collapse justify-content-center" id="navMain">
             <ul class="navbar-nav gap-3">
-                <li class="nav-item"><a class="nav-link" href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-<li class="nav-item"><a class="nav-link" href="/index/lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
+                <li class="nav-item"><a class="nav-link" href="home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+                <li class="nav-item"><a class="nav-link" href="datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
+                <li class="nav-item"><a class="nav-link active" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+<li class="nav-item"><a class="nav-link" href="lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
+                <li class="nav-item"><a class="nav-link" href="danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
             </ul>
         </div>
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-orange px-3 d-none d-lg-inline-block" onclick="window.location.href='/index/datban.html'">Đặt bàn ngay</button>
+            <button class="btn btn-orange px-3 d-none d-lg-inline-block" onclick="window.location.href='datban.html'">Đặt bàn ngay</button>
             <div class="user-avatar-small"></div>
-            <div class="position-relative" style="cursor:pointer" onclick="window.location.href='/index/giohang.html'">
+            <div class="position-relative" style="cursor:pointer" onclick="window.location.href=(window.appendQrToHref?window.appendQrToHref('giohang.html'):'giohang.html')">
                 <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
                 <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                       style="display:none;font-size:10px">0</span>
@@ -87,8 +87,8 @@
 <!-- ===== MAIN ===== -->
 <main class="container py-4" style="max-width:900px">
 
-    <a href="/index/danhmuc.html" class="btn btn-light border rounded-pill mb-4">
-        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh mục
+    <a href="menu.html" class="btn btn-light border rounded-pill mb-4" id="btn-back-menu">
+        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại menu
     </a>
 
     <!-- Loading state -->
@@ -109,8 +109,14 @@
     <span id="cart-toast-msg"></span>
 </div>
 
+<!-- ===== CHATBOT ===== -->
+<link rel="stylesheet" href="chatbot.css">
+<div id="chatbot-container"></div>
+
 <!-- ===== SCRIPTS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="qr-session.js"></script>
+<script src="customer-header.js"></script>
 <script>
     var CAT_LABELS = {
         combo:'Combo ưu đãi', thit:'Thịt nướng',
@@ -121,6 +127,11 @@
 
     /* ── Init ── */
     window.onload = function () {
+        if (typeof getActiveQrToken === 'function') getActiveQrToken();
+        var backBtn = document.getElementById('btn-back-menu');
+        if (backBtn && typeof appendQrToHref === 'function') {
+            backBtn.href = appendQrToHref('menu.html');
+        }
         capNhatBadge();
         var id = new URLSearchParams(window.location.search).get('id');
         if (!id) { showError('Không có ID món ăn trong URL.'); return; }
@@ -129,7 +140,8 @@
 
     /* ── Fetch from API ── */
     function fetchFromAPI(id) {
-        fetch('http://localhost:8080/api/menu/' + encodeURIComponent(id))
+        var apiBase = window.RESTAURANT_API_BASE || 'http://192.168.1.27:8080/api';
+        fetch(apiBase + '/menu/' + encodeURIComponent(id))
             .then(function (res) {
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 return res.json();
@@ -165,7 +177,7 @@ var cat = item.category;
         var stars  = renderStars(p.rating);
         var catLabel = CAT_LABELS[p.category] || p.category || '';
         var imgHtml = p.img
-            ? '<img src="' + p.img + '" alt="' + p.ten + '" onerror="this.src=\'/img/home.jpeg\'">'
+            ? '<img src="' + p.img + '" alt="' + p.ten + '" onerror="this.src=\'../img/home.jpeg\'">'
             : '<i class="fa-solid fa-bowl-food fa-4x text-muted"></i>';
 
         document.getElementById('detail-container').innerHTML =
@@ -199,7 +211,7 @@ var cat = item.category;
                         '<button class="btn btn-orange rounded-pill px-5 py-2 fw-semibold" onclick="themVaoGio()">' +
                             '<i class="fa-solid fa-cart-plus me-2"></i>Thêm vào giỏ hàng' +
                         '</button>' +
-                        '<a href="/index/giohang.html" class="btn btn-light border rounded-pill px-4 py-2">' +
+                        '<a href="' + (typeof appendQrToHref === 'function' ? appendQrToHref('giohang.html') : 'giohang.html') + '" class="btn btn-light border rounded-pill px-4 py-2">' +
                             '<i class="fa-solid fa-cart-shopping me-2"></i>Xem giỏ hàng' +
                         '</a>' +
                     '</div>' +
@@ -217,8 +229,8 @@ var cat = item.category;
                 '<i class="fa-solid fa-circle-exclamation fa-3x text-muted mb-3 d-block"></i>' +
                 '<p class="text-muted">Không tìm thấy món ăn (ID: <code>' + id + '</code>).<br>' +
                 'Món có thể không tồn tại hoặc backend chưa chạy.</p>' +
-                '<a href="/index/danhmuc.html" class="btn btn-orange rounded-pill px-4">' +
-                    '<i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh mục' +
+                '<a href="menu.html" class="btn btn-orange rounded-pill px-4">' +
+                    '<i class="fa-solid fa-arrow-left me-2"></i>Quay lại menu' +
                 '</a>' +
             '</div>';
     }
@@ -253,7 +265,8 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
             if (ghiChu) entry.ghiChu = ghiChu;
             cart.push(entry);
         }
-        localStorage.setItem('gioHang', JSON.stringify(cart));
+        if (typeof luuGioHangChung === 'function') luuGioHangChung(cart);
+        else localStorage.setItem('gioHang', JSON.stringify(cart));
         capNhatBadge();
         var ghiChuNote = ghiChu ? ' (' + ghiChu + ')' : '';
         hienToast('Đã thêm ' + sl + ' "' + ten + '"' + ghiChuNote + ' vào giỏ hàng!');
@@ -261,6 +274,7 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
 
     /* ── Helpers ── */
     function layGioHang() {
+        if (typeof layGioHangChung === 'function') return layGioHangChung();
         try { return JSON.parse(localStorage.getItem('gioHang')) || []; }
         catch (e) { return []; }
     }
@@ -293,6 +307,22 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
         for (var j = 0; j < empty; j++) s += '<i class="fa-regular fa-star"></i>';
         return s;
     }
+</script>
+<script>
+fetch("chatbot.html")
+    .then(function (res) { return res.text(); })
+    .then(function (data) {
+        var container = document.getElementById("chatbot-container");
+        if (!container) return;
+        container.innerHTML = data;
+
+        var script = document.createElement("script");
+        script.src = "chatbot.js";
+        document.body.appendChild(script);
+    })
+    .catch(function (err) {
+        console.error("Khong tai duoc chatbot:", err);
+    });
 </script>
 
 </body>
