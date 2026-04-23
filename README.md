@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🍽️ RESTAURANT AI SYSTEM 🤖  
 ## 🚀 Hệ thống quản lý nhà hàng thông minh tích hợp AI & QR Ordering  
 
@@ -333,4 +333,4 @@ Dự án này là tài sản học thuật thuộc chương trình đào tạo c
 Nghiêm cấm sao chép hoặc sử dụng cho mục đích thương mại khi chưa có sự đồng ý của nhóm tác giả.
 Copyright © 2026 - Nhóm đồ án Gr18 (Restaurant AI).
 ```
->>>>>>> 90f5b3f (fix-README)
+
