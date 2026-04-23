@@ -1,13 +1,29 @@
-/**
- * 1. ĐỊNH NGHĨA HÀM ĐĂNG XUẤT TOÀN CỤC (GLOBAL)
- */
+/** Cùng quy ước với khu vực khách (`RESTAURANT_API_BASE` trong `menu.js` / `giohang.js`). */
+const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+
+const STAFF_ALLOWED_PAGES = new Set([
+    "tongquan.html",
+    "datcho.html",
+    "donhang.html",
+    "qltrangthaiban.html",
+    "goinv.html",
+    "qlthanhtoan.html",
+]);
+
+/** `null` = mọi trang (ADMIN). Set rỗng = không trang nào. */
+function getAllowedPagesByRole(role) {
+    if (role === "ADMIN") return null;
+    if (role === "STAFF") return STAFF_ALLOWED_PAGES;
+    return new Set();
+}
+
 window.logout = async function () {
     const token = localStorage.getItem("token");
 
     if (!confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
 
     try {
-        await fetch("http://localhost:8080/api/auth/logout", {
+        await fetch(`${API_BASE}/auth/logout`, {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -27,9 +43,6 @@ window.logout = async function () {
     window.location.href = "../dangnhap.html"; 
 };
 
-/**
- * 1.5. TIỆN ÍCH ĐỌC ROLE TỪ localStorage (userInfo)
- */
 function getCurrentRole() {
     try {
         const raw = localStorage.getItem("userInfo");
@@ -39,27 +52,6 @@ function getCurrentRole() {
     } catch (e) {
         return null;
     }
-}
-
-function getAllowedPagesByRole(role) {
-    // Quy ước: file nằm trong thư mục admin/
-    // Admin: full
-    if (role === "ADMIN") return null;
-
-    // Staff: chỉ các nghiệp vụ vận hành
-    if (role === "STAFF") {
-        return new Set([
-            "tongquan.html",        // dashboard
-            "datcho.html",          // Quản lý Đặt bàn
-            "donhang.html",         // Tiếp nhận Đơn hàng
-            "qltrangthaiban.html",  // Quản lý Trạng thái bàn
-            "goinv.html",           // Xử lý Hỗ trợ (Gọi nhân viên)
-            "qlthanhtoan.html"      // Hoàn tất Thanh toán
-        ]);
-    }
-
-    // Role khác: không cho vào admin area
-    return new Set();
 }
 
 function enforcePageAccess() {
@@ -111,9 +103,6 @@ function updateHeaderByRole() {
     }
 }
 
-/**
- * 2. HÀM NẠP CÁC THÀNH PHẦN (SIDEBAR/HEADER)
- */
 async function loadComponent(containerId, fileName, callback = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -132,10 +121,6 @@ async function loadComponent(containerId, fileName, callback = null) {
     }
 }
 
-/**
- * 3. HÀM HIỂN THỊ THÔNG TIN NGƯỜI DÙNG LÊN HEADER
- * Khớp với cấu trúc dữ liệu từ dangnhap.js
- */
 function updateUserInfo() {
     try {
         // Lấy string userInfo từ localStorage
@@ -157,15 +142,12 @@ function updateUserInfo() {
     }
 }
 
-/**
- * 4. HÀM TỰ ĐỘNG ĐÁNH DẤU MENU ĐANG HOẠT ĐỘNG (ACTIVE)
- */
 function highlightCurrentPage() {
     const currentPage = window.location.pathname.split("/").pop() || 'tongquan.html';
     const navLinks = document.querySelectorAll('.sidebar .nav-link');
     
-    navLinks.forEach(link => {
-        const href = link.getAttribute('href').split("/").pop();
+    navLinks.forEach((link) => {
+        const href = (link.getAttribute("href") || "").split("/").pop();
         if (href === currentPage) {
             link.classList.add('active');
         } else {
@@ -174,10 +156,7 @@ function highlightCurrentPage() {
     });
 }
 
-/**
- * 5. KHỞI CHẠY KHI TRANG WEB ĐÃ TẢI XONG DOM
- */
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     // Chặn truy cập sai quyền trước khi render
     enforcePageAccess();
 

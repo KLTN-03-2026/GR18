@@ -4,6 +4,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.restaurant.dto.response.RestaurantTableResponse;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.repository.RestaurantTableRepository;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -77,6 +79,20 @@ public class TableService {
     public RestaurantTable getTableByQrToken(String token) {
         return tableRepository.findByQrCodeToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ"));
+    }
+
+    public Map<String, Object> buildQrScanWelcomeData(String token) {
+        RestaurantTable table = getTableByQrToken(token);
+        return Map.of(
+                "tableId", table.getId(),
+                "tableNumber", table.getTableNumber(),
+                "capacity", table.getCapacity(),
+                "location", table.getLocation() != null ? table.getLocation() : ""
+        );
+    }
+
+    public List<RestaurantTableResponse> getAllTableResponses() {
+        return getAllTables().stream().map(RestaurantTableResponse::from).toList();
     }
 
     // R5: Lấy bàn theo id (kể cả bàn đã deactivate) — dùng cho Admin

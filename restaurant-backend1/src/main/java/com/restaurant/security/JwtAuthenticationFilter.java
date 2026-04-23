@@ -1,5 +1,6 @@
 package com.restaurant.security;
 
+import com.restaurant.config.PublicApiPathHelper;
 import com.restaurant.repository.BlacklistedTokenRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,41 +28,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return PublicApiPathHelper.isAnonymousRequest(request);
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        // 🔥 FIX QUAN TRỌNG: dùng servletPath thay vì requestURI
-        String path = request.getServletPath();
-
-        log.info("Request path: {}", path);
-
-        // ✅ Skip public APIs
-        if (path.startsWith("/auth") ||
-                path.startsWith("/menu") ||
-                path.startsWith("/categories") ||
-                path.startsWith("/swagger") ||
-                path.startsWith("/v3") ||
-                path.startsWith("/api-docs")) {
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // ✅ Skip OPTIONS (CORS preflight)
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         try {
             String token = extractToken(request);
 
-            log.info("Extracted token: {}", token);
-
             if (StringUtils.hasText(token)) {
 
-                // 🔥 CHECK BLACKLIST
                 if (blacklistedTokenRepository.existsByToken(token)) {
                     log.warn("Token đã bị thu hồi");
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token đã logout");
@@ -90,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            log.error("Cannot set user authentication", e);
         }
 
         filterChain.doFilter(request, response);

@@ -27,25 +27,13 @@ public class TableController {
 
     private final TableService tableService;
 
-    private List<RestaurantTableResponse> toTableResponses(List<RestaurantTable> tables) {
-        return tables.stream().map(RestaurantTableResponse::from).toList();
-    }
-
-    // ===== PUBLIC: Khách quét QR =====
     @GetMapping("/qr/{token}")
     @Operation(summary = "Quét mã QR → lấy thông tin bàn và menu (Public)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> scanQrCode(@PathVariable String token) {
-        RestaurantTable table = tableService.getTableByQrToken(token);
-        Map<String, Object> data = Map.of(
-                "tableId", table.getId(),
-                "tableNumber", table.getTableNumber(),
-                "capacity", table.getCapacity(),
-                "location", table.getLocation() != null ? table.getLocation() : ""
-        );
+        Map<String, Object> data = tableService.buildQrScanWelcomeData(token);
         return ResponseEntity.ok(ApiResponse.success(data, "Chào mừng bạn đến với nhà hàng!"));
     }
 
-    // ===== STAFF =====
     @PatchMapping("/staff/tables/{id}/status")
     @Operation(summary = "Nhân viên: Cập nhật trạng thái bàn", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
@@ -56,14 +44,11 @@ public class TableController {
         return ResponseEntity.ok(ApiResponse.success(RestaurantTableResponse.from(updated)));
     }
 
-    // ===== ADMIN =====
     @GetMapping("/admin/tables")
     @Operation(summary = "Admin: Danh sách tất cả bàn (QR / sơ đồ)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<RestaurantTableResponse>>> listAllTablesForAdmin() {
-        List<RestaurantTable> tables = tableService.getAllTables();
-        List<RestaurantTableResponse> dtoList = toTableResponses(tables);
-        return ResponseEntity.ok(ApiResponse.success(dtoList));
+        return ResponseEntity.ok(ApiResponse.success(tableService.getAllTableResponses()));
     }
 
     @PostMapping("/admin/tables")
