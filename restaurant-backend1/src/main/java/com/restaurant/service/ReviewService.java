@@ -35,6 +35,13 @@ public class ReviewService {
                 .getContent();
     }
 
+    @Transactional(readOnly = true)
+    public List<Review> listAllVisible(int page, int size) {
+        return reviewRepository
+                .findByIsVisibleTrueOrderByCreatedAtDesc(PageRequest.of(page, size))
+                .getContent();
+    }
+
     @Transactional
     public Review submitReview(Long userId, SubmitReviewRequest request) {
         Order order = orderRepository.findById(request.getOrderId())

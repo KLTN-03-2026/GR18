@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecificationExecutor<Review> {
     Page<Review> findByMenuItemIdAndIsVisibleTrue(Long menuItemId, Pageable pageable);
     List<Review> findByMenuItemIdAndIsVisibleTrue(Long menuItemId);
+    Page<Review> findByIsVisibleTrueOrderByCreatedAtDesc(Pageable pageable);
     List<Review> findByUserId(Long userId);
     Optional<Review> findByUserIdAndOrderId(Long userId, Long orderId);
 

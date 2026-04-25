@@ -4,13 +4,13 @@ import com.restaurant.dto.request.LoginRequest;
 import com.restaurant.dto.request.RegisterRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.AuthResponse;
+import com.restaurant.security.JwtTokenProvider;
 import com.restaurant.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -22,6 +22,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản khách hàng")
@@ -53,10 +54,25 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất (thu hồi access token)")
     public ResponseEntity<ApiResponse<Void>> logout(
-            Authentication authentication,
-            @RequestHeader("Authorization") String authHeader) {
-        authService.logout(authentication, authHeader);
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (jwtTokenProvider.validateToken(token)) {
+                Long userId = jwtTokenProvider.getUserIdFromToken(token);
+                authService.logout(userId, token);
+            }
+        } catch (Exception ignored) {
+            // Token không hợp lệ hoặc đã hết hạn — vẫn coi như logout thành công
+        }
+
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }
 

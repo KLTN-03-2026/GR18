@@ -33,6 +33,14 @@ public class ReviewController {
                 reviewService.listVisibleByMenuItem(menuItemId, page, size)));
     }
 
+    @GetMapping("/reviews")
+    @Operation(summary = "Danh sách tất cả đánh giá hiển thị (Public)")
+    public ResponseEntity<ApiResponse<List<Review>>> listReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(ApiResponse.success(reviewService.listAllVisible(page, size)));
+    }
+
     @PostMapping("/reviews")
     @Operation(summary = "Gửi đánh giá món ăn (US09)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("isAuthenticated()")
