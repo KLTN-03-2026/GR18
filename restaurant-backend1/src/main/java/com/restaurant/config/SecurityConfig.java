@@ -31,9 +31,12 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
 
+    /**
+     * Khi thêm URL public, cập nhật tương ứng {@link PublicApiPathHelper} (dùng cho JWT filter, prefix path).
+     */
     private static final String[] PUBLIC_URLS = {
-            "/auth/**",        
-            "/menu/**",        
+            "/auth/**",
+            "/menu/**",
             "/categories/**",
             "/tables/qr/**",
             "/orders/guest/**",

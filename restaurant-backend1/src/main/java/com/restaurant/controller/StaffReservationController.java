@@ -39,28 +39,19 @@ public class StaffReservationController {
 
     @PatchMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<Void>> confirmReservation(@PathVariable Long id) {
-        boolean ok = reservationService.confirmReservationByStaff(id);
-        if (!ok) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Chỉ có thể xác nhận đơn đang PENDING."));
-        }
+        reservationService.confirmReservationByStaffOrThrow(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã xác nhận đặt bàn"));
     }
 
     @PatchMapping("/{id}/arrived")
     public ResponseEntity<ApiResponse<Void>> arrivedReservation(@PathVariable Long id) {
-        boolean ok = reservationService.markArrivedByStaff(id);
-        if (!ok) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Chỉ có thể chuyển ARRIVED từ đơn CONFIRMED."));
-        }
+        reservationService.markArrivedByStaffOrThrow(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã cập nhật khách đã đến"));
     }
 
     @PatchMapping("/{id}/complete")
     public ResponseEntity<ApiResponse<Void>> completeReservation(@PathVariable Long id) {
-        boolean ok = reservationService.completeReservationByStaff(id);
-        if (!ok) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Chỉ có thể hoàn thành đơn ARRIVED."));
-        }
+        reservationService.completeReservationByStaffOrThrow(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã hoàn thành đặt bàn"));
     }
 }

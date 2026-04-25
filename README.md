@@ -44,7 +44,7 @@ Gr18/
 │   └── …
 ├── restaurant-backend1/    # API & nghiệp vụ (Spring Boot)
 │   ├── src/main/java/      # Controllers, services, security, WebSocket, …
-│   ├── src/main/resources/ # Cấu hình, migration Flyway (nếu có)
+│   ├── src/main/resources/ # Cấu hình, migration Flyway
 │   ├── build.gradle
 │   ├── env.example         # Mẫu biến môi trường (MySQL, JWT, Mail, OAuth, Gemini, …)
 │   └── …
@@ -116,18 +116,7 @@ npx --yes serve -p 3000
 
 Sau đó cấu hình base URL API cho đúng backend (các file JS có `localhost:8080/api` — chỉnh nếu deploy host/port khác; có thể dùng `window.RESTAURANT_API_BASE` nơi đã hỗ trợ).
 
-### 🌐 Demo trực tuyến (nếu có)
 
-- *Cập nhật link triển khai (Vercel, Netlify, VPS, …)*  
-- **API public:** *cập nhật*
-
-### Tài khoản trải nghiệm
-
-- **Email:** *cập nhật*  
-- **Mật khẩu:** *cập nhật*
-
-> [!TIP]  
-> Đảm bảo CORS trên backend cho phép origin của frontend khi chạy khác port/host.
 
 ---
 

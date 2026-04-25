@@ -223,6 +223,27 @@ public class ReservationService {
         return transitionStatus(id, "ARRIVED", "COMPLETED");
     }
 
+    @Transactional
+    public void confirmReservationByStaffOrThrow(Long id) {
+        if (!confirmReservationByStaff(id)) {
+            throw new IllegalArgumentException("Chỉ có thể xác nhận đơn đang PENDING.");
+        }
+    }
+
+    @Transactional
+    public void markArrivedByStaffOrThrow(Long id) {
+        if (!markArrivedByStaff(id)) {
+            throw new IllegalArgumentException("Chỉ có thể chuyển ARRIVED từ đơn CONFIRMED.");
+        }
+    }
+
+    @Transactional
+    public void completeReservationByStaffOrThrow(Long id) {
+        if (!completeReservationByStaff(id)) {
+            throw new IllegalArgumentException("Chỉ có thể hoàn thành đơn ARRIVED.");
+        }
+    }
+
     private boolean transitionStatus(Long id, String expectedCurrent, String target) {
         int updated = jdbcTemplate.update(
                 "UPDATE reservations SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?",

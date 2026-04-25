@@ -22,9 +22,10 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import java.util.Collections;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -82,9 +83,17 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    public void logout(Authentication authentication, String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Thiếu hoặc sai định dạng header Authorization (Bearer).");
+        }
+        Long userId = Long.parseLong(authentication.getName());
+        String accessToken = authorizationHeader.substring(7);
+        logout(userId, accessToken);
+    }
+
     public void logout(Long userId, String accessToken) {
 
-        // 1. Thu hồi refresh token (bạn đã làm đúng 👍)
         refreshTokenRepository.revokeAllByUserId(userId);
 
         // 2. Thêm access token vào blacklist
@@ -118,6 +127,17 @@ public class AuthService {
                 .role(user.getRole())
                 .build();
     }
+    public AuthResponse loginWithGoogleRequest(Map<String, String> requestBody) {
+        if (requestBody == null) {
+            throw new IllegalArgumentException("Thiếu dữ liệu đăng nhập");
+        }
+        String idToken = requestBody.get("token");
+        if (idToken == null || idToken.isBlank()) {
+            throw new IllegalArgumentException("Thiếu token Google (field token)");
+        }
+        return loginWithGoogle(idToken);
+    }
+
     public AuthResponse loginWithGoogle(String idTokenString) {
         try {
             // 1. Khởi tạo bộ xác thực của Google
