@@ -1,5 +1,8 @@
-const BASE_URL = "http://localhost:8080/api";
-const token = localStorage.getItem("accessToken");
+const BASE_URL = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+
+function getPaymentToken() {
+    return localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+}
 
 let unpaidOrders = [];
 let paidHistory = [];
@@ -7,8 +10,8 @@ let paymentListFilter = "ALL";
 let pendingPaymentOrderId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-    if (!token) {
-        window.location.href = "../dangnhap.html";
+    if (!getPaymentToken()) {
+        window.location.href = "../dangnhap.html?next=admin/qlthanhtoan.html";
         return;
     }
 
@@ -28,15 +31,22 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-refresh-payments")?.addEventListener("click", loadPaymentPageData);
     document.getElementById("btn-confirm-payment-submit")?.addEventListener("click", submitConfirmPayment);
 
+    document.querySelectorAll('input[name="paymentMethod"]').forEach((r) => {
+        r.addEventListener("change", updatePaymentConfirmFormState);
+    });
+    document.getElementById("payment-staff-attest")?.addEventListener("change", updatePaymentConfirmFormState);
+    document.getElementById("payment-confirm-modal")?.addEventListener("shown.bs.modal", updatePaymentConfirmFormState);
+
     loadPaymentPageData();
     setInterval(loadPaymentPageData, 20000);
 });
 
 async function api(path, options = {}) {
+    const auth = getPaymentToken();
     const res = await fetch(`${BASE_URL}${path}`, {
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${auth}`
         },
         ...options
     });
@@ -50,8 +60,8 @@ async function api(path, options = {}) {
 async function loadPaymentPageData() {
     try {
         const [unpaid, history, revMap] = await Promise.all([
-            api("/staff/payments/unpaid?limit=100"),
-            api("/staff/payments/history?limit=50"),
+            api("/staff/orders"),
+            api("/staff/orders/paid-recent?limit=50"),
             api("/staff/payments/today-revenue")
         ]);
         unpaidOrders = Array.isArray(unpaid) ? unpaid : [];
@@ -170,21 +180,59 @@ function renderHistoryItem(order) {
     `;
 }
 
+function updatePaymentConfirmFormState() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked')?.value || "CASH";
+    const titleEl = document.getElementById("payment-method-detail-title");
+    const textEl = document.getElementById("payment-method-detail-text");
+    const attestLabel = document.getElementById("payment-staff-attest-label");
+    const btn = document.getElementById("btn-confirm-payment-submit");
+    const ck = document.getElementById("payment-staff-attest");
+
+    if (method === "QR_CODE") {
+        if (titleEl) titleEl.textContent = "QR / Chuyển khoản";
+        if (textEl) {
+            textEl.textContent =
+                "Kiểm tra trên ứng dụng ngân hàng hoặc cổng QR: số tiền khớp tổng đơn, trạng thái giao dịch thành công, nội dung chuyển khoản (nếu có) hợp lệ. Chỉ xác nhận trên hệ thống sau khi đã đối soát.";
+        }
+        if (attestLabel) {
+            attestLabel.textContent =
+                "Tôi đã đối chiếu đơn và xác nhận giao dịch chuyển khoản/QR thành công, đúng số tiền.";
+        }
+    } else {
+        if (titleEl) titleEl.textContent = "Tiền mặt";
+        if (textEl) {
+            textEl.textContent =
+                "Đếm tiền khách đưa, đảm bảo đủ số tiền tổng đơn (đã bao gồm làm tròn nếu quy định nhà hàng). Chỉ xác nhận sau khi đã nhận đủ.";
+        }
+        if (attestLabel) {
+            attestLabel.textContent =
+                "Tôi đã kiểm tra đơn và xác nhận đã nhận đủ tiền mặt từ khách.";
+        }
+    }
+
+    if (btn && ck) {
+        btn.disabled = !ck.checked;
+    }
+}
+
 function openPaymentConfirm(orderId) {
     pendingPaymentOrderId = orderId;
     const order = unpaidOrders.find((o) => Number(o.id) === Number(orderId));
     const sumEl = document.getElementById("payment-confirm-summary");
     const titleEl = document.getElementById("payment-confirm-title");
-    if (titleEl) titleEl.textContent = `Xác nhận thanh toán · Đơn #${orderId}`;
+    if (titleEl) titleEl.textContent = `Xử lý thanh toán · Đơn #${orderId}`;
     if (sumEl && order) {
         const tablePart =
             order.tableNumber != null ? `Bàn ${order.tableNumber}` : order.tableId != null ? `#${order.tableId}` : "?";
-        sumEl.textContent = `${order.guestName || "Khách"} · ${tablePart} · ${formatCurrency(order.totalAmount)}`;
+        sumEl.textContent = `${order.guestName || "Khách"} · ${tablePart} · Tổng ${formatCurrency(order.totalAmount)}`;
     } else if (sumEl) {
         sumEl.textContent = `Đơn #${orderId}`;
     }
     const cash = document.getElementById("pay-cash");
     if (cash) cash.checked = true;
+    const attest = document.getElementById("payment-staff-attest");
+    if (attest) attest.checked = false;
+    updatePaymentConfirmFormState();
     const modalEl = document.getElementById("payment-confirm-modal");
     if (modalEl && window.bootstrap) {
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -193,6 +241,11 @@ function openPaymentConfirm(orderId) {
 
 async function submitConfirmPayment() {
     if (pendingPaymentOrderId == null) return;
+    const attest = document.getElementById("payment-staff-attest");
+    if (!attest || !attest.checked) {
+        showPageAlert("Vui lòng tích xác nhận: đã kiểm tra đơn và thu tiền / chuyển khoản thành công.", "error");
+        return;
+    }
     const methodEl = document.querySelector('input[name="paymentMethod"]:checked');
     const method = methodEl ? methodEl.value : "CASH";
     const btn = document.getElementById("btn-confirm-payment-submit");
@@ -209,14 +262,15 @@ async function submitConfirmPayment() {
             bootstrap.Modal.getInstance(modalEl)?.hide();
         }
         pendingPaymentOrderId = null;
-        showPageAlert("Đã ghi nhận thanh toán.", "success");
+        if (attest) attest.checked = false;
+        showPageAlert("Đã hoàn tất thanh toán trên hệ thống.", "success");
         await loadPaymentPageData();
     } catch (err) {
         showPageAlert(err.message || "Thanh toán thất bại.", "error");
     } finally {
         if (btn) {
-            btn.disabled = false;
-            btn.textContent = "Xác nhận đã thu";
+            btn.textContent = "Xác nhận hoàn tất trên hệ thống";
+            updatePaymentConfirmFormState();
         }
     }
 }
@@ -252,11 +306,11 @@ function renderDetailBody(d) {
         .join("");
     const noteBlock =
         d.note && String(d.note).trim()
-            ? `<div class="mb-3"><span class="text-muted small">Ghi chú:</span><div class="border rounded p-2 small bg-light text-dark">${escapeHtml(d.note).replace(/\n/g, "<br>")}</div></div>`
+            ? `<div class="mb-3"><span class="text-secondary small">Ghi chú:</span><div class="border border-secondary-subtle rounded p-2 small bg-surface-container-lowest text-on-surface">${escapeHtml(d.note).replace(/\n/g, "<br>")}</div></div>`
             : "";
-    return `<p class="small text-muted mb-2">${escapeHtml(translateOrderStatus(d.status))} · TT: ${escapeHtml(paymentStatusLabel(d.paymentStatus))}</p>
+    return `<p class="small text-secondary mb-2">${escapeHtml(translateOrderStatus(d.status))} · TT: ${escapeHtml(paymentStatusLabel(d.paymentStatus))}</p>
         ${noteBlock}
-        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Món</th><th class="text-center">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Tạm tính</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table table-sm table-dark align-middle mb-0"><thead><tr><th>Món</th><th class="text-center">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Tạm tính</th></tr></thead><tbody>
         ${rows || '<tr><td colspan="4" class="text-secondary">Không có món.</td></tr>'}
         </tbody></table></div>
         <p class="text-end fs-5 fw-bold mb-0">${formatCurrency(d.totalAmount)}</p>`;
@@ -334,3 +388,6 @@ function escapeHtml(s) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+window.openPaymentConfirm = openPaymentConfirm;
+window.showPaymentDetail = showPaymentDetail;

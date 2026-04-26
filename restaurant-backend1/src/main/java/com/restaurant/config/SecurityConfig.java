@@ -57,7 +57,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/reviews", "/reviews/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
+                        .requestMatchers("/admin/statistics/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/staff/**").hasAnyRole("STAFF", "ADMIN")
                         .anyRequest().authenticated()
@@ -71,11 +73,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        // SockJS (/api/ws/info) dùng XHR với credentials khi khác origin → cần true + pattern (không dùng * đơn).
+        // Gồm LAN (192.168.x.x, …) để Live Server / máy khác trong mạng truy cập được API.
+        config.setAllowedOriginPatterns(LanCorsOriginPatterns.allowedOriginPatterns());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

@@ -44,6 +44,13 @@ public class TableController {
         return ResponseEntity.ok(ApiResponse.success(RestaurantTableResponse.from(updated)));
     }
 
+    @GetMapping("/staff/tables")
+    @Operation(summary = "Nhân viên/Admin: Danh sách bàn (trạng thái vận hành)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<RestaurantTableResponse>>> listTablesForStaff() {
+        return ResponseEntity.ok(ApiResponse.success(tableService.getAllTableResponses()));
+    }
+
     @GetMapping("/admin/tables")
     @Operation(summary = "Admin: Danh sách tất cả bàn (QR / sơ đồ)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasRole('ADMIN')")

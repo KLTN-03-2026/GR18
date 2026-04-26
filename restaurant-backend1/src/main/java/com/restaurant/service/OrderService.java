@@ -5,16 +5,20 @@ import com.restaurant.entity.OrderItem;
 import com.restaurant.entity.MenuItem;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.dto.response.order.GuestOrderResponse;
+import com.restaurant.dto.response.order.StaffOrderDetailResponse;
 import com.restaurant.dto.response.order.StaffOrderResponse;
 import com.restaurant.entity.enums.OrderStatus;
 import com.restaurant.entity.enums.OrderItemStatus;
 import com.restaurant.entity.enums.PaymentMethod;
 import com.restaurant.entity.enums.PaymentStatus;
+import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.dto.request.OrderRequest;
 import com.restaurant.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -83,8 +88,16 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         Order savedOrder = orderRepository.save(order);
 
-        // Gửi realtime notification cho nhân viên
-        messagingTemplate.convertAndSend("/topic/orders/new", savedOrder.getId());
+        table.setStatus(TableStatus.OCCUPIED);
+        tableRepository.save(table);
+
+        // Gửi realtime notification cho nhân viên (JSON object để STOMP/Jackson ổn định)
+        messagingTemplate.convertAndSend(
+                "/topic/orders/new",
+                Map.of(
+                        "type", "ORDER_NEW",
+                        "orderId", savedOrder.getId(),
+                        "tableNumber", table.getTableNumber() != null ? table.getTableNumber() : ""));
 
         return savedOrder;
     }
@@ -123,11 +136,33 @@ public class OrderService {
             menuItemRepository.save(mi);
         });
 
-        // Giải phóng bàn
+        // Giải phóng bàn (DB + thông báo realtime)
         RestaurantTable table = order.getTable();
-        messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "AVAILABLE");
+        if (table != null) {
+            table.setStatus(TableStatus.AVAILABLE);
+            tableRepository.save(table);
+            messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "AVAILABLE");
+            messagingTemplate.convertAndSend(
+                    "/topic/staff/tables/status",
+                    Map.of("tableId", table.getId(), "status", TableStatus.AVAILABLE.name()));
+        }
 
         return orderRepository.save(order);
+    }
+
+    /** Trả DTO thay vì entity {@link Order} để tránh lỗi lazy {@code table} khi ghi JSON (open-in-view=false). */
+    public StaffOrderResponse updateOrderStatusAndSummarize(Long orderId, OrderStatus status) {
+        updateOrderStatus(orderId, status);
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        return toStaffOrderResponse(order);
+    }
+
+    public StaffOrderResponse processPaymentAndSummarize(Long orderId, PaymentMethod method) {
+        processPayment(orderId, method);
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        return toStaffOrderResponse(order);
     }
 
     public List<Order> getActiveOrdersByTable(Long tableId) {
@@ -145,6 +180,57 @@ public class OrderService {
 
     public List<StaffOrderResponse> getActiveOrderSummariesByTable(Long tableId) {
         return getActiveOrdersByTable(tableId).stream().map(this::toStaffOrderResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public StaffOrderDetailResponse getStaffOrderDetail(Long orderId) {
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        List<StaffOrderDetailResponse.LineItem> lines = new ArrayList<>();
+        if (order.getOrderItems() != null) {
+            for (OrderItem oi : order.getOrderItems()) {
+                String name = oi.getMenuItem() != null ? oi.getMenuItem().getName() : "Món";
+                lines.add(StaffOrderDetailResponse.LineItem.builder()
+                        .itemName(name)
+                        .quantity(oi.getQuantity())
+                        .unitPrice(oi.getUnitPrice())
+                        .subtotal(oi.getSubtotal())
+                        .note(oi.getNote())
+                        .build());
+            }
+        }
+        return StaffOrderDetailResponse.builder()
+                .id(order.getId())
+                .tableId(order.getTable() != null ? order.getTable().getId() : null)
+                .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
+                .guestName(order.getGuestName())
+                .totalAmount(order.getTotalAmount())
+                .status(order.getStatus())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .paidAt(order.getPaidAt())
+                .createdAt(order.getCreatedAt())
+                .note(order.getNote())
+                .items(lines)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StaffOrderResponse> getRecentPaidOrderSummaries(int limit) {
+        int capped = Math.min(Math.max(limit, 1), 100);
+        Page<Order> page = orderRepository.findByStatusAndPaymentStatus(
+                OrderStatus.COMPLETED,
+                PaymentStatus.PAID,
+                PageRequest.of(0, capped, Sort.by("paidAt").descending()));
+        return page.getContent().stream().map(this::toStaffOrderResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTodayRevenueForStaff() {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+        BigDecimal todayRevenue = orderRepository.sumRevenueByDateRange(startOfDay, now);
+        return Map.of("todayRevenue", todayRevenue);
     }
 
     // A1: Lấy đơn hàng hiện tại theo QR token của bàn (US04)
@@ -216,6 +302,9 @@ public class OrderService {
                 .guestName(order.getGuestName())
                 .totalAmount(order.getTotalAmount())
                 .status(order.getStatus())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .paidAt(order.getPaidAt())
                 .createdAt(order.getCreatedAt())
                 .note(order.getNote())
                 .mainItem(mainItem)

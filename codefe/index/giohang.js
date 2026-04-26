@@ -3,9 +3,8 @@
  * Cần mã QR hợp lệ trong session (mở menu với ?t=...).
  */
 (function () {
-    var API_BASE = window.RESTAURANT_API_BASE || "http://localhost:8080/api";
+    var API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
     var DEMO_ORDERS_KEY = "guestDemoOrders";
-    var DEMO_CALLS_KEY = "guestDemoCalls";
     var LAST_GUEST_NAME_KEY = "guestLastName";
     var isSubmittingOrder = false;
 
@@ -127,7 +126,10 @@
             el.innerHTML = "";
             return;
         }
-        var klass = kind === "error" ? "alert-danger" : "alert-success";
+        var klass = "alert-success";
+        if (kind === "error") klass = "alert-danger";
+        else if (kind === "info") klass = "alert-info";
+        else if (kind === "warning") klass = "alert-warning";
         el.className = "alert " + klass + " mb-3";
         el.textContent = message;
     }
@@ -332,13 +334,23 @@
             var json = await res.json().catch(function () {
                 return {};
             });
-            if (!res.ok) throw new Error(json.message || "Call staff failed");
-            showAlert((json && json.message) || "Đã gửi yêu cầu hỗ trợ.", "success");
+            var msg = json.message || "";
+            if (!res.ok || json.success === false) {
+                // 409: bàn đã có yêu cầu gọi NV chờ xử lý — không phải lỗi hệ thống
+                if (res.status === 409) {
+                    showAlert(
+                        msg || "Nhân viên đã nhận yêu cầu trước đó. Vui lòng đợi hoặc nhắc nhân viên tại quầy.",
+                        "info"
+                    );
+                } else {
+                    showAlert(msg || "Không gửi được yêu cầu (" + res.status + ").", "error");
+                }
+                return;
+            }
+            showAlert(msg || "Đã gửi yêu cầu tới nhân viên.", "success");
             setGuestModeText("");
         } catch (e) {
-            addDemoCall(token);
-            showAlert("Backend gọi nhân viên chưa sẵn sàng. Đã ghi nhận yêu cầu ở chế độ demo.", "error");
-            setGuestModeText("Demo mode: yêu cầu gọi nhân viên được lưu cục bộ.");
+            showAlert("Lỗi mạng hoặc máy chủ không phản hồi. Thử lại sau.", "error");
         }
     }
 
@@ -370,15 +382,6 @@
             createdAt: new Date().toISOString()
         });
         localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(all.slice(0, 30)));
-    }
-
-    function addDemoCall(token) {
-        var all = [];
-        try {
-            all = JSON.parse(localStorage.getItem(DEMO_CALLS_KEY) || "[]");
-        } catch (e) {}
-        all.unshift({ qrToken: token, createdAt: new Date().toISOString(), status: "PENDING" });
-        localStorage.setItem(DEMO_CALLS_KEY, JSON.stringify(all.slice(0, 50)));
     }
 
     document.addEventListener("DOMContentLoaded", function () {

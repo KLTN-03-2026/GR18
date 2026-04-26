@@ -10,6 +10,7 @@ import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.repository.RestaurantTableRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ import java.util.UUID;
 public class TableService {
 
     private final RestaurantTableRepository tableRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -83,12 +85,31 @@ public class TableService {
 
     public Map<String, Object> buildQrScanWelcomeData(String token) {
         RestaurantTable table = getTableByQrToken(token);
+        markTableOccupiedOnQrScan(table);
         return Map.of(
                 "tableId", table.getId(),
                 "tableNumber", table.getTableNumber(),
                 "capacity", table.getCapacity(),
                 "location", table.getLocation() != null ? table.getLocation() : ""
         );
+    }
+
+    /**
+     * Khách mở menu qua QR → coi như đã vào bàn: chuyển trạng thái vận hành sang OCCUPIED (nếu chưa).
+     */
+    private void markTableOccupiedOnQrScan(RestaurantTable table) {
+        if (!Boolean.TRUE.equals(table.getIsActive())) {
+            return;
+        }
+        if (TableStatus.OCCUPIED.equals(table.getStatus())) {
+            return;
+        }
+        table.setStatus(TableStatus.OCCUPIED);
+        tableRepository.save(table);
+        messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "OCCUPIED");
+        messagingTemplate.convertAndSend(
+                "/topic/staff/tables/status",
+                Map.of("tableId", table.getId(), "status", TableStatus.OCCUPIED.name()));
     }
 
     public List<RestaurantTableResponse> getAllTableResponses() {

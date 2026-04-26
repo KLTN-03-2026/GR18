@@ -3,6 +3,7 @@ package com.restaurant.controller;
 import com.restaurant.dto.request.OrderRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.order.GuestOrderResponse;
+import com.restaurant.dto.response.order.StaffOrderDetailResponse;
 import com.restaurant.dto.response.order.StaffOrderResponse;
 import com.restaurant.entity.Order;
 import com.restaurant.entity.enums.OrderStatus;
@@ -22,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -87,23 +89,45 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orderService.getActiveOrderSummariesByTable(tableId)));
     }
 
+    @GetMapping("/staff/orders/paid-recent")
+    @Operation(summary = "Nhân viên: Đơn đã thanh toán gần đây (lịch sử thu)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<StaffOrderResponse>>> getPaidRecentOrders(
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.getRecentPaidOrderSummaries(limit)));
+    }
+
+    @GetMapping("/staff/orders/{orderId}")
+    @Operation(summary = "Nhân viên: Chi tiết đơn hàng (kèm dòng món)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<StaffOrderDetailResponse>> getStaffOrderDetail(@PathVariable Long orderId) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.getStaffOrderDetail(orderId)));
+    }
+
+    @GetMapping("/staff/payments/today-revenue")
+    @Operation(summary = "Nhân viên: Doanh thu hôm nay (đơn đã PAID)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTodayRevenueStaff() {
+        return ResponseEntity.ok(ApiResponse.success(orderService.getTodayRevenueForStaff()));
+    }
+
     @PatchMapping("/staff/orders/{orderId}/status")
     @Operation(summary = "Nhân viên: Cập nhật trạng thái đơn hàng", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    public ResponseEntity<ApiResponse<Order>> updateOrderStatus(
+    public ResponseEntity<ApiResponse<StaffOrderResponse>> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestParam OrderStatus status) {
-        Order order = orderService.updateOrderStatus(orderId, status);
-        return ResponseEntity.ok(ApiResponse.success(order, "Cập nhật trạng thái thành công"));
+        StaffOrderResponse summary = orderService.updateOrderStatusAndSummarize(orderId, status);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Cập nhật trạng thái thành công"));
     }
 
     @PatchMapping("/staff/orders/{orderId}/payment")
     @Operation(summary = "Nhân viên: Xác nhận thanh toán", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    public ResponseEntity<ApiResponse<Order>> processPayment(
+    public ResponseEntity<ApiResponse<StaffOrderResponse>> processPayment(
             @PathVariable Long orderId,
             @RequestParam PaymentMethod method) {
-        Order order = orderService.processPayment(orderId, method);
-        return ResponseEntity.ok(ApiResponse.success(order, "Thanh toán thành công"));
+        StaffOrderResponse summary = orderService.processPaymentAndSummarize(orderId, method);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Thanh toán thành công"));
     }
 }

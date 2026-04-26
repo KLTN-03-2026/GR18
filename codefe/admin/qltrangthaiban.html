@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trạng thái bàn | Restaurant AI</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="datcho.css"> 
+
+    <link rel="stylesheet" href="datcho.css">
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="qltrangthaiban.css">
 </head>
@@ -20,149 +20,48 @@
 
     <main class="main-content">
         <div class="container-fluid px-4 pt-4 pb-5">
-            
-            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end mb-5 gap-4 mt-2">
+
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-start mb-4 gap-3 mt-2">
                 <div>
                     <h2 class="page-title mb-1">Trạng thái bàn</h2>
+                    <p id="table-status-toast" class="small text-secondary mb-0" role="status"></p>
                 </div>
-                
-                <div class="glass-legend p-3 rounded-4 border border-outline-variant/10 d-flex gap-4 flex-wrap shadow-sm">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="dot bg-slate-500"></span>
-                        <span class="smaller fw-bold text-secondary uppercase">TRỐNG: 12</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="dot bg-primary"></span>
-                        <span class="smaller fw-bold text-primary uppercase">ĐANG DÙNG: 08</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="dot bg-tertiary"></span>
-                        <span class="smaller fw-bold text-tertiary uppercase">ĐÃ ĐẶT: 03</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="dot bg-error"></span>
-                        <span class="smaller fw-bold text-error uppercase">CẦN DỌN: 02</span>
-                    </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" id="btn-refresh-table-status">
+                        <span class="material-symbols-outlined fs-6 align-middle">refresh</span> Làm mới
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-legend p-3 rounded-4 border border-outline-variant/10 d-flex gap-4 flex-wrap shadow-sm mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dot bg-slate-500"></span>
+                    <span id="count-available" class="smaller fw-bold text-secondary uppercase">TRỐNG: 0</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dot bg-primary"></span>
+                    <span id="count-occupied" class="smaller fw-bold text-primary uppercase">ĐANG DÙNG: 0</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dot bg-tertiary"></span>
+                    <span id="count-reserved" class="smaller fw-bold text-tertiary uppercase">ĐÃ ĐẶT: 0</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="dot bg-error"></span>
+                    <span id="count-cleaning" class="smaller fw-bold text-error uppercase">CẦN DỌN: 0</span>
                 </div>
             </div>
 
             <div class="row g-4">
-                <div class="col-12 col-xl-8">
-                    <div class="hall-container p-4 rounded-4 bg-surface-container-low border border-outline-variant/10 h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-5">
-                            <h5 class="fw-bold mb-0 text-primary-soft">Sảnh Chính (Main Hall)</h5>
-                            <div class="btn-group bg-surface-lowest p-1 rounded-3">
-                                <button class="btn btn-sm text-secondary px-3">Tầng 1</button>
-                                <button class="btn btn-sm btn-surface-high text-primary px-3 rounded-2 fw-bold">Tầng 2</button>
-                            </div>
+                <div class="col-12">
+                    <div class="hall-container p-4 rounded-4 bg-surface-container-low border border-outline-variant/10">
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                            <h5 class="fw-bold mb-0 text-primary-soft">Sơ đồ bàn (cập nhật theo thời gian thực)</h5>
+                            <span class="smaller text-secondary">Chọn trạng thái trong ô bên dưới mỗi bàn để cập nhật.</span>
                         </div>
 
-                        <div class="row g-3">
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="table-status-card p-3 rounded-4 bg-surface-container active-table">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="table-number bg-primary-soft text-primary">101</div>
-                                        <span class="badge bg-primary-soft text-primary smaller px-2">DÙNG BỮA</span>
-                                    </div>
-                                    <div class="table-info">
-                                        <div class="d-flex align-items-center gap-2 smaller text-secondary mb-1">
-                                            <span class="material-symbols-outlined fs-6">groups</span> 04 Khách
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2 smaller text-secondary">
-                                            <span class="material-symbols-outlined fs-6">schedule</span> 45m
-                                        </div>
-                                    </div>
-                                    <div class="hover-action mt-3 pt-2 border-top border-outline-variant/10 d-flex justify-content-between align-items-center">
-                                        <span class="smaller text-secondary-fixed-dim fw-bold">Tính tiền...</span>
-                                        <button class="btn btn-link-icon"><span class="material-symbols-outlined fs-6">info</span></button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="table-status-card p-3 rounded-4 bg-surface-container-lowest empty-table">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="table-number bg-slate-800 text-secondary">102</div>
-                                        <span class="badge bg-slate-800 text-secondary smaller px-2">TRỐNG</span>
-                                    </div>
-                                    <div class="table-info">
-                                        <div class="smaller text-secondary mb-4">Sức chứa: 02</div>
-                                    </div>
-                                    <div class="hover-action text-end">
-                                        <button class="btn btn-primary btn-xs rounded-pill px-3 fw-bold">MỞ BÀN</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="table-status-card p-3 rounded-4 bg-surface-container reserved-table">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="table-number bg-tertiary-soft text-tertiary">103</div>
-                                        <span class="badge bg-tertiary-soft text-tertiary smaller px-2">ĐÃ ĐẶT</span>
-                                    </div>
-                                    <div class="table-info">
-                                        <p class="smaller fw-bold text-on-surface mb-1">Mr. Hoàng Anh</p>
-                                        <p class="smaller text-tertiary mb-0 fw-bold">Giờ đến: 19:15</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="table-status-card p-3 rounded-4 bg-surface-container cleaning-table">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="table-number bg-error-soft text-error">104</div>
-                                        <span class="badge bg-error-soft text-error smaller px-2">CẦN DỌN</span>
-                                    </div>
-                                    <div class="table-info">
-                                        <div class="d-flex align-items-center gap-2 smaller text-error mb-2">
-                                            <span class="material-symbols-outlined fs-6">mop</span> Chờ nhân viên
-                                        </div>
-                                        <div class="progress bg-slate-800" style="height: 4px;">
-                                            <div class="progress-bar bg-error" style="width: 30%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-xl-4">
-                    <div class="d-flex flex-column gap-4">
-                        
-
-                        <div class="vip-container p-4 rounded-4 bg-surface-container-low border border-outline-variant/10">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h6 class="fw-bold mb-0 text-tertiary">Khu Vực VIP</h6>
-                                <span class="smaller text-secondary bg-surface-lowest px-2 py-1 rounded">3/5 ĐANG DÙNG</span>
-                            </div>
-                            
-                            <div class="vip-list d-flex flex-column gap-3">
-                                <div class="vip-item d-flex align-items-center justify-content-between p-3 rounded-3 bg-surface-lowest">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="table-number bg-tertiary-soft text-tertiary sm">V1</div>
-                                        <div>
-                                            <p class="smaller fw-bold mb-0">Private Garden</p>
-                                            <p class="smaller text-secondary mb-0">6 Khách • 1h 15m</p>
-                                        </div>
-                                    </div>
-                                    <span class="material-symbols-outlined text-primary filled fs-5">stars</span>
-                                </div>
-                                <div class="vip-item d-flex align-items-center justify-content-between p-3 rounded-3 bg-surface-lowest border border-error/20">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="table-number bg-error-soft text-error sm">V3</div>
-                                        <div>
-                                            <p class="smaller fw-bold mb-0">Sky Lounge</p>
-                                            <p class="smaller text-error mb-0 fw-medium">Dọn dẹp gấp</p>
-                                        </div>
-                                    </div>
-                                    <span class="material-symbols-outlined text-error fs-5">mop</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="perf-card p-4 rounded-4 bg-surface-container-high">
-                        
+                        <div class="row g-3" id="table-status-grid">
+                            <div class="col-12 text-secondary py-4 text-center">Đang tải…</div>
                         </div>
                     </div>
                 </div>
@@ -170,11 +69,8 @@
         </div>
     </main>
 
-    <button class="btn-fab-primary position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center">
-        <span class="material-symbols-outlined fs-2">add</span>
-    </button>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>
+    <script src="qltrangthaiban.js"></script>
 </body>
 </html>

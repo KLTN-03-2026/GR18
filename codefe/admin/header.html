@@ -7,7 +7,38 @@
             <span class="material-symbols-outlined search-icon">search</span>
             <input class="search-input" placeholder="Tìm kiếm nhanh..." type="text"/>
         </div>
-        <span class="material-symbols-outlined action-icon">notifications</span>
+        <div class="dropdown admin-notify-dropdown">
+            <button type="button" class="btn btn-link p-0 border-0 text-decoration-none position-relative" id="admin-notify-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Thông báo">
+                <span class="material-symbols-outlined action-icon" style="font-size: 26px;">notifications</span>
+                <span id="admin-notify-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger px-1 d-none" style="font-size: 0.65rem; min-width: 1.1rem;">0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0 admin-notify-panel" aria-labelledby="admin-notify-toggle">
+                <div class="p-3 border-bottom border-secondary-subtle">
+                    <div class="fw-bold text-on-surface">Thông báo</div>
+                    <div class="small text-secondary mt-1" id="admin-notify-summary">—</div>
+                </div>
+                <div class="p-2 border-bottom border-secondary-subtle admin-notify-quick small">
+                    <a href="donhang.html" class="d-flex justify-content-between align-items-center text-decoration-none text-on-surface py-2 px-2 rounded-2 admin-notify-quick-link">
+                        <span><span class="material-symbols-outlined fs-6 align-middle me-1">receipt_long</span> Đơn mới</span>
+                        <span class="badge bg-primary-subtle text-primary" id="admin-notify-count-orders">0</span>
+                    </a>
+                    <a href="goinv.html" class="d-flex justify-content-between align-items-center text-decoration-none text-on-surface py-2 px-2 rounded-2 admin-notify-quick-link">
+                        <span><span class="material-symbols-outlined fs-6 align-middle me-1">support_agent</span> Gọi nhân viên</span>
+                        <span class="badge bg-info-subtle text-info-emphasis" id="admin-notify-count-calls">0</span>
+                    </a>
+                    <a href="datcho.html" class="d-flex justify-content-between align-items-center text-decoration-none text-on-surface py-2 px-2 rounded-2 admin-notify-quick-link">
+                        <span><span class="material-symbols-outlined fs-6 align-middle me-1">event_seat</span> Đặt bàn chờ</span>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis" id="admin-notify-count-reservations">0</span>
+                    </a>
+                </div>
+                <div class="px-3 py-2 small fw-semibold text-secondary text-uppercase" style="letter-spacing: 0.04em;">Hoạt động gần đây</div>
+                <div id="admin-notify-feed" class="admin-notify-feed list-group list-group-flush"></div>
+                <div class="p-2 text-center border-top border-secondary-subtle small text-secondary py-3 d-none" id="admin-notify-feed-empty">Chưa có sự kiện realtime. Kết nối sẽ tự thử lại.</div>
+                <div class="p-2 text-center border-top border-secondary-subtle">
+                    <button type="button" class="btn btn-link btn-sm text-secondary" id="admin-notify-clear-feed">Xóa dòng hoạt động</button>
+                </div>
+            </div>
+        </div>
         <div class="d-flex align-items-center gap-2 ms-3">
             <span class="small fw-medium" id="header-admin-name">Admin Name</span>
             <div class="profile-circle">

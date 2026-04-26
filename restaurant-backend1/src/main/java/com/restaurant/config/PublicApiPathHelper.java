@@ -26,6 +26,7 @@ public final class PublicApiPathHelper {
                 || path.startsWith("/tables/qr")
                 || path.startsWith("/orders/guest")
                 || path.startsWith("/call-staff/guest")
+                || path.startsWith("/ws")
                 || path.startsWith("/swagger")
                 || path.startsWith("/v3")
                 || path.startsWith("/api-docs");

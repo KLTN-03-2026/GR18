@@ -41,9 +41,11 @@ public class StatisticsService {
         BigDecimal todayRevenue = orderRepository.sumRevenueByDateRange(startOfDay, now);
         long pendingOrders = orderRepository.countByStatusIn(
                 List.of(OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.SERVING));
+        long ordersPaidToday = orderRepository.countPaidOrdersBetween(startOfDay, now);
         return Map.of(
                 "todayRevenue", todayRevenue,
-                "pendingOrders", pendingOrders
+                "pendingOrders", pendingOrders,
+                "ordersPaidToday", ordersPaidToday
         );
     }
 }

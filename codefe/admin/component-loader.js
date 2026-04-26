@@ -121,6 +121,39 @@ async function loadComponent(containerId, fileName, callback = null) {
     }
 }
 
+function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+        if (document.querySelector(`script[data-src-key="${src}"]`)) {
+            resolve();
+            return;
+        }
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.dataset.srcKey = src;
+        s.onload = function () {
+            resolve();
+        };
+        s.onerror = function () {
+            reject(new Error("Không tải được: " + src));
+        };
+        document.head.appendChild(s);
+    });
+}
+
+async function initHeaderNotificationsChain() {
+    try {
+        await loadScriptOnce("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js");
+        await loadScriptOnce("https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js");
+        await loadScriptOnce("header-notifications.js");
+        if (typeof window.initAdminHeaderNotifications === "function") {
+            window.initAdminHeaderNotifications();
+        }
+    } catch (e) {
+        console.warn("Thông báo header (SockJS/STOMP):", e);
+    }
+}
+
 function updateUserInfo() {
     try {
         // Lấy string userInfo từ localStorage
@@ -167,8 +200,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
     // Nạp Header: Sau khi xong thì cập nhật tên Admin từ userInfo
-    loadComponent('header-container', 'header.html', function () {
+    loadComponent("header-container", "header.html", function () {
         updateHeaderByRole();
         updateUserInfo();
+        initHeaderNotificationsChain();
     });
 });

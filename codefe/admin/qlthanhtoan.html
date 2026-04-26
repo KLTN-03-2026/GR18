@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quản lý Thanh toán | Restaurant AI</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="datcho.css"> 
+
+    <link rel="stylesheet" href="datcho.css">
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="qlthanhtoan.css">
 </head>
@@ -20,122 +20,65 @@
 
     <main class="main-content">
         <div class="container-fluid px-4 pt-4 pb-5">
-            
-            <div class="row g-4 mb-5 mt-2">
-                <div class="col-12 col-lg-8 d-flex flex-column justify-content-end">
-                    <h2 class="page-title mb-2">Thanh Toán Dự Đoán</h2>
+            <div id="payment-page-alert" class="d-none mb-3" role="alert"></div>
+
+            <div class="row g-4 mb-4 mt-2 align-items-end">
+                <div class="col-12 col-lg-7">
+                    <h2 class="page-title mb-2">Quản lý thanh toán</h2>
                     <p class="text-secondary mb-0 max-w-500">
-                        Hệ thống AI dự báo cao điểm thanh toán vào lúc <span class="text-secondary-fixed-dim fw-bold">20:30</span>.
+                        Nhân viên đối chiếu đơn và số tiền, nhận tiền mặt hoặc kiểm tra chuyển khoản/QR, rồi xác nhận trên hệ thống để hoàn tất. Dùng <strong>Chi tiết</strong> trước khi thu nếu cần.
                     </p>
                 </div>
-                <div class="col-12 col-lg-4">
+                <div class="col-12 col-lg-5">
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="stat-card-small p-3 rounded-4 h-100">
                                 <p class="smaller text-secondary text-uppercase fw-bold mb-1">Chờ thanh toán</p>
-                                <p class="h3 fw-800 text-primary mb-0">12</p>
+                                <p class="h3 fw-800 text-primary mb-0" id="stat-unpaid-count">—</p>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="stat-card-small p-3 rounded-4 h-100 highlight-gold">
-                                <p class="smaller text-secondary text-uppercase fw-bold mb-1">Doanh thu ca</p>
-                                <p class="h3 fw-800 text-secondary mb-0">42.5M</p>
+                                <p class="smaller text-secondary text-uppercase fw-bold mb-1">Doanh thu hôm nay</p>
+                                <p class="h3 fw-800 text-secondary mb-0" id="stat-today-revenue">—</p>
                             </div>
                         </div>
+                    </div>
+                    <div class="d-flex justify-content-end mt-2">
+                        <button type="button" class="btn btn-sm btn-surface-high rounded-pill px-3" id="btn-refresh-payments" title="Làm mới">
+                            <span class="material-symbols-outlined fs-6 align-middle">refresh</span>
+                            <span class="small ms-1">Làm mới</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="row g-4">
                 <div class="col-12 col-xl-7">
-                    <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                         <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
-                            <span class="material-symbols-outlined text-secondary">pending_actions</span> Hóa đơn chờ xử lý
+                            <span class="material-symbols-outlined text-secondary">pending_actions</span>
+                            Hóa đơn chưa thanh toán
                         </h5>
-                        <div class="btn-group bg-surface-container-low p-1 rounded-3">
-                            <button class="btn btn-sm btn-surface-high text-white px-3 rounded-2">Tất cả</button>
-                            <button class="btn btn-sm text-secondary px-3">VIP</button>
+                        <div class="btn-group bg-surface-container-low p-1 rounded-3" role="group">
+                            <button type="button" class="btn btn-sm payment-filter active btn-surface-high text-white px-3 rounded-2" data-filter="ALL">Tất cả</button>
+                            <button type="button" class="btn btn-sm payment-filter text-secondary px-3 rounded-2" data-filter="SERVING">Sẵn sàng thu</button>
                         </div>
                     </div>
 
-                    <div class="invoice-list">
-                        <div class="invoice-card p-4 rounded-4 mb-4 border border-outline-variant/10 shadow-sm">
-                            <div class="d-flex flex-column flex-md-row align-items-center gap-4">
-                                <div class="table-badge-wrapper">
-                                    <span class="badge bg-tertiary-container text-on-tertiary px-3 py-2 rounded-3 fw-bold">
-                                        BÀN 08
-                                    </span>
-                                </div>
-                                <div class="flex-grow-1 text-center text-md-start">
-                                    <h5 class="fw-bold mb-1">#INV-9821</h5>
-                                    <p class="smaller text-secondary mb-0">Khởi tạo: 19:42 • 4 khách</p>
-                                </div>
-                                <div class="text-md-end">
-                                    <h4 class="fw-800 mb-0 text-white">1,450,000đ</h4>
-                                    <div class="d-flex align-items-center gap-2 justify-content-md-end mt-1">
-                                        <span class="pulse-dot-secondary"></span>
-                                        <span class="smaller fw-bold text-secondary text-uppercase">AI Suggest: Cash</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-top border-outline-variant/10 d-flex flex-wrap gap-2">
-                                <button class="btn btn-primary flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-2">
-                                    <span class="material-symbols-outlined fs-5">check_circle</span> Xác nhận thanh toán
-                                </button>
-                                <button class="btn btn-surface-high rounded-pill px-3"><span class="material-symbols-outlined fs-5">print</span></button>
-                                <button class="btn btn-surface-high rounded-pill px-3"><span class="material-symbols-outlined fs-5">edit</span></button>
-                            </div>
-                        </div>
-
-                        <div class="invoice-card p-4 rounded-4 mb-4 border border-outline-variant/10 shadow-sm">
-                            <div class="d-flex flex-column flex-md-row align-items-center gap-4">
-                                <div class="table-badge-wrapper">
-                                    <span class="badge bg-tertiary-container text-on-tertiary px-3 py-2 rounded-3 fw-bold">
-                                        BÀN 12
-                                    </span>
-                                </div>
-                                <div class="flex-grow-1 text-center text-md-start">
-                                    <h5 class="fw-bold mb-1">#INV-9824</h5>
-                                    <p class="smaller text-secondary mb-0">Khởi tạo: 20:05 • 2 khách</p>
-                                </div>
-                                <div class="text-md-end text-primary">
-                                    <h4 class="fw-800 mb-0 text-white">820,000đ</h4>
-                                    <div class="d-flex align-items-center gap-2 justify-content-md-end mt-1">
-                                        <span class="material-symbols-outlined fs-6">qr_code_2</span>
-                                        <span class="smaller fw-bold text-uppercase">QR Payment Request</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-top border-outline-variant/10 d-flex flex-wrap gap-2">
-                                <button class="btn btn-primary flex-grow-1 rounded-pill fw-bold">Xác nhận thanh toán</button>
-                                <button class="btn btn-surface-high rounded-pill px-3"><span class="material-symbols-outlined fs-5">print</span></button>
-                            </div>
-                        </div>
+                    <div class="invoice-list" id="unpaid-invoices-list">
+                        <p class="text-secondary py-4 text-center mb-0">Đang tải…</p>
                     </div>
                 </div>
 
                 <div class="col-12 col-xl-5">
                     <div class="history-panel p-4 rounded-4 bg-surface-container-low border border-outline-variant/10 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-bold mb-0">Lịch sử giao dịch</h5>
-                            <button class="btn btn-link text-primary text-decoration-none fw-bold smaller">Xem báo cáo</button>
+                            <h5 class="fw-bold mb-0">Lịch sử đã thu</h5>
+                            <span class="small text-secondary">Gần nhất</span>
                         </div>
-                        <div class="history-list">
-                            <div class="history-item d-flex align-items-center justify-content-between p-3 rounded-4 mb-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="icon-box bg-secondary-soft text-secondary">
-                                        <span class="material-symbols-outlined">qr_code</span>
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-bold small">#INV-9799 (Bàn 04)</p>
-                                        <p class="mb-0 text-secondary smaller">QR Pay • 19:15</p>
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <p class="mb-0 fw-bold small">2,100,000đ</p>
-                                    <span class="badge bg-secondary-container-soft text-secondary smaller px-2 py-1 rounded-pill">THÀNH CÔNG</span>
-                                </div>
-                            </div>
+                        <div class="history-list" id="payment-history-list">
+                            <p class="text-secondary small mb-0">Đang tải…</p>
                         </div>
                     </div>
                 </div>
@@ -143,11 +86,84 @@
         </div>
     </main>
 
-    <button class="btn-fab-add position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg">
-        <span class="material-symbols-outlined fs-2">add</span>
-    </button>
+    <!-- Xác nhận thanh toán -->
+    <div class="modal fade" id="payment-confirm-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-surface-container border border-outline-variant text-white">
+                <div class="modal-header border-secondary-subtle">
+                    <h5 class="modal-title" id="payment-confirm-title">Xác nhận thanh toán</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small fw-medium mb-2">Thông tin đơn</p>
+                    <p class="small text-secondary mb-3 border-start border-primary border-3 ps-2" id="payment-confirm-summary">—</p>
+
+                    <div class="rounded-3 border border-secondary-subtle bg-surface-container-lowest p-3 small mb-3">
+                        <p class="fw-semibold mb-2 text-on-surface">Quy trình trước khi bấm xác nhận</p>
+                        <ol class="mb-0 ps-3 text-secondary">
+                            <li>Mở <strong>Chi tiết đơn</strong> (nút biên lai) để kiểm tra món, số lượng và tổng tiền.</li>
+                            <li>Chọn hình thức thu bên dưới và thực hiện đúng bước kiểm tra tương ứng.</li>
+                            <li>Chỉ bấm <strong>Xác nhận hoàn tất</strong> khi đã thu đủ tiền mặt hoặc đã xác minh giao dịch chuyển khoản/QR.</li>
+                        </ol>
+                    </div>
+
+                    <p class="small fw-semibold mb-2">Hình thức thanh toán</p>
+                    <div class="d-grid gap-2 mb-3">
+                        <label class="d-flex align-items-center gap-2 p-2 rounded-3 border border-secondary-subtle cursor-pointer payment-method-option">
+                            <input type="radio" name="paymentMethod" id="pay-cash" value="CASH" checked class="form-check-input" />
+                            <div>
+                                <span class="d-block fw-medium">Tiền mặt</span>
+                                <span class="d-block smaller text-secondary">Đếm tiền khách đưa, đủ số tổng đơn.</span>
+                            </div>
+                        </label>
+                        <label class="d-flex align-items-center gap-2 p-2 rounded-3 border border-secondary-subtle cursor-pointer payment-method-option">
+                            <input type="radio" name="paymentMethod" id="pay-qr" value="QR_CODE" class="form-check-input" />
+                            <div>
+                                <span class="d-block fw-medium">QR / Chuyển khoản</span>
+                                <span class="d-block smaller text-secondary">Đối chiếu app ngân hàng/QR: đúng số tiền, đúng nội dung, trạng thái thành công.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="rounded-3 p-3 border border-secondary-subtle mb-3" id="payment-method-detail">
+                        <p class="small fw-semibold mb-1 text-primary" id="payment-method-detail-title">Tiền mặt</p>
+                        <p class="small text-secondary mb-0" id="payment-method-detail-text">
+                            Xác nhận bạn đã nhận đủ tiền mặt từ khách, khớp với tổng đơn hiển thị ở trên.
+                        </p>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="payment-staff-attest" autocomplete="off" />
+                        <label class="form-check-label small" for="payment-staff-attest" id="payment-staff-attest-label">
+                            Tôi đã kiểm tra đơn và xác nhận đã nhận đủ tiền mặt / giao dịch chuyển khoản thành công.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary-subtle">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary fw-bold" id="btn-confirm-payment-submit" disabled>Xác nhận hoàn tất trên hệ thống</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết đơn -->
+    <div class="modal fade" id="payment-detail-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-surface-container border border-outline-variant text-white">
+                <div class="modal-header border-secondary-subtle">
+                    <h5 class="modal-title" id="payment-detail-title">Chi tiết đơn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body" id="payment-detail-body">
+                    <p class="text-muted mb-0">Đang tải…</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>
+    <script src="qlthanhtoan.js"></script>
 </body>
 </html>

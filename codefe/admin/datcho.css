@@ -104,7 +104,8 @@ body {
     height: 64px;
     background-color: rgba(11, 19, 38, 0.8);
     backdrop-filter: blur(10px);
-    z-index: 990;
+    /* Cao hơn sidebar (1000) để chuông / dropdown luôn nhận click */
+    z-index: 1020;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -127,6 +128,31 @@ body {
 .action-icon { color: var(--text-slate); cursor: pointer; }
 .action-icon:hover { color: var(--primary); }
 .header-actions { display: flex; align-items: center; gap: 24px; }
+
+.admin-notify-dropdown .dropdown-menu.admin-notify-panel {
+    min-width: 320px;
+    max-width: 400px;
+    z-index: 1080;
+    background: var(--surface-container, #1e293b);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.admin-notify-quick-link:hover {
+    background: rgba(124, 197, 255, 0.08);
+}
+.admin-notify-feed {
+    max-height: 280px;
+    overflow-y: auto;
+    background: transparent;
+}
+.admin-notify-feed .list-group-item {
+    background: transparent;
+    color: var(--text-slate, #cbd5e1);
+    position: relative;
+}
+.admin-notify-feed .list-group-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
 
 /* Main Content Area */
 .main-content { margin-left: 256px; margin-top: 64px; padding: 32px; }

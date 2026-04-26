@@ -11,9 +11,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class ReservationService {
     private final JdbcTemplate jdbcTemplate;
     private final ReservationHistoryItemMapper mapper;
     private final ZaloNotificationService zaloNotificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ReservationHistoryItemResponse createReservation(CreateReservationRequest req, Principal principal) {
@@ -44,6 +47,16 @@ public class ReservationService {
         );
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         if (id == null) return null;
+
+        messagingTemplate.convertAndSend(
+                "/topic/staff/notifications",
+                Map.of(
+                        "type", "RESERVATION_NEW",
+                        "reservationId", id,
+                        "customerName", req.getCustomerName() != null ? req.getCustomerName() : "",
+                        "reservationTime",
+                                req.getReservationTime() != null ? req.getReservationTime().toString() : "",
+                        "numberOfGuests", req.getNumberOfGuests() != null ? req.getNumberOfGuests() : 0));
 
         return ReservationHistoryItemResponse.builder()
                 .id(id)

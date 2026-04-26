@@ -1,10 +1,6 @@
 /* qlthanhtoan.css - Restaurant AI */
 
-.main-content {
-    margin-left: 260px;
-    padding-top: 64px;
-    min-height: 100vh;
-}
+/* .main-content: dùng chung từ datcho.css */
 
 .fw-800 { font-weight: 800; }
 .smaller { font-size: 0.7rem; }

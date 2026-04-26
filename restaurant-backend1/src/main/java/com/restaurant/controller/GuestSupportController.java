@@ -2,9 +2,10 @@ package com.restaurant.controller;
 
 import com.restaurant.dto.request.GuestCallStaffRequest;
 import com.restaurant.dto.response.ApiResponse;
-import com.restaurant.service.GuestSupportService;
+import com.restaurant.service.StaffOperationsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,16 +14,17 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class GuestSupportController {
 
-    private final GuestSupportService guestSupportService;
+    private final StaffOperationsService staffOperationsService;
 
     @PostMapping("/guest")
     public ResponseEntity<ApiResponse<Void>> callStaff(@Valid @RequestBody GuestCallStaffRequest req) {
-        boolean ok = guestSupportService.createCallStaffByQrToken(req.getQrToken(), req.getNote());
-        if (!ok) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Mã QR bàn không hợp lệ."));
+        try {
+            staffOperationsService.createGuestCallStaffRequest(req.getQrToken(), req.getNote());
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã gửi yêu cầu hỗ trợ tới nhân viên"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(ex.getMessage()));
         }
-        return ResponseEntity.ok(ApiResponse.success(null, "Đã gửi yêu cầu hỗ trợ tới nhân viên"));
     }
 }
-

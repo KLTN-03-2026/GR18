@@ -1,5 +1,5 @@
 (function () {
-    const API_BASE = "http://localhost:8080/api";
+    const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
     let pendingCalls = [];
     let resolvedCalls = [];
     let currentFilter = "all";
@@ -125,6 +125,11 @@
             }
         });
         const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.success === false) {
+            console.warn(json.message || "Không tải được danh sách gọi nhân viên");
+            pendingCalls = [];
+            return;
+        }
         const list = Array.isArray(json?.data) ? json.data : [];
         pendingCalls = list;
     }

@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8080/api/admin";
+const RESTAURANT_ROOT = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+const MENU_ADMIN_BASE = `${RESTAURANT_ROOT}/admin`;
 const MENU_IMAGE_FALLBACK =
     "data:image/svg+xml," +
     encodeURIComponent(
@@ -15,7 +16,7 @@ function getToken() {
 let menuModalInstance = null;
 let categoryModalInstance = null;
 let uploadedPreviewObjectUrl = null;
-const BACKEND_ORIGIN = API_BASE.replace(/\/api\/admin\/?$/, "");
+const BACKEND_ORIGIN = RESTAURANT_ROOT.replace(/\/api\/?$/, "");
 let currentCategoryId = null;
 let currentViewMode = "grid";
 let categoryCache = [];
@@ -71,7 +72,7 @@ async function api(url, options = {}) {
 
 // ===== LOAD MENU =====
 async function loadMenu() {
-    const data = await api(`${API_BASE}/menu-items`);
+    const data = await api(`${MENU_ADMIN_BASE}/menu-items`);
     const items = locMonConHoatDong(data.data || []);
     renderMenu(items);
 }
@@ -136,7 +137,7 @@ function renderMenu(items) {
 async function deleteItem(id) {
     if (!confirm("Xóa món này?")) return;
     try {
-        await api(`${API_BASE}/menu-items/${id}`, {
+        await api(`${MENU_ADMIN_BASE}/menu-items/${id}`, {
             method: "DELETE"
         });
         loadMenu();
@@ -148,7 +149,7 @@ async function deleteItem(id) {
 
 // ===== TOGGLE =====
 async function toggleAvailable(id, isAvailable) {
-    await api(`${API_BASE}/menu-items/${id}/availability?isAvailable=${!isAvailable}`, {
+    await api(`${MENU_ADMIN_BASE}/menu-items/${id}/availability?isAvailable=${!isAvailable}`, {
         method: "PATCH"
     });
 
@@ -168,7 +169,7 @@ async function createItem() {
     };
 
     try {
-        await api(`${API_BASE}/menu-items`, {
+        await api(`${MENU_ADMIN_BASE}/menu-items`, {
             method: "POST",
             body: JSON.stringify(body)
         });
@@ -183,7 +184,7 @@ async function createItem() {
 
 // ===== CATEGORY =====
 async function loadCategories() {
-    const data = await api(`${API_BASE}/categories`);
+    const data = await api(`${MENU_ADMIN_BASE}/categories`);
     categoryCache = uniqueCategories(data.data || []);
     renderCategories(categoryCache);
     fillCategorySelect(categoryCache);
@@ -238,7 +239,7 @@ function fillCategoryEditSelect(categories) {
 
 // ===== FILTER =====
 async function filterByCategory(categoryId) {
-    const data = await api(`${API_BASE}/menu-items?categoryId=${categoryId}`);
+    const data = await api(`${MENU_ADMIN_BASE}/menu-items?categoryId=${categoryId}`);
     renderMenu(locMonConHoatDong(data.data || []));
 }
 
@@ -313,7 +314,7 @@ async function saveSelectedCategory() {
     };
 
     try {
-        await api(`${API_BASE}/categories/${id}`, {
+        await api(`${MENU_ADMIN_BASE}/categories/${id}`, {
             method: "PUT",
             body: JSON.stringify(body)
         });
@@ -335,7 +336,7 @@ async function deleteSelectedCategory() {
     if (!id) return;
     if (!confirm("Ban co chac muon xoa danh muc nay?")) return;
     try {
-        await api(`${API_BASE}/categories/${id}`, { method: "DELETE" });
+        await api(`${MENU_ADMIN_BASE}/categories/${id}`, { method: "DELETE" });
         showActionToast("Xoa danh muc thanh cong", "success");
         currentCategoryId = null;
         await loadCategories();
@@ -348,7 +349,7 @@ async function deleteSelectedCategory() {
 // ===== EDIT (simple) =====
 async function editItem(id) {
     try {
-        const data = await api(`${API_BASE}/menu-items`);
+        const data = await api(`${MENU_ADMIN_BASE}/menu-items`);
         const item = (data.data || []).find((x) => x.id === id);
         if (!item) {
             alert("Khong tim thay mon can sua.");
@@ -370,7 +371,7 @@ async function editItem(id) {
             return;
         }
 
-        await api(`${API_BASE}/menu-items/${id}`, {
+        await api(`${MENU_ADMIN_BASE}/menu-items/${id}`, {
             method: "PUT",
             body: JSON.stringify({
                 name: name.trim(),

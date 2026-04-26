@@ -18,9 +18,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/statistics")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
 @SecurityRequirement(name = "bearerAuth")
-@Tag(name = "Statistics", description = "Thống kê và báo cáo doanh thu (Admin)")
+@Tag(name = "Statistics", description = "Thống kê doanh thu (Admin & Staff)")
 public class StatisticsController {
 
     private final StatisticsService statisticsService;

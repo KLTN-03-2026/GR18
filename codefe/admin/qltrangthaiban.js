@@ -1,5 +1,5 @@
 (function () {
-    const API_BASE = "http://localhost:8080/api";
+    const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
     const STATUS = {
         AVAILABLE: { label: "TRỐNG", cls: "empty-table" },
         OCCUPIED: { label: "ĐANG DÙNG", cls: "active-table" },
@@ -7,9 +7,20 @@
         CLEANING: { label: "CẦN DỌN", cls: "cleaning-table" }
     };
     let pollTimer = null;
+    let tableStompClient = null;
+    let stompRefreshTimer = null;
 
     function token() {
         return localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
+    }
+
+    function wsUrl() {
+        try {
+            const u = new URL(API_BASE);
+            return `${u.origin}/api/ws`;
+        } catch {
+            return "http://localhost:8080/api/ws";
+        }
     }
 
     function toast(message, kind) {
@@ -69,6 +80,9 @@
             headers: { Authorization: `Bearer ${tk}` }
         });
         const json = await res.json().catch(() => ({}));
+        if (res.status === 401 || res.status === 403) {
+            throw new Error("Phiên đăng nhập hết hạn hoặc không đủ quyền (STAFF/ADMIN).");
+        }
         if (!res.ok || json.success === false) {
             throw new Error(json.message || "Không tải được danh sách bàn.");
         }
@@ -88,6 +102,42 @@
             throw new Error(json.message || "Cập nhật trạng thái thất bại.");
         }
         toast("Đã cập nhật trạng thái bàn.", "success");
+    }
+
+    function scheduleStompRefresh() {
+        if (stompRefreshTimer) clearTimeout(stompRefreshTimer);
+        stompRefreshTimer = setTimeout(() => {
+            stompRefreshTimer = null;
+            loadAndRender();
+        }, 400);
+    }
+
+    function connectTableStatusStomp() {
+        if (typeof SockJS === "undefined" || typeof Stomp === "undefined") {
+            setTimeout(connectTableStatusStomp, 300);
+            return;
+        }
+        if (tableStompClient && tableStompClient.connected) return;
+        try {
+            const socket = new SockJS(wsUrl());
+            tableStompClient = Stomp.over(socket);
+            tableStompClient.debug = function () {};
+            tableStompClient.connect(
+                {},
+                function () {
+                    tableStompClient.subscribe("/topic/staff/tables/status", function () {
+                        scheduleStompRefresh();
+                    });
+                },
+                function () {
+                    tableStompClient = null;
+                    setTimeout(connectTableStatusStomp, 8000);
+                }
+            );
+        } catch (e) {
+            console.warn("STOMP trạng thái bàn:", e);
+            tableStompClient = null;
+        }
     }
 
     async function loadAndRender() {
@@ -126,6 +176,7 @@
     document.addEventListener("DOMContentLoaded", () => {
         bindEvents();
         loadAndRender();
+        connectTableStatusStomp();
         if (pollTimer) clearInterval(pollTimer);
         pollTimer = setInterval(loadAndRender, 15000);
     });

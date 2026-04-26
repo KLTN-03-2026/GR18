@@ -1,5 +1,6 @@
 package com.restaurant.service;
 
+import com.restaurant.dto.response.CallStaffResponse;
 import com.restaurant.entity.CallStaff;
 import com.restaurant.entity.OrderItem;
 import com.restaurant.entity.RestaurantTable;
@@ -36,8 +37,25 @@ public class StaffOperationsService {
     }
 
     @Transactional(readOnly = true)
-    public List<CallStaff> getPendingCallStaffRequests() {
-        return callStaffRepository.findByIsResolvedFalseOrderByCreatedAtAsc();
+    public List<CallStaffResponse> getPendingCallStaffResponses() {
+        return callStaffRepository.findPendingWithTableFetched().stream()
+                .map(this::toCallStaffResponse)
+                .toList();
+    }
+
+    public CallStaffResponse toCallStaffResponse(CallStaff c) {
+        if (c == null) {
+            return null;
+        }
+        return CallStaffResponse.builder()
+                .id(c.getId())
+                .tableId(c.getTable() != null ? c.getTable().getId() : null)
+                .tableNumber(c.getTable() != null ? c.getTable().getTableNumber() : null)
+                .isResolved(c.getIsResolved())
+                .createdAt(c.getCreatedAt())
+                .resolvedAt(c.getResolvedAt())
+                .note(c.getNote())
+                .build();
     }
 
     @Transactional
@@ -47,6 +65,12 @@ public class StaffOperationsService {
         call.setIsResolved(true);
         call.setResolvedAt(LocalDateTime.now());
         return callStaffRepository.save(call);
+    }
+
+    @Transactional
+    public CallStaffResponse resolveCallStaffRequestReturningDto(Long id) {
+        CallStaff call = resolveCallStaffRequest(id);
+        return toCallStaffResponse(call);
     }
 
     @Transactional

@@ -10,12 +10,13 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StaffOrderResponse {
+public class StaffOrderDetailResponse {
     private Long id;
     private Long tableId;
     private String tableNumber;
@@ -27,6 +28,17 @@ public class StaffOrderResponse {
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;
     private String note;
-    private String mainItem;
-    private int itemCount;
+    private List<LineItem> items;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LineItem {
+        private String itemName;
+        private Integer quantity;
+        private BigDecimal unitPrice;
+        private BigDecimal subtotal;
+        private String note;
+    }
 }
