@@ -1,0 +1,35 @@
+<!-- Header khách (chưa đăng nhập). Cùng cách mount với customer-header: placeholder + customer-header.js -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold text-orange" href="/index/home.html">
+            <i class="fa-solid fa-robot me-2"></i>Restaurant AI
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavGuest">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNavGuest">
+            <ul class="navbar-nav gap-3">
+                <li class="nav-item"><a class="nav-link nav-home" href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                <li class="nav-item"><a class="nav-link nav-menu" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
+                <li class="nav-item"><a class="nav-link nav-datban" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
+                <li class="nav-item"><a class="nav-link nav-lichsu" id="nav-orders-link" href="/index/lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i><span id="nav-orders-label">Lịch sử</span></a></li>
+                <li class="nav-item"><a class="nav-link nav-danhgia" href="/index/danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
+            </ul>
+        </div>
+        <div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap justify-content-end">
+            <button class="btn btn-orange px-3" id="btn-book-now">Đặt bàn ngay</button>
+
+            <div class="d-flex align-items-center gap-2" id="header-auth-guest">
+                <a href="../dangnhap.html" class="btn btn-orange px-3 rounded-pill fw-semibold" id="header-link-login">Đăng nhập</a>
+                <a href="../dangky.html" class="btn btn-outline-dark px-3 rounded-pill fw-semibold" id="header-link-register">Đăng ký</a>
+            </div>
+
+            <div id="header-cart-wrap" class="d-none">
+            <div class="position-relative" style="cursor:pointer" id="header-cart-btn">
+                <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
+                <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;font-size:10px">0</span>
+            </div>
+            </div>
+        </div>
+    </div>
+</nav>

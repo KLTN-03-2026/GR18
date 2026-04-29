@@ -1,4 +1,15 @@
 (function () {
+    /** Thư mục chứa customer-header.html & guest-header.html (cùng folder với customer-header.js). */
+    var sc0 = document.currentScript;
+    var HEADER_DIR = "";
+    if (sc0 && sc0.src) {
+        HEADER_DIR = sc0.src.replace(/customer-header\.js(\?.*)?$/i, "");
+    }
+
+    function resolveHeaderMarkupUrl() {
+        return HEADER_DIR + (isLoggedIn() ? "customer-header.html" : "guest-header.html");
+    }
+
     function getActiveQrTokenSafe() {
         try {
             if (typeof window.getActiveQrToken === "function") return window.getActiveQrToken() || "";
@@ -76,13 +87,34 @@
         return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
     }
 
+    function isLoggedIn() {
+        try {
+            var t = localStorage.getItem("accessToken") || localStorage.getItem("token");
+            return !!(t && String(t).trim());
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function setAuthNavLinks() {
+        var login = document.getElementById("header-link-login");
+        var reg = document.getElementById("header-link-register");
+        if (!login || !reg) return;
+        var path = (window.location.pathname || "").toLowerCase();
+        if (path.indexOf("/index/") >= 0 || /\/index\/?$/.test(path)) {
+            login.setAttribute("href", "../dangnhap.html");
+            reg.setAttribute("href", "../dangky.html");
+        } else {
+            login.setAttribute("href", "dangnhap.html");
+            reg.setAttribute("href", "dangky.html");
+        }
+    }
+
     function markActiveNav() {
         var p = (window.location.pathname || "").toLowerCase();
         var map = [
             ["home", ".nav-home"],
-            ["menu", ".nav-menu"],
             ["datban", ".nav-datban"],
-            ["danhmuc", ".nav-danhmuc"],
             ["lichsu", ".nav-lichsu"],
             ["danhgia", ".nav-danhgia"]
         ];
@@ -92,27 +124,57 @@
             if (p.indexOf(item[0] + ".html") >= 0) el.classList.add("active");
             else el.classList.remove("active");
         });
+        var onMenu = p.indexOf("menu.html") >= 0;
+        var onMenuDetail = p.indexOf("menu-detail.html") >= 0;
+        var onQrMenu = p.indexOf("qr-menu.html") >= 0;
+        var navMenu = document.querySelector(".nav-menu");
+        if (navMenu) {
+            if (onMenu || onMenuDetail || onQrMenu) navMenu.classList.add("active");
+            else navMenu.classList.remove("active");
+        }
     }
+
+    /** Trang gọi món tại bàn sau khi quét QR: rút gọn nav, ẩn Đăng nhập / Đăng ký (giữ danh sách đồng bộ với qr-session.js). */
+    var QR_MENU_FLOW_PAGES = ["qr-menu.html", "menu-detail.html", "giohang.html"];
+    /** Cho phép mở kèm ?t= mà không bị ép về menu (đăng nhập/đăng ký vẫn dùng được nếu khách muốn). */
+    var QR_ALLOW_WITH_TOKEN_PAGES = QR_MENU_FLOW_PAGES.concat(["dangnhap.html", "dangky.html", "danhgia.html"]);
 
     function applyQrMode() {
         var token = getActiveQrTokenSafe();
         if (!token) return;
 
         var path = (window.location.pathname || "").toLowerCase();
-        var allowPages = ["qr-menu.html", "menu-detail.html", "giohang.html"];
-        var isAllowed = allowPages.some(function (p) { return path.indexOf(p) >= 0; });
-        if (!isAllowed) {
+        var isMenuFlow = QR_MENU_FLOW_PAGES.some(function (p) { return path.indexOf(p) >= 0; });
+        var mayStay = QR_ALLOW_WITH_TOKEN_PAGES.some(function (p) { return path.indexOf(p) >= 0; });
+
+        if (!mayStay) {
             window.location.href = withToken("/index/qr-menu.html");
             return;
         }
 
-        [".nav-home", ".nav-datban", ".nav-danhmuc", ".nav-danhgia"].forEach(function (sel) {
+        if (!isMenuFlow) {
+            if (path.indexOf("danhgia.html") >= 0) {
+                var bDanh = document.querySelector(".navbar-brand");
+                if (bDanh) bDanh.setAttribute("href", withToken("/index/qr-menu.html"));
+                var gDanh = document.getElementById("header-auth-guest");
+                if (gDanh) gDanh.style.display = "none";
+            }
+            return;
+        }
+
+        [".nav-home", ".nav-datban"].forEach(function (sel) {
             var el = document.querySelector(sel);
             if (el && el.parentElement) el.parentElement.style.display = "none";
         });
 
         var navMenu = document.querySelector(".nav-menu");
         if (navMenu) navMenu.href = withToken("/index/qr-menu.html");
+
+        var navDanhgia = document.querySelector(".nav-danhgia");
+        if (navDanhgia) {
+            navDanhgia.href = withToken("/index/danhgia.html");
+            if (navDanhgia.parentElement) navDanhgia.parentElement.style.display = "";
+        }
 
         var ordersLink = document.getElementById("nav-orders-link");
         var ordersLabel = document.getElementById("nav-orders-label");
@@ -125,6 +187,12 @@
 
         var bookBtn = document.getElementById("btn-book-now");
         if (bookBtn) bookBtn.style.display = "none";
+
+        var brand = document.querySelector(".navbar-brand");
+        if (brand) brand.setAttribute("href", withToken("/index/qr-menu.html"));
+
+        var guestAuth = document.getElementById("header-auth-guest");
+        if (guestAuth) guestAuth.style.display = "none";
     }
 
     async function logout() {
@@ -148,6 +216,8 @@
     }
 
     function bindHeaderData() {
+        setAuthNavLinks();
+
         var u = parseUser();
         var name = u.fullName || "Khách hàng";
         var email = u.email || "Chưa cập nhật";
@@ -200,13 +270,14 @@
 
         markActiveNav();
         applyQrMode();
+        if (typeof window.syncHeaderCartVisibility === "function") window.syncHeaderCartVisibility();
     }
 
     async function mountHeader() {
         var oldHeader = document.querySelector("header.navbar");
         if (!oldHeader) return;
         try {
-            var res = await fetch("customer-header.html");
+            var res = await fetch(resolveHeaderMarkupUrl());
             if (!res.ok) return;
             var html = await res.text();
             var holder = document.createElement("div");

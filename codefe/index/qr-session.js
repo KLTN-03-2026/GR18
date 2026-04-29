@@ -5,13 +5,29 @@
 (function () {
     var host = window.location.hostname || "";
     var isLocalHost = host === "localhost" || host === "127.0.0.1";
+    // Cùng máy chạy Live Server + Spring: dùng đúng host trang (vd 127.0.0.1:5501 → API 127.0.0.1:8080).
+    // Điện thoại quét QR mở http://IP-LAN:5500/... → API phải là http://IP-LAN:8080/api (cùng IP máy chạy BE).
+    // Nếu từng lưu restaurant_api_base = http://127.0.0.1/... trên PC rồi mở trang từ IP LAN, bỏ qua để tránh gọi nhầm loopback.
     var defaultApi = isLocalHost
-        ? "http://192.168.1.27:8080/api"
+        ? ("http://" + host + ":8080/api")
         : (window.location.protocol + "//" + host + ":8080/api");
-    var API = localStorage.getItem("restaurant_api_base") || defaultApi;
+    var API = defaultApi;
+    try {
+        var rawStored = localStorage.getItem("restaurant_api_base");
+        if (rawStored && String(rawStored).trim()) {
+            var u = new URL(String(rawStored).trim());
+            if (!isLocalHost && (u.hostname === "127.0.0.1" || u.hostname === "localhost")) {
+                // giữ defaultApi
+            } else {
+                API = String(rawStored).trim().replace(/\/+$/, "");
+            }
+        }
+    } catch (e1) {
+        var s = localStorage.getItem("restaurant_api_base");
+        if (s && String(s).trim()) API = String(s).trim().replace(/\/+$/, "");
+    }
 
-    // Fallback khi mở file trực tiếp (file://) hoặc hostname rỗng.
-    if (!host) API = "http://192.168.1.27:8080/api";
+    if (!host) API = "http://127.0.0.1:8080/api";
 
     window.RESTAURANT_API_BASE = API;
 
@@ -61,8 +77,9 @@
 
     window.cartStorageKey = function () {
         var t = window.getActiveQrToken();
+        if (!t) return "";
         var scope = getUserScope();
-        return t ? "gioHang_qr_" + t + "_" + scope : "gioHang_" + scope;
+        return "gioHang_qr_" + t + "_" + scope;
     };
 
     window.appendQrToHref = function (href) {
@@ -73,14 +90,50 @@
     };
 
     window.layGioHangChung = function () {
+        var key = window.cartStorageKey();
+        if (!key) return [];
         try {
-            return JSON.parse(localStorage.getItem(window.cartStorageKey())) || [];
+            return JSON.parse(localStorage.getItem(key)) || [];
         } catch (e) {
             return [];
         }
     };
 
     window.luuGioHangChung = function (cart) {
-        localStorage.setItem(window.cartStorageKey(), JSON.stringify(cart || []));
+        var key = window.cartStorageKey();
+        if (!key) return;
+        try {
+            localStorage.setItem(key, JSON.stringify(cart || []));
+        } catch (e) {}
     };
+
+    /** Chỉ hiện icon giỏ hàng trên header khi đã quét QR bàn (có ?t= hoặc session). */
+    window.syncHeaderCartVisibility = function () {
+        var t = "";
+        try {
+            t = (typeof window.getActiveQrToken === "function" && window.getActiveQrToken()) || "";
+        } catch (e) {}
+        document.querySelectorAll("#header-cart-wrap").forEach(function (el) {
+            if (t) el.classList.remove("d-none");
+            else el.classList.add("d-none");
+        });
+    };
+
+    /** Giao diện quét QR: ẩn sớm Đăng nhập/Đăng ký trên trang menu tại bàn (trước khi header fetch xong). Danh sách trang trùng customer-header.js (QR_MENU_FLOW_PAGES). */
+    (function syncQrMenuFlowClass() {
+        try {
+            var path = (window.location.pathname || "").toLowerCase();
+            var menuFlow = ["qr-menu.html", "menu-detail.html", "giohang.html"].some(function (p) {
+                return path.indexOf(p) >= 0;
+            });
+            var t = typeof window.getActiveQrToken === "function" && window.getActiveQrToken();
+            if (!menuFlow || !t || !String(t).trim()) return;
+            document.documentElement.classList.add("restaurant-qr-menu-flow");
+            if (document.getElementById("restaurant-qr-header-style")) return;
+            var s = document.createElement("style");
+            s.id = "restaurant-qr-header-style";
+            s.textContent = "html.restaurant-qr-menu-flow #header-auth-guest{display:none!important;}";
+            document.head.appendChild(s);
+        } catch (e) {}
+    })();
 })();

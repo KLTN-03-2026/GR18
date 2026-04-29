@@ -12,4 +12,6 @@ public class ChatResponse {
      String reply;
      String status;
     Object data;
+     /** Id log gợi ý (để khách bấm món báo tiếp nhận gợi ý). */
+     Long suggestionLogId;
 }

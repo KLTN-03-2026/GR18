@@ -99,3 +99,8 @@
 .social-item.facebook { background: #1877F2; font-size: 20px; }
 .social-item.maps { background: #fff; color: #EA4335; font-size: 20px; }
 .social-item:hover { transform: scale(1.1); }
+
+/* Toastr thành công: xanh */
+#toast-container > .toast-success {
+    background-color: #198754 !important;
+}

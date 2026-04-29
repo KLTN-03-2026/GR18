@@ -14,15 +14,40 @@
         { tableNumber: "B06", capacity: 2, location: "Quầy bar", qrCodeToken: "demo-qr-b06" }
     ];
 
-    function getMenuBaseUrl() {
-        var saved = localStorage.getItem("restaurant_qr_menu_base");
-        if (saved && saved.trim()) return saved.trim().replace(/\/$/, "");
+    function isLoopbackUrl(u) {
         try {
-            var u = new URL("../index/menu.html", window.location.href);
-            return u.href.split("?")[0];
+            return u.hostname === "127.0.0.1" || u.hostname === "localhost";
         } catch (e) {
+            return false;
+        }
+    }
+
+    function computedMenuBase() {
+        try {
+            // Cùng host/port với trang admin đang mở (localhost, IP Wi‑Fi tạm, hay domain — đổi theo mạng, không hardcode IP ở đây)
+            // Muốn giao diện landing riêng: gõ thủ công .../index/qr-menu.html
+            var u = new URL("../index/menu.html", window.location.href);
+            return u.href.split("?")[0].replace(/\/$/, "");
+        } catch (e2) {
             return "http://127.0.0.1:5500/index/menu.html";
         }
+    }
+
+    function getMenuBaseUrl() {
+        var pageHost = window.location.hostname || "";
+        var onLan = pageHost && pageHost !== "127.0.0.1" && pageHost !== "localhost";
+        var computed = computedMenuBase();
+        var saved = localStorage.getItem("restaurant_qr_menu_base");
+        if (saved && saved.trim()) {
+            var s = saved.trim().replace(/\/$/, "");
+            if (onLan) {
+                try {
+                    if (isLoopbackUrl(new URL(s))) return computed;
+                } catch (e) {}
+            }
+            return s;
+        }
+        return computed;
     }
 
     function setMenuBaseUrl(v) {

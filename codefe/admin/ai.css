@@ -45,6 +45,7 @@
 }
 
 .bg-secondary-container-soft { background: rgba(78, 222, 163, 0.1); }
+.bg-error-container-soft { background: rgba(255, 180, 100, 0.12); }
 .bg-primary-container-soft { background: rgba(137, 206, 255, 0.1); }
 
 /* Upsell List Items */
@@ -182,4 +183,19 @@
 /* Responsive */
 @media (max-width: 1199px) {
     .main-content { margin-left: 0; padding: 1rem; padding-top: 80px; }
+}
+
+/* Danh sách chọn món gợi ý AI */
+.ai-menu-picker {
+    max-height: 380px;
+    overflow-y: auto;
+    background: var(--surface-container-lowest, #060e20);
+}
+.ai-menu-pick-row {
+    transition: background 0.15s ease;
+    border: 1px solid transparent;
+}
+.ai-menu-pick-row:hover {
+    background: rgba(137, 206, 255, 0.06);
+    border-color: rgba(137, 206, 255, 0.12);
 }

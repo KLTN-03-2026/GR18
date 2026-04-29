@@ -16,7 +16,24 @@ function redirectToLogin() {
     window.location.href = `${LOGIN_PAGE}?next=${next}`;
 }
 
+function toastOk(msg, title) {
+    if (typeof toastr !== 'undefined') toastr.success(msg, title || 'Thành công');
+    else alert((title ? title + ': ' : '') + msg);
+}
+function toastErr(msg) {
+    if (typeof toastr !== 'undefined') toastr.error(msg, 'Lỗi');
+    else alert('Lỗi: ' + msg);
+}
+function toastWarn(msg) {
+    if (typeof toastr !== 'undefined') toastr.warning(msg);
+    else alert(msg);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    if (typeof toastr !== 'undefined') {
+        toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 4000 };
+    }
+
     const reservationForm = document.getElementById('reservationForm');
     const submitBtn = document.getElementById('submitBtn');
     const guestHint = document.getElementById('guest-login-hint');
@@ -49,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const area = document.querySelector('input[name="area"]:checked').value;
 
             if (!customerPhone) {
-                alert('Vui lòng nhập số điện thoại liên hệ.');
+                toastWarn('Vui lòng nhập số điện thoại liên hệ.');
                 phoneEl?.focus();
                 return;
             }
@@ -80,16 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.data.success) {
-                    alert('Đặt bàn thành công! Hẹn gặp bạn vào ' + new Date(reservationTime).toLocaleString('vi-VN'));
-                    // Chuyển hướng tới trang lịch sử để xem chi tiết
-                    window.location.href = 'lichsu.html';
+                    toastOk(
+                        'Hẹn gặp bạn vào ' + new Date(reservationTime).toLocaleString('vi-VN'),
+                        'Đặt bàn thành công'
+                    );
+                    setTimeout(function () {
+                        window.location.href = 'lichsu.html';
+                    }, 1500);
                 }
 
             } catch (error) {
                 console.error('Booking Error:', error);
                 // Hiển thị thông báo lỗi từ Backend (Ví dụ: trùng giờ, quá khứ...)
                 const message = error.response?.data?.message || "Đặt bàn thất bại. Vui lòng thử lại!";
-                alert('Lỗi: ' + message);
+                toastErr(message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Xác nhận đặt bàn';

@@ -7,8 +7,8 @@ import lombok.*;
 @Table(
         name = "reviews",
         uniqueConstraints = @UniqueConstraint(
-                name = "uq_review_user_order_item",
-                columnNames = {"user_id", "order_id", "menu_item_id"}
+                name = "uq_review_order",
+                columnNames = {"order_id"}
         )
 )
 @Getter
@@ -22,9 +22,13 @@ public class Review extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Null khi đánh giá vãng lai (quét QR, không tài khoản). */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
+
+    @Column(name = "guest_name", length = 100)
+    private String guestName;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "menu_item_id", nullable = false)

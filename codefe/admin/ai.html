@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cấu hình AI | Restaurant AI</title>
-    
+    <title>Quản lý AI | Restaurant AI</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="datcho.css"> 
+
+    <link rel="stylesheet" href="datcho.css">
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="ai.css">
 </head>
@@ -20,168 +20,135 @@
 
     <main class="main-content">
         <div class="container-fluid px-4 pt-4 pb-5">
-            
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 gap-3">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
                 <div>
-                    <h2 class="page-title mb-1">Công cụ trí tuệ nhân tạo AI</h2>
+                    <h2 class="page-title mb-1">Quản lý &amp; cấu hình AI</h2>
+                    <p class="text-secondary small mb-0" id="ai-config-updated">—</p>
                 </div>
-                <button class="btn btn-secondary-container d-flex align-items-center gap-2 rounded-pill px-4 py-2 fw-bold text-secondary shadow-sm">
-                    <span class="material-symbols-outlined fs-5">sync</span> Đồng bộ mô hình
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" id="ai-btn-refresh" class="btn btn-outline-secondary rounded-pill px-3 fw-bold small">
+                        <span class="material-symbols-outlined align-middle fs-6">refresh</span> Tải lại
+                    </button>
+                    <button type="button" id="ai-btn-save" class="btn btn-primary d-flex align-items-center gap-2 rounded-pill px-4 py-2 fw-bold shadow-sm">
+                        <span class="material-symbols-outlined fs-5">save</span> Lưu cấu hình
+                    </button>
+                </div>
             </div>
 
-            <div class="row g-4">
-                <div class="col-12 col-xl-8">
-                    <div class="ai-card p-4 rounded-5 h-100 border border-outline-variant">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-bold mb-0">Món ăn gợi ý bán thêm (Upselling)</h5>
-                            <span class="badge-status-ai bg-secondary-container-soft text-secondary">ĐỘNG CƠ TRỰC TIẾP</span>
-                        </div>
+        
 
-                        <div class="upsell-list">
-                            <div class="upsell-item d-flex align-items-center p-3 rounded-4 mb-3">
-                                <div class="food-img-wrapper rounded-3 overflow-hidden">
-                                    <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c" alt="Food" class="img-fluid">
-                                </div>
-                                <div class="ms-4 flex-grow-1">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="fw-bold mb-1">Thăn lưng bò Wagyu ủ khô</h6>
-                                        <span class="text-secondary fw-bold smaller">+24% Biên lợi nhuận dự kiến</span>
-                                    </div>
-                                    <p class="smaller text-secondary mb-0">Gợi ý kèm: Rượu vang Bordeaux, Khoai tây nghiền Truffle</p>
-                                </div>
-                                <div class="ms-4 text-end d-none d-sm-block">
-                                    <p class="smaller text-muted text-uppercase fw-bold mb-0">Độ tin cậy</p>
-                                    <h5 class="text-primary fw-800 mb-0">98.2%</h5>
-                                </div>
-                            </div>
-
-                            <div class="upsell-item d-flex align-items-center p-3 rounded-4 mb-3">
-                                <div class="food-img-wrapper rounded-3 overflow-hidden">
-                                    <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b" alt="Food" class="img-fluid">
-                                </div>
-                                <div class="ms-4 flex-grow-1">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="fw-bold mb-1">Súp kem tôm hùm Atlantic</h6>
-                                        <span class="text-secondary fw-bold smaller">+18% Biên lợi nhuận dự kiến</span>
-                                    </div>
-                                    <p class="smaller text-secondary mb-0">Gợi ý kèm: Rượu Chardonnay, Bánh mì Sourdough ấm</p>
-                                </div>
-                                <div class="ms-4 text-end d-none d-sm-block">
-                                    <p class="smaller text-muted text-uppercase fw-bold mb-0">Độ tin cậy</p>
-                                    <h5 class="text-primary fw-800 mb-0">85.4%</h5>
-                                </div>
-                            </div>
-                        </div>
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <p class="stat-label">Lượt gợi ý (có danh sách món)</p>
+                        <h3 class="stat-value text-primary" id="ai-stat-total">—</h3>
+                        <span class="material-symbols-outlined bg-icon text-primary">psychology</span>
                     </div>
                 </div>
-
-            
-
-                <div class="col-12 mt-2">
-                    <h5 class="fw-bold mb-4">Cặp món ăn phổ biến do AI dự đoán</h5>
-                    <div class="row g-4">
-                        <div class="col-12 col-md-4">
-                            <div class="pairing-card p-4 rounded-4 border border-outline-variant/10 shadow-sm">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="avatar-stack">
-                                        <img src="https://images.unsplash.com/photo-1513185041617-8ab03f83d6c5" alt="Wine">
-                                        <img src="https://images.unsplash.com/photo-1546241072-48010ad2862c" alt="Steak">
-                                    </div>
-                                    <span class="material-symbols-outlined text-primary">trending_up</span>
-                                </div>
-                                <h6 class="fw-bold">Bít tết & Rượu vang đỏ</h6>
-                                <p class="smaller text-secondary">84% các bữa tối cao cấp bao gồm sự kết hợp hoàn hảo này.</p>
-                                <div class="badge-hint bg-primary-container-soft text-primary mt-2">
-                                    KỊCH BẢN: "Chuyên gia gợi ý dòng Reserve 2018"
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <div class="pairing-card p-4 rounded-4 border border-outline-variant/10 shadow-sm">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="avatar-stack">
-                                        <img src="https://images.unsplash.com/photo-1517705008128-361805f42e86" alt="Espresso">
-                                        <img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb" alt="Cake">
-                                    </div>
-                                    <span class="material-symbols-outlined text-primary">trending_up</span>
-                                </div>
-                                <h6 class="fw-bold">Espresso & Bánh Lava</h6>
-                                <p class="smaller text-secondary">Tăng 72% chuyển đổi món tráng miệng khi được ghép đôi.</p>
-                                <div class="badge-hint bg-primary-container-soft text-primary mt-2">
-                                    KÍCH HOẠT: "Kết thúc đêm với cặp đôi đặc trưng"
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <div class="pairing-card p-4 rounded-4 border border-outline-variant/10 shadow-sm">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="avatar-stack">
-                                        <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b" alt="Martini">
-                                        <img src="https://images.unsplash.com/photo-1553163147-622ab578d844" alt="Oysters">
-                                    </div>
-                                    <span class="material-symbols-outlined text-primary">trending_up</span>
-                                </div>
-                                <h6 class="fw-bold">Hàu & Martini</h6>
-                                <p class="smaller text-secondary">Đạt đỉnh ưu tiên trong khung giờ 17:00 - 19:00.</p>
-                                <div class="badge-hint bg-primary-container-soft text-primary mt-2">
-                                    LOGIC: "Khách hàng giải trí doanh nghiệp"
-                                </div>
-                            </div>
-                        </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <p class="stat-label">Khách chọn món từ gợi ý</p>
+                        <h3 class="stat-value" id="ai-stat-accepted">—</h3>
+                        <span class="material-symbols-outlined bg-icon text-secondary">touch_app</span>
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <p class="stat-label">Tỷ lệ chấp nhận gợi ý</p>
+                        <h3 class="stat-value text-secondary" id="ai-stat-rate">—</h3>
+                        <span class="material-symbols-outlined bg-icon text-primary">percent</span>
+                    </div>
+                </div>
+            </div>
 
-                <div class="col-12 mt-4 mb-5">
-                    <div class="ai-card p-4 rounded-5 border border-outline-variant">
-                        <div class="d-flex justify-content-between align-items-center mb-5">
-                            <div>
-                                <h5 class="fw-bold mb-1">Phân tích xu hướng nhịp sinh học</h5>
-                                <p class="smaller text-secondary mb-0">Tốc độ đặt món dự kiến trong chu kỳ vận hành 24h.</p>
-                            </div>
-                            <div class="btn-group bg-surface-lowest p-1 rounded-pill shadow-sm">
-                                <button class="btn btn-sm btn-surface-high text-primary rounded-pill px-3 fw-bold">Doanh thu</button>
-                                <button class="btn btn-sm text-secondary rounded-pill px-3 fw-bold">Lưu lượng</button>
-                            </div>
+            <div class="ai-card p-4 rounded-5 border border-outline-variant mb-4">
+                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">tune</span> Công tắc &amp; mô hình
+                </h5>
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ai-enabled" role="switch" />
+                            <label class="form-check-label text-on-surface" for="ai-enabled">Bật gợi ý AI / chatbot thông minh</label>
                         </div>
-
-                        <div class="chart-container d-flex align-items-end justify-content-between gap-2 px-3">
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-surface-highest rounded-top-3" style="height: 40%;"></div>
-                                <span class="bar-label">11:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-surface-highest rounded-top-3" style="height: 55%;"></div>
-                                <span class="bar-label">13:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-surface-highest rounded-top-3" style="height: 35%;"></div>
-                                <span class="bar-label">15:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-secondary rounded-top-3 shadow-glow-secondary" style="height: 85%;"></div>
-                                <span class="bar-label text-secondary fw-bold">19:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-primary rounded-top-3 shadow-glow-primary" style="height: 95%;"></div>
-                                <span class="bar-label text-primary fw-bold">21:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-surface-highest rounded-top-3" style="height: 60%;"></div>
-                                <span class="bar-label">23:00</span>
-                            </div>
-                            <div class="bar-group flex-fill">
-                                <div class="bar bg-surface-highest rounded-top-3" style="height: 20%;"></div>
-                                <span class="bar-label">01:00</span>
-                            </div>
+                        <p class="small text-secondary mt-1 mb-0">Tắt: khách nhận thông báo và không gợi ý món tự động.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ai-gemini-enabled" role="switch" />
+                            <label class="form-check-label text-on-surface" for="ai-gemini-enabled">Cho phép gọi Gemini (khi có API key)</label>
+                        </div>
+                        <p class="small text-secondary mt-1 mb-0">Tắt: chỉ xếp hạng theo rule &amp; trọng số nội bộ.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <span id="ai-key-badge" class="badge rounded-pill px-3 py-2">—</span>
+                    </div>
+                </div>
+                <hr class="border-secondary my-4 opacity-25" />
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold" for="ai-timeout-ms">Timeout gọi Gemini (ms)</label>
+                        <input type="number" min="800" max="10000" class="form-control rounded-3" id="ai-timeout-ms" />
+                        <p class="small text-secondary mt-1 mb-0">Mặc định 2800 — tối đa ~3 giây.</p>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="ai-anonymize" />
+                            <label class="form-check-label" for="ai-anonymize">Ẩn danh thống kê (hash phiên, không lưu nội dung chat trong log gợi ý)</label>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div class="ai-card p-4 rounded-5 border border-outline-variant mb-4">
+                <h5 class="fw-bold mb-2 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">restaurant_menu</span> Chọn món ăn ưu tiên gợi ý
+                </h5>
+                <p class="small text-secondary mb-3">Tick các món cần hiện <strong>trước</strong> trong gợi ý chatbot (thứ tự: theo thứ bạn chọn lần lượt). Món không chọn vẫn có thể xuất hiện sau do thuật toán/đánh giá.</p>
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-8">
+                        <label class="form-label small fw-bold" for="ai-menu-search">Tìm món</label>
+                        <input type="search" class="form-control rounded-3" id="ai-menu-search" placeholder="Tên món hoặc danh mục..." autocomplete="off" />
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                        <p class="small text-on-surface mb-2 mb-md-0" id="ai-pinned-count">Đã chọn: 0 món</p>
+                    </div>
+                </div>
+                <div id="ai-menu-picker" class="ai-menu-picker rounded-3 border border-outline-variant p-2">
+                    <p class="text-secondary small mb-0 py-3 text-center" id="ai-menu-picker-placeholder">Đang tải thực đơn…</p>
+                    <div id="ai-menu-picker-list" class="d-none"></div>
+                </div>
+            </div>
+
+            <div class="ai-card p-4 rounded-5 border border-outline-variant mb-5">
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">list_alt</span> Lượt gợi ý gần đây
+                </h5>
+                <div class="table-responsive rounded-3 border border-outline-variant/10">
+                    <table class="table custom-dark-table align-middle mb-0">
+                        <thead>
+                            <tr class="text-secondary smaller fw-bold">
+                                <th class="py-3 ps-3">ID</th>
+                                <th class="py-3">THỜI ĐIỂM</th>
+                                <th class="py-3">NGUỒN</th>
+                                <th class="py-3">SỐ MÓN</th>
+                                <th class="py-3">MÓN CHỌN</th>
+                                <th class="py-3 pe-3">LÚC CHỌN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ai-log-tbody">
+                            <tr><td colspan="6" class="text-secondary small py-3">Đang tải…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>
+    <script src="ai.js"></script>
 </body>
 </html>

@@ -50,7 +50,7 @@ async function handleSend(presetText) {
         removeMessage(loadingId);
         appendMessage("bot", botReply.reply || "Mình chưa hiểu rõ, bạn nói kỹ hơn giúp mình nhé.");
         if (Array.isArray(botReply.items) && botReply.items.length) {
-            appendFoodList(botReply.items.slice(0, 4));
+            appendFoodList(botReply.items.slice(0, 4), botReply.suggestionLogId);
         }
     } catch (error) {
         console.error("Chatbot error:", error);
@@ -89,7 +89,8 @@ async function askBackendChat(text) {
 
             return {
                 reply: json.reply || json.message || "Mình đã nhận câu hỏi của bạn.",
-                items: Array.isArray(json.data) ? json.data : []
+                items: Array.isArray(json.data) ? json.data : [],
+                suggestionLogId: json.suggestionLogId != null ? json.suggestionLogId : null
             };
         } catch (_err) {
             // thử endpoint tiếp theo
@@ -175,7 +176,7 @@ function removeMessage(id) {
     if (el) el.remove();
 }
 
-function appendFoodList(items) {
+function appendFoodList(items, suggestionLogId) {
     const wrapper = document.createElement("div");
     wrapper.className = "food-list";
 
@@ -184,6 +185,17 @@ function appendFoodList(items) {
         div.type = "button";
         div.className = "food-card";
         div.onclick = () => {
+            if (suggestionLogId && item.id) {
+                const base = CHATBOT_API_BASE.replace(/\/+$/, "");
+                fetch(`${base}/chat/suggestion-feedback`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        suggestionLogId: suggestionLogId,
+                        menuItemId: Number(item.id)
+                    })
+                }).catch(function () {});
+            }
             if (item.id) {
                 window.location.href = appendQrToHrefIfAny(`menu-detail.html?id=${encodeURIComponent(item.id)}`);
             } else {

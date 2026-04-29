@@ -74,4 +74,31 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             AND o.paidAt BETWEEN :start AND :end
             """)
     long countPaidOrdersBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    /** Đơn hoàn thành + đã thanh toán (để kiểm tra quyền đánh giá). */
+    @Query("""
+            SELECT o FROM Order o
+            JOIN FETCH o.orderItems oi
+            JOIN FETCH oi.menuItem mi
+            LEFT JOIN FETCH o.table
+            WHERE o.user.id = :userId
+            AND o.status = 'COMPLETED'
+            AND o.paymentStatus = 'PAID'
+            ORDER BY o.paidAt DESC
+            """)
+    List<Order> findCompletedPaidWithItemsByUserId(@Param("userId") Long userId);
+
+    /** Đơn khách vãng lai (không user) tại bàn: hoàn tất + đã thanh toán. */
+    @Query("""
+            SELECT o FROM Order o
+            JOIN FETCH o.orderItems oi
+            JOIN FETCH oi.menuItem mi
+            JOIN FETCH o.table t
+            WHERE t.id = :tableId
+            AND o.user IS NULL
+            AND o.status = 'COMPLETED'
+            AND o.paymentStatus = 'PAID'
+            ORDER BY o.paidAt DESC
+            """)
+    List<Order> findCompletedPaidGuestOrdersByTableId(@Param("tableId") Long tableId);
 }

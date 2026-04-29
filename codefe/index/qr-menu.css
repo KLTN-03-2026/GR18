@@ -1,5 +1,8 @@
+/* Trang menu sau khi quét QR — bố cục tương tự trải nghiệm app, thương hiệu Restaurant AI */
+
 .qr-menu-body {
-    background: #f6f7fb;
+    background: #f2f4f8;
+    min-height: 100vh;
 }
 
 .qr-menu-body .menu-item-card {
@@ -17,7 +20,207 @@
     height: 44px;
 }
 
-.qr-menu-body #table-qr-banner {
+.qr-nav-minimal {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ——— Landing ——— */
+.qr-landing {
+    max-width: 100%;
+}
+
+.qr-brand-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #1a1a1a;
+    text-transform: none;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.qr-brand-tagline {
+    line-height: 1.3;
+}
+
+.qr-brand-address {
+    line-height: 1.4;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.qr-hero-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 28px;
+    background: linear-gradient(145deg, #fff3ee 0%, #ffede5 100%);
+    box-shadow: 0 10px 32px rgba(255, 107, 53, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #ff6b35;
+}
+
+.qr-greet-line {
+    font-size: 0.95rem;
+    text-align: center;
+    color: #333;
+}
+
+.qr-greet-line #qr-greet-text {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.qr-nick-btn {
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.qr-table-line {
+    font-size: 0.9rem;
+}
+
+.qr-table-pill {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.2rem 0.7rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    border: 1.5px solid #1a1a1a;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.95rem;
+}
+
+/* Thẻ ưu đãi (kiểu iPOS) */
+.qr-promo-tile {
+    background: linear-gradient(90deg, #e8f4ff 0%, #f0f7ff 100%);
+    border-radius: 14px;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #d6e8ff;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.qr-promo-tile:active {
+    transform: scale(0.99);
+}
+
+.qr-promo-ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+}
+
+/* 3 ô dịch vụ */
+.qr-action-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    border-radius: 16px;
+    padding: 0.65rem 0.4rem 0.75rem;
+    border: 1px solid #e8eaef;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    min-height: 108px;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.qr-action-tile:hover {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    color: inherit;
+    transform: translateY(-2px);
+}
+
+.qr-action-illu {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    margin-bottom: 0.4rem;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Minh họa đơn giản (gradient + icon ẩn, dùng màu) */
+.qr-illu-pay {
+    background: linear-gradient(160deg, #e3f2fd 0%, #bbdefb 100%);
+    position: relative;
+}
+.qr-illu-pay::after {
+    content: "💳";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.4rem;
+}
+
+.qr-illu-staff {
+    background: linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 100%);
+    position: relative;
+}
+.qr-illu-staff::after {
+    content: "👤";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.25rem;
+}
+
+.qr-illu-star {
+    background: linear-gradient(160deg, #fff8e1 0%, #ffecb3 100%);
+    position: relative;
+}
+.qr-illu-star::after {
+    content: "⭐";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.3rem;
+}
+
+.qr-action-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #2c2c2c;
+}
+
+/* Nút CTA chính */
+.qr-cta-main {
+    border: none;
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(90deg, #ff6b35 0%, #ff9f1a 100%);
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.35);
+}
+
+.qr-cta-main:hover {
+    color: #fff;
+    filter: brightness(1.05);
+}
+
+.qr-cta-main:active {
+    transform: scale(0.99);
+}
+
+#table-qr-banner {
     border-radius: 12px;
 }
 
@@ -41,4 +244,23 @@
     border: 1px solid #e9ecf2;
     border-radius: 12px;
     z-index: 1040;
+}
+
+#qr-dishes-block {
+    padding-top: 0.25rem;
+}
+
+/* Toast giỏ hàng (menu.css) */
+#cart-toast.cart-toast--qr {
+    z-index: 1100;
+}
+
+@media (min-width: 576px) {
+    .qr-brand-name {
+        font-size: 1.35rem;
+    }
+    .qr-hero-logo {
+        width: 120px;
+        height: 120px;
+    }
 }

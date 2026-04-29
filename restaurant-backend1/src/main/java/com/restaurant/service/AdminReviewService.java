@@ -18,6 +18,7 @@ import java.util.List;
 public class AdminReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final ReviewService reviewService;
 
     @Transactional(readOnly = true)
     public Page<Review> findReviewsForAdmin(
@@ -64,13 +65,18 @@ public class AdminReviewService {
     @Transactional
     public Review setVisibility(Long id, boolean visible) {
         Review review = getByIdOrThrow(id);
+        Long menuItemId = review.getMenuItem().getId();
         review.setIsVisible(visible);
-        return reviewRepository.save(review);
+        Review saved = reviewRepository.save(review);
+        reviewService.refreshMenuItemAverageRating(menuItemId);
+        return saved;
     }
 
     @Transactional
     public void deleteById(Long id) {
         Review review = getByIdOrThrow(id);
+        Long menuItemId = review.getMenuItem().getId();
         reviewRepository.delete(review);
+        reviewService.refreshMenuItemAverageRating(menuItemId);
     }
 }

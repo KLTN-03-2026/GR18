@@ -234,3 +234,7 @@ body { background-color: #fcfcfc; font-family: 'Segoe UI', sans-serif; }
     .dg-hero-sub { font-size: 13px; }
     .dg-review-imgs img { width: 90px; height: 70px; }
 }
+
+#toast-container > .toast-success {
+    background-color: #198754 !important;
+}

@@ -24,7 +24,6 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 gap-3">
                 <div>
                     <h2 class="page-title mb-1 text-on-surface">Quản lý Sơ đồ bàn & QR</h2>
-                    <p class="small text-secondary mb-0 mt-1">Danh sách bàn: <code class="small">GET /api/tables/admin/tables</code> (chỉ ADMIN), kèm JWT. Mỗi phần tử <code class="small">data[]</code>: <code class="small">tableNumber</code>, <code class="small">qrCodeToken</code>, …</p>
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-surface-container d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold border-outline-variant">
@@ -46,8 +45,8 @@
                         <div class="mb-4 p-3 rounded-3 bg-surface-container-low border border-outline-variant/10">
                             <label class="form-label small fw-bold mb-1" for="qr-menu-base-url">URL trang menu khách (QR chứa link này + mã bàn)</label>
                             <input type="url" class="form-control form-control-sm rounded-xl" id="qr-menu-base-url"
-                                   placeholder="http://127.0.0.1:5500/index/menu.html">
-                            <p class="small text-secondary mb-0 mt-2">Để trống khi mở lần đầu: tự suy ra từ đường dẫn tới <code>index/menu.html</code>. Đổi khi deploy (HTTPS, domain thật).</p>
+                                   placeholder="http://host:port/index/menu.html">
+                            <p class="small text-secondary mb-0 mt-2">URL gốc cho QR <strong>tự lấy theo trang admin bạn đang mở</strong> (mỗi lần đổi mạng / IP chỉ cần mở lại admin qua đúng địa chỉ hoặc gõ lại ô này). Trên điện thoại cùng Wi‑Fi: tránh <code>127.0.0.1</code> trong QR. Mặc định tính từ đường dẫn: <code>index/menu.html</code> (muốn landing app: <code>index/qr-menu.html</code>). Production: domain/HTTPS.</p>
                         </div>
                         <div class="qr-list custom-scrollbar pe-2 overflow-y-auto" style="max-height: 480px;" id="qr-list-root">
                             <p class="text-secondary small mb-0">Đang tải danh sách bàn…</p>

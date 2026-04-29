@@ -7,7 +7,7 @@
 
     <!-- GSI can dung inline/eval: can script-src ro rang. accounts.google.com can cho CSS gsi/style + fetch token. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com; frame-src https://accounts.google.com;">
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -16,22 +16,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-orange" href="index.html">
-                <i class="fa-solid fa-robot me-2"></i>Restaurant AI
-            </a>
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-house me-1"></i> Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-utensils me-1"></i> Menu</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-chair me-1"></i> Đặt bàn</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-calendar-days me-1"></i> Lịch sử</a></li>
-                </ul>
-            </div>
-            <button class="btn btn-orange text-white px-4 fw-bold">Đặt bàn ngay</button>
-        </div>
-    </nav>
+    <!-- Navbar: index/customer-header.html (inject bởi index/customer-header.js) -->
+    <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm"></header>
 
     <section class="login-section d-flex align-items-center justify-content-center">
         <div class="container">
@@ -69,18 +55,15 @@
                                 <hr class="flex-grow-1" />
                             </div>
 
-                            <div class="row g-2 mb-4">
-                                <div class="col-12 mb-2">
-                                    <div id="g_id_onload"
-                                         data-client_id="69603544612-rb1t7phvocsqs89p8ap2sj0dtb82tbig.apps.googleusercontent.com"
-                                         data-context="signin"
-                                         data-ux_mode="popup"
-                                         data-callback="handleGoogleLogin"
-                                         data-auto_prompt="false">
-                                    </div>
-                                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
+                            <div class="d-flex justify-content-center mb-4">
+                                <div id="g_id_onload"
+                                     data-client_id="69603544612-rb1t7phvocsqs89p8ap2sj0dtb82tbig.apps.googleusercontent.com"
+                                     data-context="signin"
+                                     data-ux_mode="popup"
+                                     data-callback="handleGoogleLogin"
+                                     data-auto_prompt="false">
                                 </div>
-                                    
+                                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
                             </div>
 
                             <p class="mb-0 text-muted">
@@ -97,6 +80,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="index/qr-session.js"></script>
+    <script src="index/customer-header.js"></script>
     <script src="dangnhap.js"></script>
 </body>
 </html>

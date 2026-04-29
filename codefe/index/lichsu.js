@@ -6,13 +6,18 @@
 const BASE_URL = 'http://localhost:8080/api';
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (typeof toastr !== 'undefined') {
+        toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
+    }
+
     const token = localStorage.getItem('accessToken');
     const tableBody = document.getElementById('historyTableBody');
 
     const detailModal = new bootstrap.Modal(document.getElementById('reservationDetailModal'));
 
     if (!token) {
-        alert("Vui lòng đăng nhập để xem lịch sử!");
+        if (typeof toastr !== 'undefined') toastr.warning('Vui lòng đăng nhập để xem lịch sử!');
+        else alert("Vui lòng đăng nhập để xem lịch sử!");
         window.location.href = '../dangnhap.html';
         return;
     }
@@ -183,13 +188,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.data.success) {
-                alert("Đã hủy thành công!");
+                if (typeof toastr !== 'undefined') toastr.success('Đã hủy thành công!', 'Thành công');
+                else alert("Đã hủy thành công!");
                 detailModal.hide();
                 fetchHistory();
             }
 
         } catch (error) {
-            alert("Lỗi: " + (error.response?.data?.message || "Không thể hủy"));
+            const m = error.response?.data?.message || "Không thể hủy";
+            if (typeof toastr !== 'undefined') toastr.error(m, 'Lỗi');
+            else alert("Lỗi: " + m);
         }
     }
 

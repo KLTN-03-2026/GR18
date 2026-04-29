@@ -9,32 +9,8 @@
     <link rel="stylesheet" href="menu.css">
 </head>
 <body>
-     <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-orange" href="home.html">
-                <i class="fa-solid fa-robot me-2"></i>Restaurant AI
-            </a>
-            <div class="collapse navbar-collapse justify-content-center">
-                <ul class="navbar-nav gap-3">
-                    <li class="nav-item"><a class="nav-link " href="home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                    <li class="nav-item"><a class="nav-link" href="datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                    <li class="nav-item"><a class="nav-link" href="danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-                    <li class="nav-item"><a class="nav-link" href="lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                    <li class="nav-item"><a class="nav-link" href="danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
-                </ul>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa-solid fa-magnifying-glass cursor-pointer"></i>
-                <button class="btn btn-orange px-3" onclick="window.location.href='datban.html'">Đặt bàn ngay</button>
-                <div class="user-avatar-small"></div>
-                <div class="position-relative" style="cursor:pointer" onclick="window.location.href=(window.appendQrToHref?window.appendQrToHref('giohang.html'):'giohang.html')">
-                    <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
-                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;font-size:10px">0</span>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Navbar: customer-header.html (inject bởi customer-header.js) -->
+    <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm"></header>
 
     <!-- BG Slides -->
     <div class="menu-bg-slide active" id="bg-slide-0"></div>
@@ -45,10 +21,18 @@
     <div class="menu-bg-wrapper">
     <main class="container-xl py-4">
         <div id="table-qr-banner" class="d-none" role="status" aria-live="polite"></div>
-        <h2 class="text-center fw-bold mb-4">MENU</h2>
-<div class="search-container mx-auto mb-5 position-relative">
+<div class="search-container mx-auto mb-3 position-relative">
             <input type="text" id="searchInput" class="form-control rounded-pill ps-4 shadow-sm" placeholder="Tìm kiếm món ăn...">
             <i class="fa-solid fa-magnifying-glass position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+        </div>
+
+        <div id="menu-danhmuc" class="px-1">
+        <div class="cat-tab-bar mb-3" id="menu-cat-tab-bar" aria-label="Lọc theo danh mục">
+            <button type="button" class="cat-tab active" data-filter="__all" onclick="chonMenuCategoryTab(this)">
+                <i class="fa-solid fa-border-all me-1"></i>Tất cả
+            </button>
+        </div>
+    
         </div>
 
         <section id="section-tatca" class="menu-section mb-5">
@@ -133,11 +117,8 @@
     </div>
 
     <!-- Toast thông báo giỏ hàng -->
-    <div id="cart-toast" style="
-        display:none; position:fixed; bottom:24px; right:24px; z-index:9999;
-        background:#333; color:#fff; padding:12px 20px; border-radius:8px;
-        font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.3)">
-        <i class="fa-solid fa-check me-2 text-success"></i>
+    <div id="cart-toast" class="cart-toast--success" role="alert" aria-live="polite">
+        <i class="fa-solid fa-check me-2 cart-toast-icon" aria-hidden="true"></i>
         <span id="cart-toast-msg">Đã thêm vào giỏ hàng!</span>
     </div>
 

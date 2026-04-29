@@ -6,47 +6,71 @@
     <title>Đánh giá - Restaurant AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/index/danhgia.css">
+    <link rel="stylesheet" href="danhgia.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
 <body>
 
-<!-- ===== NAVBAR ===== -->
-<header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-orange" href="/index/home.html">
-            <i class="fa-solid fa-robot me-2"></i>Restaurant AI
-        </a>
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-center" id="navMain">
-            <ul class="navbar-nav gap-3">
-                <li class="nav-item"><a class="nav-link" href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/index/danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
-            </ul>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <i class="fa-solid fa-magnifying-glass cursor-pointer"></i>
-            <button class="btn btn-orange px-3 d-none d-lg-inline-block" onclick="window.location.href='/index/datban.html'">Đặt bàn ngay</button>
-            <div class="user-avatar-small"></div>
-            <div class="position-relative" style="cursor:pointer" onclick="window.location.href='/index/giohang.html'">
-                <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
-                <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                      style="display:none;font-size:10px">0</span>
-            </div>
-        </div>
-    </div>
-</header>
+<!-- Navbar: customer-header.html (inject bởi customer-header.js) -->
+<header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm"></header>
 
 <!-- ===== HERO ===== -->
 <section class="dg-hero">
     <div class="container">
         <h1 class="dg-hero-title">Trải Nghiệm Khách Hàng</h1>
 <p class="dg-hero-sub">Mỗi đánh giá của bạn là nguồn động lực to lớn để Restaurant AI không ngừng hoàn thiện hương vị Việt hiện đại.</p>
+    </div>
+</section>
+
+<!-- ===== KHÁCH: GỬI & QUẢN LÝ ĐÁNH GIÁ (sau khi đăng nhập) ===== -->
+<section class="container my-4" id="dg-auth-panel">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h2 class="h5 fw-bold mb-3"><i class="fa-solid fa-pen-to-square text-warning me-2"></i>Gửi đánh giá</h2>
+                <p class="text-muted small" id="dg-guest-hint">Chỉ áp dụng cho <strong>đơn hàng đã hoàn thành và đã thanh toán</strong>. Mỗi đơn chỉ đánh giá <strong>một lần</strong>.</p>
+                <div id="dg-form-login-gate" class="alert alert-light border d-none">Vui lòng <a href="../dangnhap.html" class="alert-link">đăng nhập</a> (đơn gắn tài khoản) <strong>hoặc mở trang từ mã QR tại bàn</strong> (đơn vãng lai) để gửi đánh giá sau khi <strong>đã thanh toán</strong>.</div>
+                <form id="dg-form-submit" class="d-none" onsubmit="return dgOnSubmit(event);">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Chọn đơn hàng</label>
+                        <select class="form-select rounded-3" id="dg-sel-order" required>
+                            <option value="">-- Chọn đơn đủ điều kiện --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Món ăn đánh giá</label>
+                        <select class="form-select rounded-3" id="dg-sel-dish" required>
+                            <option value="">-- Chọn món trong đơn --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <span class="form-label small fw-semibold d-block">Số sao (1–5)</span>
+                        <div class="d-flex align-items-center gap-1" id="dg-star-pick" role="group" aria-label="Chọn số sao">
+                            <button type="button" class="btn btn-link p-0 dg-star-btn" data-r="1" aria-pressed="false" title="1 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                            <button type="button" class="btn btn-link p-0 dg-star-btn" data-r="2" aria-pressed="false" title="2 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                            <button type="button" class="btn btn-link p-0 dg-star-btn" data-r="3" aria-pressed="false" title="3 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                            <button type="button" class="btn btn-link p-0 dg-star-btn" data-r="4" aria-pressed="false" title="4 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                            <button type="button" class="btn btn-link p-0 dg-star-btn" data-r="5" aria-pressed="false" title="5 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                        </div>
+                        <input type="hidden" id="dg-rating" name="rating" value="5" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="dg-comment">Nội dung nhận xét</label>
+                        <textarea class="form-control rounded-3" id="dg-comment" rows="4" maxlength="2000" placeholder="Chia sẻ về món ăn hoặc chất lượng phục vụ…" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning text-white fw-bold rounded-pill px-4" id="dg-btn-send">
+                        <i class="fa-solid fa-paper-plane me-2"></i>Gửi đánh giá
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h2 class="h5 fw-bold mb-3"><i class="fa-solid fa-user-pen text-secondary me-2"></i>Đánh giá của tôi</h2>
+                <p class="text-muted small d-none" id="dg-mine-hint">Bạn có thể <strong>chỉnh sửa</strong> hoặc <strong>xóa</strong> bài đánh giá do chính mình gửi.</p>
+                <div id="dg-my-list" class="small text-muted">Đăng nhập để xem.</div>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -149,25 +173,49 @@
     </div>
 </footer>
 
+<div class="modal fade" id="dg-edit-modal" tabindex="-1" aria-labelledby="dg-edit-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="dg-edit-modal-label">Sửa đánh giá</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2" id="dg-edit-dish"></p>
+                <div class="d-flex align-items-center gap-1 mb-3" id="dg-edit-star-pick" role="group"></div>
+                <input type="hidden" id="dg-edit-rating" value="5" />
+                <label class="form-label small fw-semibold" for="dg-edit-comment">Nội dung</label>
+                <textarea class="form-control rounded-3" id="dg-edit-comment" rows="4" maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning text-white rounded-pill fw-bold" id="dg-edit-save">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ===== CHATBOT ===== -->
-<link rel="stylesheet" href="/index/chatbot.css">
+<link rel="stylesheet" href="chatbot.css">
 <div id="chatbot-container"></div>
 
 <!-- ===== SCRIPTS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="qr-session.js"></script>
 <script src="customer-header.js"></script>
-<script src="/index/danhgia.js"></script>
+<script src="danhgia.js"></script>
 <script>
-fetch('/index/chatbot.html')
+fetch('chatbot.html')
     .then(res => res.text())
     .then(data => {
         document.getElementById('chatbot-container').innerHTML = data;
         const link = document.createElement('link');
-        link.rel = 'stylesheet'; link.href = '/index/chatbot.css';
+        link.rel = 'stylesheet'; link.href = 'chatbot.css';
         document.head.appendChild(link);
-const script = document.createElement('script');
-        script.src = '/index/chatbot.js';
+        const script = document.createElement('script');
+        script.src = 'chatbot.js';
         script.onload = () => console.log("✅ Chatbot loaded OK");
         document.body.appendChild(script);
     })

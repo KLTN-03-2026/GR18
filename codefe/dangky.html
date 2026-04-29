@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Đăng ký</title>
+    <title>Đăng ký - Restaurant AI</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -16,68 +16,12 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="dangky.js"></script>
     <link rel="stylesheet" href="dangky.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white py-3">
-      <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="#">
-          <span class="text-danger fw-bold fs-3"
-            ><i class="fa-solid fa-robot me-2"></i>Restaurant AI</span
-          >
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav mx-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="#"
-                ><i class="fa-solid fa-house me-1"></i> Home</a
-              >
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#"
-                ><i class="fa-solid fa-utensils me-1"></i> Menu</a
-              >
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#"
-                ><i class="fa-solid fa-chair me-1"></i> Đặt bàn</a
-              >
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#"
-                ><i class="fa-solid fa-calendar-days me-1"></i> Lịch sử</a
-              >
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#"
-                ><i class="fa-solid fa-star me-1"></i> Đánh giá</a
-              >
-            </li>
-          </ul>
-          <div class="d-flex align-items-center">
-            <button class="btn btn-orange text-white fw-bold px-4">
-              Đặt bàn ngay
-            </button>
-            <div
-              class="ms-3 rounded-circle bg-secondary d-flex align-items-center justify-content-center"
-              style="width: 40px; height: 40px"
-            >
-              <i class="fa-solid fa-user text-white"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <!-- Navbar: index/customer-header.html (inject bởi index/customer-header.js) -->
+    <header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm"></header>
 
     <section class="hero-section d-flex align-items-center">
       <div class="container">
@@ -106,46 +50,62 @@
           </div>
 
           <div class="col-lg-5">
-  <div class="form-card p-5 shadow">
-    <h2 class="text-center fw-bold mb-4">Đăng ký tài khoản</h2>
-    
-    <form id="registerForm"> 
-      <div class="input-group mb-3">
-        <span class="input-group-text bg-transparent"><i class="fa-solid fa-user text-danger"></i></span>
-        <input type="text" id="fullName" class="form-control border-start-0" placeholder="Họ và tên" required />
-      </div>
+            <div class="form-card p-5 shadow">
+              <h2 class="text-center fw-bold mb-4">Đăng ký tài khoản</h2>
 
-      <div class="input-group mb-3">
-        <span class="input-group-text bg-transparent"><i class="fa-solid fa-envelope text-primary"></i></span>
-        <input type="email" id="email" class="form-control border-start-0" placeholder="Email" required />
-      </div>
+              <form id="registerForm" novalidate>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fa-solid fa-user text-danger"></i></span>
+                    <input type="text" id="fullName" class="form-control border-start-0" placeholder="Họ và tên" maxlength="200" />
+                  </div>
+                  <div class="invalid-feedback d-block" id="err-fullName"></div>
+                </div>
 
-      <div class="input-group mb-3">
-        <span class="input-group-text bg-transparent"><i class="fa-solid fa-phone"></i></span>
-        <input type="tel" id="phone" class="form-control border-start-0" placeholder="Số điện thoại" required />
-      </div>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fa-solid fa-envelope text-primary"></i></span>
+                    <input type="text" id="email" class="form-control border-start-0" placeholder="Email" />
+                  </div>
+                  <div class="invalid-feedback d-block" id="err-email"></div>
+                </div>
 
-      <div class="input-group mb-3">
-        <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
-        <input type="password" id="password" class="form-control border-start-0" placeholder="Mật khẩu" required />
-      </div>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fa-solid fa-phone"></i></span>
+                    <input type="tel" id="phone" class="form-control border-start-0" placeholder="Số điện thoại" maxlength="10" />
+                  </div>
+                  <div class="invalid-feedback d-block" id="err-phone"></div>
+                </div>
 
-      <div class="input-group mb-4">
-        <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
-        <input type="password" id="confirmPassword" class="form-control border-start-0" placeholder="Xác nhận mật khẩu" required />
-      </div>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
+                    <input type="password" id="password" class="form-control border-start-0" placeholder="Mật khẩu" />
+                  </div>
+                  <div class="invalid-feedback d-block" id="err-password"></div>
+                </div>
 
-      <button type="submit" id="registerBtn" class="btn btn-orange w-100 text-white fw-bold py-2 mb-3">
-        Đăng ký
-      </button>
+                <div class="mb-4">
+                  <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
+                    <input type="password" id="confirmPassword" class="form-control border-start-0" placeholder="Xác nhận mật khẩu" />
+                  </div>
+                  <div class="invalid-feedback d-block" id="err-confirmPassword"></div>
+                </div>
 
-      <p class="text-center">
-        Đã có tài khoản?
-        <a href="dangnhap.html" class="text-orange text-decoration-none fw-bold">Đăng nhập</a>
-      </p>
-    </form>
-  </div>
-</div>
+                <button type="submit" id="registerBtn" class="btn btn-orange w-100 text-white fw-bold py-2 mb-2">
+                  Đăng ký
+                </button>
+                <div class="invalid-feedback d-block mb-2" id="err-server"></div>
+
+                <p class="text-center">
+                  Đã có tài khoản?
+                  <a href="dangnhap.html" class="text-orange text-decoration-none fw-bold">Đăng nhập</a>
+                </p>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -163,5 +123,10 @@
     </section>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="index/qr-session.js"></script>
+    <script src="index/customer-header.js"></script>
+    <script src="dangky.js"></script>
   </body>
 </html>

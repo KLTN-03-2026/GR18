@@ -17,10 +17,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -41,6 +44,8 @@ public class SecurityConfig {
             "/tables/qr/**",
             "/orders/guest/**",
             "/call-staff/guest",
+            "/reviews/guest",
+            "/reviews/guest/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
@@ -56,8 +61,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/reviews", "/reviews/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/menu/*/reviews").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/chat/**", "/chatbot/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .requestMatchers("/admin/statistics/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -71,11 +78,22 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.allowed-origins:}") String extraAllowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         // SockJS (/api/ws/info) dùng XHR với credentials khi khác origin → cần true + pattern (không dùng * đơn).
         // Gồm LAN (192.168.x.x, …) để Live Server / máy khác trong mạng truy cập được API.
-        config.setAllowedOriginPatterns(LanCorsOriginPatterns.allowedOriginPatterns());
+        // Thêm app.cors.allowed-origins (vd: http://127.0.0.1:5501) vì pattern 127.0.0.1:* tùy bản Spring có thể lệch.
+        List<String> patterns = new ArrayList<>(LanCorsOriginPatterns.allowedOriginPatterns());
+        if (StringUtils.hasText(extraAllowedOrigins)) {
+            for (String part : extraAllowedOrigins.split(",")) {
+                String o = part.trim();
+                if (!o.isEmpty() && !patterns.contains(o)) {
+                    patterns.add(o);
+                }
+            }
+        }
+        config.setAllowedOriginPatterns(patterns);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));

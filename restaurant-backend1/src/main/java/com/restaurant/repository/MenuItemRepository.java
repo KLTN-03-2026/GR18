@@ -5,8 +5,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -24,6 +26,10 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     List<MenuItem> findByCategoryIdAndIsActiveTrueAndIsAvailableTrue(Long categoryId);
 
+    @Query("""
+            SELECT DISTINCT m FROM MenuItem m JOIN FETCH m.category c
+            WHERE m.isActive = true AND m.isAvailable = true
+            """)
     List<MenuItem> findByIsActiveTrueAndIsAvailableTrue();
 
     @Query("""
@@ -33,10 +39,18 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     """)
     Page<MenuItem> searchByKeyword(String keyword, Pageable pageable);
 
-    @Query("SELECT m FROM MenuItem m WHERE m.isActive = true ORDER BY m.totalSold DESC")
+    @Query("""
+            SELECT m FROM MenuItem m
+            WHERE m.isActive = true AND m.isAvailable = true
+            ORDER BY m.totalSold DESC
+            """)
     List<MenuItem> findTopSellingItems(Pageable pageable);
 
-    @Query("SELECT m FROM MenuItem m WHERE m.isActive = true ORDER BY m.avgRating DESC")
+    @Query("""
+            SELECT m FROM MenuItem m
+            WHERE m.isActive = true AND m.isAvailable = true
+            ORDER BY m.avgRating DESC
+            """)
     List<MenuItem> findTopRatedItems(Pageable pageable);
 
     List<MenuItem> findByCategoryIdAndIsActiveTrue(Long categoryId);
@@ -45,9 +59,13 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     List<MenuItem> findTop3ByOrderByTotalSoldDesc();
 
-    List<MenuItem> findByPriceLessThan(double price);
+    /** Chatbot / khách: chỉ món đang đăng, chưa bị xóa (soft-delete) hoặc tắt bán hẳn. */
+    @Query("""
+            SELECT m FROM MenuItem m
+            WHERE m.isActive = true AND m.isAvailable = true AND m.price < :maxPrice
+            """)
+    List<MenuItem> findByPriceLessThan(@Param("maxPrice") double maxPrice);
 
-    // 🔥 AI recommendation (JPQL)
     @Query("""
         SELECT m FROM MenuItem m
         WHERE m.isActive = true AND m.isAvailable = true
@@ -55,7 +73,7 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     """)
     List<MenuItem> findRecommendedItems(Pageable pageable);
 
-    // 🔥 AI recommendation xịn (native SQL)
+    
     @Query(value = """
         SELECT * FROM menu_items
         WHERE is_active = true AND is_available = true
@@ -63,4 +81,23 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
         LIMIT 5
     """, nativeQuery = true)
     List<MenuItem> findTopRecommended();
+
+    @Query("SELECT m FROM MenuItem m JOIN FETCH m.category WHERE m.id IN :ids AND m.isActive = true AND m.isAvailable = true")
+    List<MenuItem> findActiveAvailableByIds(@org.springframework.data.repository.query.Param("ids") Collection<Long> ids);
+
+    @Query("""
+            SELECT DISTINCT m FROM MenuItem m JOIN FETCH m.category c
+            WHERE m.category.id IN :ids AND m.isActive = true AND m.isAvailable = true
+            """)
+    List<MenuItem> findByCategoryIdInAndIsActiveTrueAndIsAvailableTrue(
+            @org.springframework.data.repository.query.Param("ids") Collection<Long> categoryIds);
+
+    /** Dùng chatbot/lọc theo keyword trên name + description (+ category trong code). */
+    @Query("""
+            SELECT DISTINCT m FROM MenuItem m
+            JOIN FETCH m.category c
+            WHERE m.isActive = true AND m.isAvailable = true
+            ORDER BY c.sortOrder ASC, m.name ASC
+            """)
+    List<MenuItem> findAllActiveAvailableWithCategory();
 }

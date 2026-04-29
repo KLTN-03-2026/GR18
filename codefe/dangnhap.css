@@ -47,9 +47,9 @@
 /* 6. Sidebar Icon */
 .social-sidebar { position: absolute; bottom: 30px; left: 30px; }
 
-/* 7. TOASTR CUSTOMIZATION */
+/* 7. TOASTR — thành công: xanh */
 #toast-container > .toast-success {
-    background-color: var(--orange-color) !important;
+    background-color: #198754 !important;
 }
 .toast {
     font-family: var(--manrope) !important;

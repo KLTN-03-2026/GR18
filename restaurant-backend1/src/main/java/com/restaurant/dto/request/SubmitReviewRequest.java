@@ -17,6 +17,7 @@ public class SubmitReviewRequest {
     @Max(5)
     private Integer rating;
 
-    @Size(max = 1000)
+    @NotBlank(message = "Nội dung đánh giá không được để trống")
+    @Size(max = 2000, message = "Nội dung tối đa 2000 ký tự")
     private String comment;
 }

@@ -4,22 +4,18 @@ import com.restaurant.chat.BookingContext;
 import com.restaurant.chat.BookingSessionManager;
 import com.restaurant.dto.request.CreateReservationRequest;
 import com.restaurant.dto.response.ChatResponse;
-import com.restaurant.dto.response.menu_items.MenuItemResponse;
 import com.restaurant.entity.ChatbotMessage;
-import com.restaurant.entity.MenuItem;
 import com.restaurant.entity.User;
 import com.restaurant.entity.enums.ChatMessageSender;
-import com.restaurant.mapper.MenuItemMapper;
 import com.restaurant.repository.ChatbotMessageRepository;
-import com.restaurant.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,52 +26,37 @@ import java.util.regex.Pattern;
 public class ChatService {
 
     private final ReservationService reservationService;
-    private final MenuItemRepository menuItemRepository;
-    private final MenuItemMapper menuItemMapper;
     private final ChatbotMessageRepository chatbotMessageRepository;
+    private final ChatMenuAssistant chatMenuAssistant;
 
     public ChatResponse handleMessage(String userMessage, String sessionId, User user) {
         String safeSessionId = (sessionId == null || sessionId.isBlank())
                 ? UUID.randomUUID().toString()
                 : sessionId.trim();
         String rawMessage = userMessage == null ? "" : userMessage.trim();
-        String msg = rawMessage.toLowerCase();
+        String msg = rawMessage.toLowerCase(Locale.ROOT);
 
         persistMessage(safeSessionId, user, ChatMessageSender.USER, rawMessage);
         BookingContext context = BookingSessionManager.get(safeSessionId);
 
         ChatResponse response;
 
-        // ================== 🍽️ GỢI Ý MÓN ==================
-
-        if (msg.contains("bán chạy")) {
-            response = buildResponse("Món bán chạy:",
-                    menuItemRepository.findTopSellingItems(PageRequest.of(0, 5)));
+        if (!msg.contains("đặt bàn") && ChatMenuAssistant.isStandaloneGreeting(msg)) {
+            response = reply(
+                    "Chào anh/chị! Em là trợ lý Nhóm 18 — có thể gợi ý món, trả lời về Menu (giá, loại món…) "
+                            + "và đặt bàn. Anh/chị muốn bắt đầu từ đâu ạ?");
             persistMessage(safeSessionId, user, ChatMessageSender.BOT, response.getReply());
             return response;
         }
 
-        if (msg.contains("đánh giá cao") || msg.contains("rating")) {
-            response = buildResponse("Món được đánh giá cao:",
-                    menuItemRepository.findTopRatedItems(PageRequest.of(0, 5)));
-            persistMessage(safeSessionId, user, ChatMessageSender.BOT, response.getReply());
-            return response;
+        if (!msg.contains("đặt bàn")) {
+            Optional<ChatResponse> nl = chatMenuAssistant.tryAnswerMenuQuestion(safeSessionId, user,
+                    rawMessage, msg);
+            if (nl.isPresent()) {
+                BookingSessionManager.clear(safeSessionId);
+                return nl.get();
+            }
         }
-
-        if (msg.contains("rẻ") || msg.contains("sinh viên")) {
-            response = buildResponse("Món giá rẻ:",
-                    menuItemRepository.findByPriceLessThan(100000));
-            persistMessage(safeSessionId, user, ChatMessageSender.BOT, response.getReply());
-            return response;
-        }
-
-        if (msg.contains("món") || msg.contains("ăn gì") || msg.contains("gợi ý") || msg.contains("ngon")) {
-            response = suggestPopularDishes();
-            persistMessage(safeSessionId, user, ChatMessageSender.BOT, response.getReply());
-            return response;
-        }
-
-        // ================== 🪑 ĐẶT BÀN ==================
 
         if (msg.contains("đặt bàn")) {
             BookingSessionManager.clear(safeSessionId);
@@ -170,8 +151,12 @@ public class ChatService {
             return response;
         }
 
-        // ================== 🤖 FALLBACK ==================
-        response = reply("Em có thể gợi ý món hoặc đặt bàn cho anh/chị ạ");
+        if (msg.matches("(?s).*\\b(món|menu|ăn gì|gợi ý|ngon|đói|thực đơn)\\b.*")) {
+            return chatMenuAssistant.suggestPopularDishes(safeSessionId, user, rawMessage, null, null);
+        }
+
+        response = reply(
+                "Em có thể gợi ý món, trả lời về thực đơn (nhóm giá/khẩu vị/dị ứng…) hoặc đặt bàn cho anh/chị ạ.");
         persistMessage(safeSessionId, user, ChatMessageSender.BOT, response.getReply());
         return response;
     }
@@ -189,38 +174,6 @@ public class ChatService {
             log.warn("Could not persist chatbot message: {}", ex.getMessage());
         }
     }
-
-    // ================== 🍽️ GỢI Ý MÓN ==================
-
-    private ChatResponse suggestPopularDishes() {
-
-        List<MenuItem> items = menuItemRepository.findTopRecommended();
-
-        if (items.isEmpty()) {
-            return reply("Hiện chưa có món nổi bật");
-        }
-
-        List<MenuItemResponse> data = menuItemMapper.toResponseList(items);
-
-        return ChatResponse.builder()
-                .reply("Một vài món bạn có thể thích:")
-                .status("success")
-                .data(data)
-                .build();
-    }
-
-    private ChatResponse buildResponse(String title, List<MenuItem> items) {
-
-        List<MenuItemResponse> data = menuItemMapper.toResponseList(items);
-
-        return ChatResponse.builder()
-                .reply(title)
-                .status("success")
-                .data(data)
-                .build();
-    }
-
-    // ================== HELPER ==================
 
     private ChatResponse confirmMessage(BookingContext context) {
 
@@ -261,6 +214,7 @@ public class ChatService {
                 .reply(msg)
                 .status("success")
                 .data(null)
+                .suggestionLogId(null)
                 .build();
     }
 }

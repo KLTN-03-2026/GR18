@@ -68,6 +68,14 @@ body {
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
+/* Thông báo thành công (toastr) — xanh */
+#toast-container > .toast-success {
+    background-color: #198754 !important;
+}
+#toast-container .toast {
+    border-radius: 12px !important;
+}
+
 /* Responsive fixes */
 @media (max-width: 991px) {
     .feature-item {

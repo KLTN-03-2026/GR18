@@ -9,6 +9,7 @@ import com.restaurant.entity.RestaurantTable;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.repository.RestaurantTableRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TableService {
 
     private final RestaurantTableRepository tableRepository;
@@ -106,10 +108,15 @@ public class TableService {
         }
         table.setStatus(TableStatus.OCCUPIED);
         tableRepository.save(table);
-        messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "OCCUPIED");
-        messagingTemplate.convertAndSend(
-                "/topic/staff/tables/status",
-                Map.of("tableId", table.getId(), "status", TableStatus.OCCUPIED.name()));
+        try {
+            messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "OCCUPIED");
+            messagingTemplate.convertAndSend(
+                    "/topic/staff/tables/status",
+                    Map.of("tableId", table.getId(), "status", TableStatus.OCCUPIED.name()));
+        } catch (Exception e) {
+            // Không chặn quét QR nếu broker WS tạm lỗi (LAN / chưa bật STOMP)
+            log.warn("Bỏ qua push WebSocket cập nhật bàn {}: {}", table.getId(), e.getMessage());
+        }
     }
 
     public List<RestaurantTableResponse> getAllTableResponses() {

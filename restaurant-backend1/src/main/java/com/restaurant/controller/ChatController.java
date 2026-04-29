@@ -1,8 +1,11 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.request.ChatRequest;
+import com.restaurant.dto.request.ChatSuggestionFeedbackRequest;
+import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.ChatResponse;
 import com.restaurant.entity.User;
+import com.restaurant.service.AiSuggestionLogService;
 import com.restaurant.service.ChatService;
 import com.restaurant.service.UserManagementService;
 import jakarta.validation.Valid;
@@ -19,6 +22,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final UserManagementService userManagementService;
+    private final AiSuggestionLogService aiSuggestionLogService;
 
     @PostMapping
     public ResponseEntity<ChatResponse> chat(
@@ -38,5 +42,12 @@ public class ChatController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/suggestion-feedback")
+    public ResponseEntity<ApiResponse<Void>> suggestionFeedback(
+            @Valid @RequestBody ChatSuggestionFeedbackRequest request) {
+        aiSuggestionLogService.markAccepted(request.getSuggestionLogId(), request.getMenuItemId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận lượt chọn món từ gợi ý"));
     }
 }
