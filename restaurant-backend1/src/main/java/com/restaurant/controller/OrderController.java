@@ -64,14 +64,24 @@ public class OrderController {
     @GetMapping("/orders/me")
     @Operation(summary = "Lịch sử đơn hàng của tôi (US08)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Page<Order>>> getMyOrders(
+    public ResponseEntity<ApiResponse<Page<GuestOrderResponse>>> getMyOrders(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "50") int size) {
         Long userId = orderService.getUserIdFromAuth(authentication);
-        Page<Order> orders = orderService.getUserOrders(
-                userId, PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        Page<GuestOrderResponse> orders = orderService.getUserOrderResponses(
+                userId, PageRequest.of(page, Math.min(Math.max(size, 1), 100), Sort.by("createdAt").descending()));
         return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    @GetMapping("/orders/me/{orderId}")
+    @Operation(summary = "Chi tiết đơn hàng của tôi", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<StaffOrderDetailResponse>> getMyOrderDetail(
+            @PathVariable Long orderId,
+            Authentication authentication) {
+        Long userId = orderService.getUserIdFromAuth(authentication);
+        return ResponseEntity.ok(ApiResponse.success(orderService.getCustomerOrderDetail(orderId, userId)));
     }
 
     // ===== STAFF: Quản lý đơn hàng =====

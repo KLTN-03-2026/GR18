@@ -6,6 +6,7 @@ import com.restaurant.entity.MenuItem;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.dto.response.order.GuestOrderResponse;
 import com.restaurant.dto.response.order.StaffOrderDetailResponse;
+import com.restaurant.entity.User;
 import com.restaurant.dto.response.order.StaffOrderResponse;
 import com.restaurant.entity.enums.OrderStatus;
 import com.restaurant.entity.enums.OrderItemStatus;
@@ -19,10 +20,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -186,6 +189,21 @@ public class OrderService {
     public StaffOrderDetailResponse getStaffOrderDetail(Long orderId) {
         Order order = orderRepository.findDetailById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        return buildStaffOrderDetailResponse(order);
+    }
+
+    @Transactional(readOnly = true)
+    public StaffOrderDetailResponse getCustomerOrderDetail(Long orderId, Long userId) {
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        User owner = order.getUser();
+        if (owner == null || !owner.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xem đơn này");
+        }
+        return buildStaffOrderDetailResponse(order);
+    }
+
+    private StaffOrderDetailResponse buildStaffOrderDetailResponse(Order order) {
         List<StaffOrderDetailResponse.LineItem> lines = new ArrayList<>();
         if (order.getOrderItems() != null) {
             for (OrderItem oi : order.getOrderItems()) {
@@ -254,9 +272,10 @@ public class OrderService {
         return result;
     }
 
-    // A1: Lịch sử đơn hàng của user (US08)
-    public Page<Order> getUserOrders(Long userId, Pageable pageable) {
-        return orderRepository.findByUserId(userId, pageable);
+    // A1: Lịch sử đơn hàng của user (US08) — map DTO trong transaction (open-in-view=false)
+    @Transactional(readOnly = true)
+    public Page<GuestOrderResponse> getUserOrderResponses(Long userId, Pageable pageable) {
+        return orderRepository.findByUserId(userId, pageable).map(this::toGuestOrderResponse);
     }
 
     // C7: Lấy userId từ JWT Authentication object
@@ -278,6 +297,9 @@ public class OrderService {
                 .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
                 .guestName(order.getGuestName())
                 .status(order.getStatus())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .paidAt(order.getPaidAt())
                 .totalAmount(order.getTotalAmount())
                 .note(order.getNote())
                 .createdAt(order.getCreatedAt())

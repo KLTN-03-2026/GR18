@@ -255,6 +255,92 @@
     z-index: 1100;
 }
 
+/* ——— Modal gọi nhân viên (bottom sheet mobile) ——— */
+.qr-call-staff-modal .modal-backdrop.show {
+    opacity: 0.35;
+}
+
+.qr-call-staff-dialog {
+    max-width: 480px;
+}
+
+.qr-call-staff-sheet {
+    border-radius: 1rem !important;
+    overflow: hidden;
+}
+
+@media (max-width: 575.98px) {
+    .qr-call-staff-modal .qr-call-staff-dialog {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        max-width: 100%;
+        height: auto;
+        min-height: 0;
+        display: flex;
+        align-items: flex-end;
+        transform: none !important;
+    }
+
+    .qr-call-staff-modal .modal-content.qr-call-staff-sheet {
+        border-radius: 1.25rem 1.25rem 0 0 !important;
+        max-height: 85vh;
+    }
+}
+
+.qr-call-staff-input-wrap {
+    position: relative;
+}
+
+.qr-call-staff-input-ico {
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+.qr-call-staff-textarea {
+    padding-left: 2.4rem !important;
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+    border-radius: 14px !important;
+    background: #f1f3f5 !important;
+    border: 1px solid #e9ecef !important;
+    resize: vertical;
+    min-height: 120px;
+    font-size: 0.95rem;
+}
+
+.qr-call-staff-textarea:focus {
+    background: #fff !important;
+    border-color: #ced4da !important;
+    box-shadow: 0 0 0 0.2rem rgba(107, 79, 58, 0.12);
+}
+
+.btn-qr-staff-submit {
+    background: linear-gradient(180deg, #7d5e47 0%, #6b4f3b 45%, #5c4332 100%);
+    color: #fff !important;
+    border: none;
+}
+
+.btn-qr-staff-submit:hover {
+    filter: brightness(1.06);
+    color: #fff !important;
+}
+
+.btn-qr-staff-submit:disabled {
+    opacity: 0.72;
+}
+
+/* Chatbot không đè modal gọi NV (Bootstrap modal ~1055) */
+.qr-menu-body .chat-launcher,
+.qr-menu-body .chat-window {
+    z-index: 1035 !important;
+}
+
 @media (min-width: 576px) {
     .qr-brand-name {
         font-size: 1.35rem;

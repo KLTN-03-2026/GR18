@@ -14,6 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    /** Toastr có thể ném lỗi (vd. thiếu jQuery); không được để bọc vào catch đăng ký axios. */
+    function notifyRegisterSuccess(fullName) {
+        const msg = 'Chào mừng ' + fullName + '! Vui lòng đăng nhập.';
+        try {
+            if (typeof window.jQuery !== 'undefined' && typeof toastr !== 'undefined') {
+                toastr.success(msg, 'Đăng ký thành công');
+                return;
+            }
+        } catch (e) {
+            console.warn('toastr không dùng được:', e);
+        }
+        alert('Đăng ký thành công! ' + msg);
+    }
+
     const registerForm = document.getElementById('registerForm');
     const registerBtn = document.getElementById('registerBtn');
 
@@ -166,8 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await axios.post('http://localhost:8080/api/auth/register', payload);
 
-                if (response.data.success) {
-                    const userData = response.data.data;
+                const body = response.data;
+                if (body.success && body.data) {
+                    const userData = body.data;
 
                     localStorage.setItem('accessToken', userData.accessToken);
                     localStorage.setItem('refreshToken', userData.refreshToken);
@@ -180,19 +195,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         phone: userData.phone || phone || ""
                     }));
 
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success('Chào mừng ' + userData.fullName + '! Vui lòng đăng nhập.', 'Đăng ký thành công');
-                    } else {
-                        alert('Đăng ký tài khoản thành công! Chào mừng ' + userData.fullName);
-                    }
+                    notifyRegisterSuccess(userData.fullName || fullName);
                     setTimeout(function () {
                         window.location.href = 'dangnhap.html';
                     }, 2000);
+                } else {
+                    const elFail = document.getElementById('err-server');
+                    if (elFail) elFail.textContent = body.message || 'Đăng ký không thành công.';
                 }
 
             } catch (error) {
                 console.error('Register Error:', error);
-                const errorMsg = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại kết nối Server!';
+                const errorMsg =
+                    error.response?.data?.message ||
+                    error.message ||
+                    'Đăng ký thất bại. Vui lòng kiểm tra lại kết nối Server!';
                 const el = document.getElementById('err-server');
                 if (el) el.textContent = errorMsg;
 

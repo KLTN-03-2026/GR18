@@ -414,6 +414,12 @@ function toDirectImageUrl(url) {
     return url;
 }
 
+/** Chỉ menu.html: ẩn nút + thêm nhanh; qr-menu.html vẫn giữ nút. */
+function isMenuListingPageOnly() {
+    const p = window.location.pathname || "";
+    return /(^|\/)menu\.html$/i.test(p);
+}
+
 function renderItem(item) {
     const id = item.id;
     const ten = item.name || item.ten || "Món ăn";
@@ -450,10 +456,14 @@ function renderItem(item) {
                     ${descHtml}
                     <div class="menu-card-footer">
                         <span class="menu-card-price">${formatVND(gia)}</span>
-                        <button type="button" class="menu-card-btn"
+                        ${
+                            isMenuListingPageOnly()
+                                ? ""
+                                : `<button type="button" class="menu-card-btn"
                             onclick="event.stopPropagation(); moModalById(${id})" title="Thêm nhanh">
                             <i class="fa-solid fa-plus"></i>
-                        </button>
+                        </button>`
+                        }
                     </div>
                 </div>
             </div>

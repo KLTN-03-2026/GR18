@@ -19,16 +19,13 @@
 
     <div id="sidebar-container"></div>
     <div id="header-container"></div>
-
-    <main class="main-content">
-        <div class="container-fluid">
             
             <div class="row align-items-center mb-5 mt-2">
     <div class="col-md-6">
         <h2 class="page-title mb-1">Quản lý Thực đơn</h2>
     </div>
     <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
-        <button onclick="openCategoryModal()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+        <button class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
             <span class="material-symbols-outlined fs-5">edit_attributes</span> 
             <span>Sửa danh mục</span>
         </button>
@@ -44,8 +41,8 @@
                 </div>
                 <div class="d-flex gap-3 text-secondary align-items-center">
                     <span class="small fw-bold text-uppercase opacity-50 d-none d-sm-inline">Chế độ xem:</span>
-                    <span id="view-grid-btn" class="material-symbols-outlined text-primary cursor-pointer" onclick="changeViewMode('grid')">grid_view</span>
-                    <span id="view-list-btn" class="material-symbols-outlined cursor-pointer" onclick="changeViewMode('list')">format_list_bulleted</span>
+                    <span class="material-symbols-outlined text-primary cursor-pointer">grid_view</span>
+                    <span class="material-symbols-outlined cursor-pointer">format_list_bulleted</span>
                 </div>
             </div>
 
@@ -94,40 +91,6 @@
 
                 <div class="text-end">
                     <button onclick="createItem()" class="btn btn-primary px-4">Lưu</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content p-4 menu-modal-content">
-                <button
-                    type="button"
-                    class="menu-modal-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Đóng"
-                    title="Đóng"
-                >
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <h5 class="mb-3 fw-bold">Sửa danh mục</h5>
-
-                <label for="categoryEditSelect" class="form-label">Chọn danh mục</label>
-                <select id="categoryEditSelect" class="form-control mb-3"></select>
-
-                <input id="categoryEditName" class="form-control mb-3" placeholder="Tên danh mục">
-                <textarea id="categoryEditDescription" class="form-control mb-3" placeholder="Mô tả"></textarea>
-                <input id="categoryEditImageUrl" class="form-control mb-3" placeholder="Link ảnh">
-                <input id="categoryEditSortOrder" class="form-control mb-4" type="number" placeholder="Thứ tự hiển thị">
-
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-outline-danger" onclick="deleteSelectedCategory()">
-                        <i class="fa-solid fa-trash me-1"></i>Xóa danh mục
-                    </button>
-                    <button class="btn btn-primary px-4" onclick="saveSelectedCategory()">
-                        <i class="fa-solid fa-floppy-disk me-1"></i>Lưu thay đổi
-                    </button>
                 </div>
             </div>
         </div>

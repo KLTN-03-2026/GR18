@@ -319,41 +319,6 @@
         }
     }
 
-    async function callStaff() {
-        var token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
-        if (!token) {
-            showAlert("Thiếu mã bàn (QR).", "error");
-            return;
-        }
-        try {
-            var res = await fetch(API_BASE + "/call-staff/guest", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ qrToken: token, note: "Khách bấm gọi nhân viên từ giỏ hàng" })
-            });
-            var json = await res.json().catch(function () {
-                return {};
-            });
-            var msg = json.message || "";
-            if (!res.ok || json.success === false) {
-                // 409: bàn đã có yêu cầu gọi NV chờ xử lý — không phải lỗi hệ thống
-                if (res.status === 409) {
-                    showAlert(
-                        msg || "Nhân viên đã nhận yêu cầu trước đó. Vui lòng đợi hoặc nhắc nhân viên tại quầy.",
-                        "info"
-                    );
-                } else {
-                    showAlert(msg || "Không gửi được yêu cầu (" + res.status + ").", "error");
-                }
-                return;
-            }
-            showAlert(msg || "Đã gửi yêu cầu tới nhân viên.", "success");
-            setGuestModeText("");
-        } catch (e) {
-            showAlert("Lỗi mạng hoặc máy chủ không phản hồi. Thử lại sau.", "error");
-        }
-    }
-
     function setGuestModeText(text) {
         var el = $("guest-flow-mode");
         if (!el) return;
@@ -394,7 +359,6 @@
         loadOrderStatus();
         setInterval(loadOrderStatus, 15000);
         $("btn-submit-order")?.addEventListener("click", submitOrder);
-        $("btn-call-staff")?.addEventListener("click", callStaff);
         $("btn-clear-cart")?.addEventListener("click", clearCart);
     });
 })();

@@ -173,7 +173,12 @@
         var navDanhgia = document.querySelector(".nav-danhgia");
         if (navDanhgia) {
             navDanhgia.href = withToken("/index/danhgia.html");
-            if (navDanhgia.parentElement) navDanhgia.parentElement.style.display = "";
+            /** Trang luồng QR: bỏ «Đánh giá» ở header (tránh trùng chức năng trên landing QR). */
+            if (path.indexOf("qr-menu.html") >= 0 || path.indexOf("giohang.html") >= 0) {
+                if (navDanhgia.parentElement) navDanhgia.parentElement.style.display = "none";
+            } else if (navDanhgia.parentElement) {
+                navDanhgia.parentElement.style.display = "";
+            }
         }
 
         var ordersLink = document.getElementById("nav-orders-link");

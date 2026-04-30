@@ -10,20 +10,27 @@
     <style>
         .detail-img-wrap {
             width: 100%;
-            max-width: 400px;
-            height: 300px;
-            background: #EAEAEA;
+            max-width: 560px;
+            background: linear-gradient(180deg, #f2f2f2 0%, #eaeaea 100%);
             border-radius: 16px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            min-height: 160px;
         }
         .detail-img-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 16px;
+            width: auto;
+            max-width: 100%;
+            height: auto;
+            max-height: min(85vh, 720px);
+            object-fit: contain;
+            object-position: center;
+            border-radius: 12px;
+            display: block;
+            vertical-align: middle;
         }
         .qty-btn {
             width: 38px;
@@ -177,7 +184,7 @@ var cat = item.category;
                     '</div>' +
 '<div class="mb-4">' +
                         '<label class="text-muted small fw-semibold mb-1 d-block">' +
-                            '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú <span class="fw-normal">(tuỳ chọn)</span>' +
+                            '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú ' +
                         '</label>' +
                         '<textarea id="detail-ghichu" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"' +
                             ' placeholder="VD: ít cay, không hành, thêm đá..."></textarea>' +

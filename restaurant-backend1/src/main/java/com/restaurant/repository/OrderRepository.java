@@ -30,6 +30,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
         SELECT DISTINCT o FROM Order o
         LEFT JOIN FETCH o.table
+        LEFT JOIN FETCH o.user
         LEFT JOIN FETCH o.orderItems oi
         LEFT JOIN FETCH oi.menuItem
         WHERE o.id = :id
