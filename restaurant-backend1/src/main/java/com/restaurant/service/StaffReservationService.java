@@ -17,7 +17,7 @@ public class StaffReservationService {
 
     public List<ReservationHistoryItemResponse> getTodayReservations() {
         return jdbcTemplate.query(
-                "SELECT r.id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
+                "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
                         "rt.table_number, r.note " +
                         "FROM reservations r " +
                         "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id " +

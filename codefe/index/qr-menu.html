@@ -57,7 +57,7 @@
                     </a>
                 </div>
                 <div class="col-4">
-                    <button type="button" class="qr-action-tile border-0 w-100 h-100 bg-white" id="btn-qr-staff" type="button">
+                    <button type="button" class="qr-action-tile border-0 w-100 h-100 bg-white" id="btn-qr-staff">
                         <div class="qr-action-illu qr-illu-staff" aria-hidden="true"></div>
                         <span class="qr-action-label">Gọi nhân viên</span>
                     </button>
@@ -150,9 +150,10 @@
     <!-- Gọi nhân viên: nhập nội dung rồi gửi (giống trải nghiệm O2O) -->
     <div class="modal fade qr-call-staff-modal" id="qr-call-staff-modal" tabindex="-1"
         aria-labelledby="qrCallStaffModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered qr-call-staff-dialog">
+        <div class="modal-dialog qr-call-staff-dialog">
             <div class="modal-content border-0 shadow-lg qr-call-staff-sheet">
-                <div class="modal-header border-0 pb-0 px-4 pt-4 align-items-start">
+                <div class="qr-call-staff-handle" aria-hidden="true"></div>
+                <div class="modal-header border-0 pb-0 px-4 pt-2 pt-md-4 align-items-start">
                     <div>
                         <h5 class="modal-title fw-bold text-dark mb-0" id="qrCallStaffModalLabel">Gọi nhân viên</h5>
                     </div>

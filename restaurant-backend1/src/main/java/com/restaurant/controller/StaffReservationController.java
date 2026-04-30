@@ -1,5 +1,6 @@
 package com.restaurant.controller;
 
+import com.restaurant.dto.request.MarkArrivedRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.ReservationHistoryItemResponse;
 import com.restaurant.service.ReservationService;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,8 +46,10 @@ public class StaffReservationController {
     }
 
     @PatchMapping("/{id}/arrived")
-    public ResponseEntity<ApiResponse<Void>> arrivedReservation(@PathVariable Long id) {
-        reservationService.markArrivedByStaffOrThrow(id);
+    public ResponseEntity<ApiResponse<Void>> arrivedReservation(
+            @PathVariable Long id,
+            @RequestBody(required = false) MarkArrivedRequest body) {
+        reservationService.markArrivedByStaffOrThrow(id, body);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã cập nhật khách đã đến"));
     }
 

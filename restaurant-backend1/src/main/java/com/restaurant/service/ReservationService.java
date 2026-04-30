@@ -1,6 +1,7 @@
 package com.restaurant.service;
 
 import com.restaurant.dto.request.CreateReservationRequest;
+import com.restaurant.dto.request.MarkArrivedRequest;
 import com.restaurant.dto.request.UpdateReservationRequest;
 import com.restaurant.dto.response.PageResponse;
 import com.restaurant.dto.response.ReservationHistoryItemResponse;
@@ -25,6 +26,13 @@ public class ReservationService {
     private static final Set<String> ALLOWED_STATUSES =
             Set.of("PENDING", "CONFIRMED", "ARRIVED", "COMPLETED", "CANCELLED");
 
+    /** Tối đa bản ghi tạo trong 10 phút (chống spam / bấm liên tục) */
+    private static final int MAX_RESERVATION_CREATES_PER_10_MIN = 5;
+    /** Cho phép tối đa 5 đặt PENDING/CONFIRMED chưa đến giờ diễn ra */
+    private static final int MAX_UPCOMING_PENDING_OR_CONFIRMED = 5;
+    /** Trùng khung giờ: đã có đặt chờ/xác nhận trong ±30 phút */
+    private static final int NEAR_DUPLICATE_WINDOW_SECONDS = 1800;
+
     private final JdbcTemplate jdbcTemplate;
     private final ReservationHistoryItemMapper mapper;
     private final ZaloNotificationService zaloNotificationService;
@@ -34,6 +42,7 @@ public class ReservationService {
     public ReservationHistoryItemResponse createReservation(CreateReservationRequest req, Principal principal) {
         Long userId = extractUserId(principal);
         if (userId == null) return null;
+        assertBookingNotSpam(userId, req.getReservationTime());
         jdbcTemplate.update(
                 "INSERT INTO reservations(user_id, table_id, reservation_time, number_of_guests, customer_name, customer_phone, note, status, created_at, updated_at) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', NOW(), NOW())",
@@ -102,7 +111,7 @@ public class ReservationService {
         int offset = safePage * safeSize;
 
         var content = jdbcTemplate.query(
-                "SELECT r.id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
+                "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
                         "rt.table_number, r.note " +
                         "FROM reservations r " +
                         "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id " +
@@ -159,6 +168,7 @@ public class ReservationService {
                         "customer_name = COALESCE(?, customer_name), " +
                         "customer_phone = COALESCE(?, customer_phone), " +
                         "note = COALESCE(?, note), " +
+                        "table_id = COALESCE(?, table_id), " +
                         "status = COALESCE(?, status), " +
                         "updated_at = NOW() " +
                         "WHERE id = ?",
@@ -167,6 +177,7 @@ public class ReservationService {
                 req.getCustomerName(),
                 req.getCustomerPhone(),
                 req.getNote(),
+                req.getTableId(),
                 normalizedStatus,
                 id
         );
@@ -210,7 +221,7 @@ public class ReservationService {
     public List<ReservationHistoryItemResponse> getReservationsForDateForStaff(LocalDate date) {
         LocalDate targetDate = date == null ? LocalDate.now() : date;
         return jdbcTemplate.query(
-                "SELECT r.id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
+                "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
                         "rt.table_number, r.note " +
                         "FROM reservations r " +
                         "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id " +
@@ -228,7 +239,25 @@ public class ReservationService {
 
     @Transactional
     public boolean markArrivedByStaff(Long id) {
-        return transitionStatus(id, "CONFIRMED", "ARRIVED");
+        return markArrivedByStaff(id, null);
+    }
+
+    /**
+     * CONFIRMED → ARRIVED; gán bàn cụ thể nếu gửi tableId (bắt buộc nếu chưa có table_id và khách đặt món bằng QR).
+     */
+    @Transactional
+    public boolean markArrivedByStaff(Long id, Long tableId) {
+        int updated = jdbcTemplate.update(
+                "UPDATE reservations SET status = ?, " +
+                        "table_id = COALESCE(?, table_id), " +
+                        "arrived_at = NOW(), " +
+                        "updated_at = NOW() WHERE id = ? AND status = ?",
+                "ARRIVED",
+                tableId,
+                id,
+                "CONFIRMED"
+        );
+        return updated > 0;
     }
 
     @Transactional
@@ -245,7 +274,13 @@ public class ReservationService {
 
     @Transactional
     public void markArrivedByStaffOrThrow(Long id) {
-        if (!markArrivedByStaff(id)) {
+        markArrivedByStaffOrThrow(id, null);
+    }
+
+    @Transactional
+    public void markArrivedByStaffOrThrow(Long id, MarkArrivedRequest body) {
+        Long tableId = body != null ? body.getTableId() : null;
+        if (!markArrivedByStaff(id, tableId)) {
             throw new IllegalArgumentException("Chỉ có thể chuyển ARRIVED từ đơn CONFIRMED.");
         }
     }
@@ -308,6 +343,59 @@ public class ReservationService {
             return Long.parseLong(principal.getName());
         } catch (NumberFormatException ex) {
             return null;
+        }
+    }
+
+    /**
+     * Chống spam đặt bàn: bấm liên tục, nhiều đặt trùng khung giờ, quá nhiều đặt tương lai.
+     */
+    private void assertBookingNotSpam(Long userId, LocalDateTime reservationTime) {
+        Timestamp ts = Timestamp.valueOf(reservationTime);
+
+        Long recentCreates = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*) FROM reservations
+                        WHERE user_id = ?
+                          AND created_at >= (NOW() - INTERVAL 10 MINUTE)
+                        """,
+                Long.class,
+                userId);
+        if (recentCreates != null && recentCreates >= MAX_RESERVATION_CREATES_PER_10_MIN) {
+            throw new IllegalArgumentException(
+                    "Quá nhiều yêu cầu đặt bàn trong thời gian ngắn. Vui lòng thử lại sau ít nhất 10 phút.");
+        }
+
+        Long nearDuplicate = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*) FROM reservations
+                        WHERE user_id = ?
+                          AND status IN ('PENDING', 'CONFIRMED')
+                          AND ABS(TIMESTAMPDIFF(SECOND, reservation_time, ?)) <= ?
+                        """,
+                Long.class,
+                userId,
+                ts,
+                NEAR_DUPLICATE_WINDOW_SECONDS);
+        if (nearDuplicate != null && nearDuplicate >= 1L) {
+            throw new IllegalArgumentException(
+                    "Bạn đã có đặt bàn trùng hoặc quá gần khung giờ này (đang chờ xử lý hoặc đã xác nhận). "
+                            + "Hãy chỉnh giờ khác hoặc hủy đặt cũ trong mục Lịch sử.");
+        }
+
+        Long upcomingActive = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*) FROM reservations
+                        WHERE user_id = ?
+                          AND status IN ('PENDING', 'CONFIRMED')
+                          AND reservation_time >= NOW()
+                        """,
+                Long.class,
+                userId);
+        if (upcomingActive != null && upcomingActive >= MAX_UPCOMING_PENDING_OR_CONFIRMED) {
+            throw new IllegalArgumentException(
+                    "Bạn đang có tối đa "
+                            + MAX_UPCOMING_PENDING_OR_CONFIRMED
+                            + " đặt chỗ chưa diễn ra. Hãy hủy hoặc đợi xử lý xong các đặt cũ trước khi đặt thêm.");
         }
     }
 

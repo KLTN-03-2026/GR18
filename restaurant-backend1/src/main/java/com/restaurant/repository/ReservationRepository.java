@@ -4,8 +4,10 @@ import com.restaurant.entity.Reservation;
 import com.restaurant.entity.enums.ReservationStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -53,4 +55,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    @EntityGraph(attributePaths = {"user"})
+    Optional<Reservation> findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(
+            Long tableId, ReservationStatus status);
 }

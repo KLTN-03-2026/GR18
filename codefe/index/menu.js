@@ -90,22 +90,82 @@ function initQrLanding() {
     }
     if (staffBtn) {
         staffBtn.addEventListener("click", function () {
-            qrCallStaffFromMenu();
+            openQrCallStaffModal();
         });
     }
+    initQrCallStaffModal();
 }
 
-function qrCallStaffFromMenu() {
+function updateQrCallStaffCharCount() {
+    const ta = document.getElementById("qr-call-staff-note");
+    const cnt = document.getElementById("qr-call-staff-count");
+    if (!ta || !cnt) return;
+    cnt.textContent = String((ta.value || "").length);
+}
+
+function openQrCallStaffModal() {
     const token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
     if (!token) {
         hienToast("Vui lòng mở trang từ mã QR tại bàn.", "warning");
         return;
     }
+    const modalEl = document.getElementById("qr-call-staff-modal");
+    const ta = document.getElementById("qr-call-staff-note");
+    if (!modalEl || typeof bootstrap === "undefined") {
+        qrCallStaffFromMenu();
+        return;
+    }
+    if (ta) ta.value = "";
+    updateQrCallStaffCharCount();
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+    setTimeout(function () {
+        ta && ta.focus({ preventScroll: true });
+    }, 380);
+}
+
+function initQrCallStaffModal() {
+    const modalEl = document.getElementById("qr-call-staff-modal");
+    const ta = document.getElementById("qr-call-staff-note");
+    const sendBtn = document.getElementById("btn-qr-send-staff-request");
+    if (!modalEl || !sendBtn) return;
+    if (ta) ta.addEventListener("input", updateQrCallStaffCharCount);
+    sendBtn.addEventListener("click", function () {
+        const trimmed = ta ? (ta.value || "").trim() : "";
+        const noteFinal = trimmed.length > 0 ? trimmed : "Khách gọi nhân viên (không có ghi chú).";
+        sendBtn.disabled = true;
+        qrCallStaffFromMenu(noteFinal)
+            .then(function () {
+                const m = bootstrap.Modal.getInstance(modalEl);
+                if (m) m.hide();
+                if (ta) ta.value = "";
+                updateQrCallStaffCharCount();
+            })
+            .finally(function () {
+                sendBtn.disabled = false;
+            });
+    });
+}
+
+/**
+ * @param {string} [customNote] — Ghi chú người dùng; nếu bỏ trống dùng câu mặc định (backward compat).
+ * @returns {Promise<void>}
+ */
+function qrCallStaffFromMenu(customNote) {
+    const token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
+    if (!token) {
+        const err = new Error("Vui lòng mở trang từ mã QR tại bàn.");
+        hienToast(err.message, "warning");
+        return Promise.reject(err);
+    }
     const base = (window.RESTAURANT_API_BASE || API_BASE || "http://127.0.0.1:8080/api").replace(/\/$/, "");
-    fetch(base + "/call-staff/guest", {
+    const defaultNote = "Khách bấm gọi nhân viên từ trang menu QR";
+    const note =
+        typeof customNote === "string" && customNote.trim().length > 0 ? customNote.trim() : defaultNote;
+    return fetch(base + "/call-staff/guest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrToken: token, note: "Khách bấm gọi nhân viên từ trang menu QR" })
+        body: JSON.stringify({ qrToken: token, note: note })
     })
         .then(function (r) {
             return r.json().then(function (j) {
@@ -119,7 +179,9 @@ function qrCallStaffFromMenu() {
             hienToast("Đã gửi yêu cầu tới nhân viên.", "success");
         })
         .catch(function (e) {
-            hienToast(e.message || "Không gửi được yêu cầu.", "warning");
+            var msg = (e && e.message) ? e.message : "Không gửi được yêu cầu.";
+            hienToast(msg, "warning");
+            throw e;
         });
 }
 

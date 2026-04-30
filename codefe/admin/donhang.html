@@ -23,18 +23,27 @@
             
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 gap-4">
                 <div>
-                    <h2 class="page-title mb-1">Đơn hàng đang hoạt động</h2>
+                    <h2 class="page-title mb-2" id="donhang-page-title">Đơn hàng</h2>
+                    <div class="donhang-view-switch d-inline-flex rounded-3 overflow-hidden border border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-sm px-4 donhang-view-btn active" id="btn-view-active" data-view="ACTIVE">
+                            Đang xử lý
+                        </button>
+                        <button type="button" class="btn btn-sm px-4 donhang-view-btn" id="btn-view-history" data-view="HISTORY">
+                            Lịch sử đã hoàn thành
+                        </button>
+                    </div>
                 </div>
-                <div class="filter-wrapper p-1 rounded-3 d-inline-flex">
+                <div class="filter-wrapper p-1 rounded-3 d-inline-flex flex-wrap gap-1 align-items-center" id="order-status-filters">
                     <button class="btn btn-filter active" data-filter="ALL">Tất cả</button>
                     <button class="btn btn-filter" data-filter="PENDING">Đơn mới</button>
                     <button class="btn btn-filter" data-filter="PREPARING">Đang chuẩn bị</button>
                     <button class="btn btn-filter" data-filter="SERVING">Đang phục vụ</button>
+                    <button class="btn btn-filter" data-filter="AWAIT_PAY">Chờ thu tiền</button>
                 </div>
             </div>
             <div id="order-alert" class="d-none mb-3"></div>
 
-            <div class="row g-4 mb-5">
+            <div class="row g-4 mb-5" id="order-stats-row">
                 
                 <div class="col-6 col-lg-4">
                     <div class="stat-pill h-100 p-4 d-flex align-items-center gap-4">
@@ -61,11 +70,11 @@
             </div>
 
             <div class="table-container-modern shadow-lg">
-                <div class="table-header d-flex justify-content-between align-items-center p-4">
-                    <h5 class="mb-0 fw-bold">Danh sách hóa đơn trực tiếp</h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-icon-tool"><span class="material-symbols-outlined">filter_list</span></button>
-                        <button class="btn btn-icon-tool"><span class="material-symbols-outlined">file_download</span></button>
+                <div class="table-header d-flex justify-content-between align-items-center p-4 flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold" id="order-table-section-title">Danh sách hóa đơn trực tiếp</h5>
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <button class="btn btn-icon-tool" type="button" title="Bộ lọc (sắp tới)"><span class="material-symbols-outlined">filter_list</span></button>
+                        <button class="btn btn-icon-tool" type="button" title="Xuất file (sắp tới)"><span class="material-symbols-outlined">file_download</span></button>
                     </div>
                 </div>
                 
@@ -76,6 +85,7 @@
                                 <th class="ps-4">MÃ BÀN</th>
                                 <th>MÓN CHÍNH</th>
                                 <th>KHÁCH</th>
+                                <th id="th-order-time-col">ĐẶT LÚC</th>
                                 <th>TỔNG TIỀN</th>
                                 <th>TRẠNG THÁI</th>
                                 <th class="text-end pe-4">THAO TÁC</th>
@@ -92,6 +102,134 @@
 
         </div>
     </main>
+
+    <button type="button" class="fab-add shadow-lg" id="btn-open-staff-order" aria-label="Tạo đơn gắn bàn" title="Tạo đơn gắn bàn">
+        <span class="material-symbols-outlined" style="font-size:28px">add</span>
+    </button>
+
+    <!-- Chi tiết đơn -->
+    <div class="modal fade" id="order-detail-modal" tabindex="-1" aria-labelledby="orderDetailModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content order-detail-modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-secondary border-opacity-10">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1" id="orderDetailModalTitle">Đơn hàng #—</h5>
+                        <p class="text-secondary small mb-0" id="order-detail-meta"></p>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="order-detail-loading" class="text-center py-5 text-secondary d-none">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div> Đang tải…
+                    </div>
+                    <div id="order-detail-body" class="d-none">
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Bàn</p>
+                                <p class="order-detail-value mb-0" id="detail-table">—</p>
+                            </div>
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Khách</p>
+                                <p class="order-detail-value mb-0" id="detail-guest">—</p>
+                            </div>
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Trạng thái đơn</p>
+                                <p class="mb-0"><span class="badge-status" id="detail-status-badge">—</span></p>
+                            </div>
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Thanh toán</p>
+                                <p class="order-detail-value mb-0 small" id="detail-payment">—</p>
+                            </div>
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Đặt lúc</p>
+                                <p class="order-detail-value mb-0 small" id="detail-created">—</p>
+                            </div>
+                            <div class="col-12">
+                                <p class="order-detail-label mb-1">Ghi chú đơn</p>
+                                <p class="order-detail-value mb-0 small" id="detail-note">Không có</p>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold mb-3">Món đã đặt</h6>
+                        <div class="table-responsive rounded-3 border border-secondary border-opacity-10">
+                            <table class="table table-sm mb-0 order-detail-lines">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-3">Tên món</th>
+                                        <th class="text-center">SL</th>
+                                        <th class="text-end">Đơn giá</th>
+                                        <th class="text-end pe-3">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="order-detail-lines-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <p class="mb-0">
+                                <span class="text-secondary me-2">Tổng cộng</span>
+                                <span class="fs-5 fw-bold text-primary" id="detail-total">0 VND</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: nhân viên tạo đơn gắn bàn -->
+    <div class="modal fade" id="staff-create-order-modal" tabindex="-1" aria-labelledby="staffCreateOrderTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content order-detail-modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-secondary border-opacity-10">
+                    <h5 class="modal-title fw-bold" id="staffCreateOrderTitle">Tạo đơn gắn bàn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="staff-create-order-form">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary fw-semibold" for="staff-order-table">Bàn <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm rounded-3" id="staff-order-table" required>
+                                    <option value="">Đang tải bàn…</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary fw-semibold" for="staff-order-guest">Tên khách <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm rounded-3" id="staff-order-guest" maxlength="100" placeholder="VD: Khách lẻ · Bàn VIP" required value="Khách tại chỗ" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-secondary fw-semibold" for="staff-order-note">Ghi chú đơn</label>
+                                <input type="text" class="form-control form-control-sm rounded-3" id="staff-order-note" maxlength="500" placeholder="Tuỳ chọn" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-semibold text-secondary text-uppercase" style="letter-spacing: .05em">Món trong đơn</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-3" id="staff-add-line">+ Thêm dòng</button>
+                        </div>
+                        <div class="table-responsive rounded-3 border border-secondary border-opacity-10 mb-3">
+                            <table class="table table-sm mb-0 staff-order-lines">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-3">Món</th>
+                                        <th style="width: 100px">SL</th>
+                                        <th>Ghi chú món</th>
+                                        <th class="text-end pe-2" style="width: 48px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-order-lines-body"></tbody>
+                            </table>
+                        </div>
+                        <p class="small text-secondary mb-0" id="staff-order-form-hint">Chọn ít nhất một món. Giá và tổng tiền theo giá đang bán trong hệ thống.</p>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-10">
+                    <button type="button" class="btn btn-light btn-sm rounded-3 px-4" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="button" class="btn btn-settle btn-sm rounded-3 px-4" id="staff-order-submit">Gửi đơn</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>

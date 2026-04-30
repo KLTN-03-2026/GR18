@@ -10,7 +10,7 @@ const MENU_IMAGE_FALLBACK =
     );
 
 function getToken() {
-    return localStorage.getItem("accessToken");
+    return localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
 }
 
 let menuModalInstance = null;
@@ -20,6 +20,27 @@ const BACKEND_ORIGIN = RESTAURANT_ROOT.replace(/\/api\/?$/, "");
 let currentCategoryId = null;
 let currentViewMode = "grid";
 let categoryCache = [];
+/** null = thêm món; số = đang sửa */
+let editingMenuItemId = null;
+/** Món đang hiển thị theo API (đã lọc danh mục); ô tìm kiếm lọc cục bộ trên mảng này */
+let menuItemsSnapshot = [];
+
+function menuSearchQueryNormalized() {
+    return normalizeCategoryKey(document.getElementById("menuSearchInput")?.value || "");
+}
+
+function filterItemsBySearchQuery(items, qNormalized) {
+    if (!qNormalized) return items || [];
+    return (items || []).filter((item) => {
+        const name = normalizeCategoryKey(item?.name);
+        const desc = normalizeCategoryKey(item?.description);
+        return name.includes(qNormalized) || desc.includes(qNormalized);
+    });
+}
+
+function refreshMenuGrid() {
+    renderMenu(filterItemsBySearchQuery(menuItemsSnapshot, menuSearchQueryNormalized()));
+}
 
 function normalizeCategoryKey(input) {
     return String(input || "")
@@ -70,11 +91,19 @@ async function api(url, options = {}) {
     return json;
 }
 
+/** Hiển thị an toàn trong innerHTML template */
+function escapeHtml(text) {
+    if (text == null) return "";
+    const div = document.createElement("div");
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
 // ===== LOAD MENU =====
 async function loadMenu() {
     const data = await api(`${MENU_ADMIN_BASE}/menu-items`);
-    const items = locMonConHoatDong(data.data || []);
-    renderMenu(items);
+    menuItemsSnapshot = locMonConHoatDong(data.data || []);
+    refreshMenuGrid();
 }
 
 function locMonConHoatDong(items) {
@@ -108,8 +137,25 @@ function renderMenu(items) {
     container.innerHTML = "";
     container.classList.toggle("menu-list-mode", currentViewMode === "list");
 
-    items.forEach(item => {
+    const list = items || [];
+    if (list.length === 0) {
+        const q = menuSearchQueryNormalized();
+        const msg = q
+            ? "Không có món nào khớp từ khóa. Thử từ khóa khác hoặc xóa ô tìm kiếm."
+            : "Chưa có món trong danh mục này.";
+        container.innerHTML = `
+        <div class="col-12">
+            <div class="text-secondary py-5 text-center">${msg}</div>
+        </div>`;
+        return;
+    }
+
+    list.forEach(item => {
         const imageUrl = resolveImageUrl(item.imageUrl);
+        const description = (item.description != null ? String(item.description) : "").trim();
+        const descBlock = description
+            ? `<p class="menu-item-description small text-secondary mb-2">${escapeHtml(description)}</p>`
+            : `<p class="menu-item-description small text-secondary fst-italic mb-2 opacity-50">Chưa có mô tả</p>`;
         container.innerHTML += `
         <div class="col-12 col-md-6 col-lg-4">
             <div class="menu-grid-card">
@@ -117,8 +163,9 @@ function renderMenu(items) {
                     <img src="${imageUrl}" onerror="this.onerror=null;this.src='${MENU_IMAGE_FALLBACK}'">
                 </div>
                 <div class="p-4">
-                    <h5>${item.name}</h5>
-                    <span class="d-block mb-2">${Number(item.price || 0).toLocaleString("vi-VN")} VND</span>
+                    <h5>${escapeHtml(item.name)}</h5>
+                    <span class="d-block fw-semibold mb-2 text-primary">${Number(item.price || 0).toLocaleString("vi-VN")} VND</span>
+                    ${descBlock}
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-primary btn-sm" onclick="editItem(${item.id})">
                             <i class="fa-solid fa-pen-to-square me-1"></i>Sửa
@@ -156,29 +203,55 @@ async function toggleAvailable(id, isAvailable) {
     loadMenu();
 }
 
-// ===== CREATE =====
-async function createItem() {
-    const imageUrl = document.getElementById("img").value.trim();
+// ===== Thêm / Sửa món (cùng modal) =====
+async function submitMenuModal() {
+    const name = document.getElementById("name")?.value.trim() || "";
+    const priceRaw = document.getElementById("price")?.value;
+    const categoryIdVal = document.getElementById("category")?.value;
+    const description = document.getElementById("desc")?.value.trim() || "";
+    const imageUrl = document.getElementById("img")?.value.trim() || "";
+
+    const price = Number(priceRaw);
+    if (!name) {
+        showActionToast("Vui lòng nhập tên món.", "error");
+        return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+        showActionToast("Giá không hợp lệ.", "error");
+        return;
+    }
+    if (!categoryIdVal) {
+        showActionToast("Vui lòng chọn danh mục.", "error");
+        return;
+    }
 
     const body = {
-        name: document.getElementById("name").value.trim(),
-        price: document.getElementById("price").value,
-        categoryId: document.getElementById("category").value,
-        description: document.getElementById("desc").value.trim(),
+        name,
+        price,
+        categoryId: Number(categoryIdVal),
+        description,
         imageUrl
     };
 
     try {
-        await api(`${MENU_ADMIN_BASE}/menu-items`, {
-            method: "POST",
-            body: JSON.stringify(body)
-        });
-        loadMenu();
+        if (editingMenuItemId != null) {
+            await api(`${MENU_ADMIN_BASE}/menu-items/${editingMenuItemId}`, {
+                method: "PUT",
+                body: JSON.stringify(body)
+            });
+            showActionToast("Đã cập nhật món.", "success");
+        } else {
+            await api(`${MENU_ADMIN_BASE}/menu-items`, {
+                method: "POST",
+                body: JSON.stringify(body)
+            });
+            showActionToast("Đã thêm món.", "success");
+        }
         menuModalInstance?.hide();
-        showActionToast("Them mon thanh cong", "success");
+        loadMenu();
     } catch (err) {
-        console.error("Tao mon that bai:", err);
-        showActionToast(err.message || "Khong them duoc mon. Vui long thu lai.", "error");
+        console.error("Lưu món:", err);
+        showActionToast(err.message || "Không lưu được món.", "error");
     }
 }
 
@@ -240,7 +313,8 @@ function fillCategoryEditSelect(categories) {
 // ===== FILTER =====
 async function filterByCategory(categoryId) {
     const data = await api(`${MENU_ADMIN_BASE}/menu-items?categoryId=${categoryId}`);
-    renderMenu(locMonConHoatDong(data.data || []));
+    menuItemsSnapshot = locMonConHoatDong(data.data || []);
+    refreshMenuGrid();
 }
 
 function chonDanhMuc(categoryId) {
@@ -266,15 +340,31 @@ function capNhatTrangThaiNutDanhMuc() {
     });
 }
 
+/** Trạng thái nút lưới / danh sách ngang */
+function syncViewModeToggleStyles() {
+    const gridBtn = document.getElementById("view-grid-btn");
+    const listBtn = document.getElementById("view-list-btn");
+    if (!gridBtn || !listBtn) return;
+    const isGrid = currentViewMode === "grid";
+    gridBtn.classList.toggle("text-primary", isGrid);
+    gridBtn.classList.toggle("opacity-50", !isGrid);
+    listBtn.classList.toggle("text-primary", !isGrid);
+    listBtn.classList.toggle("opacity-50", isGrid);
+}
+
 function changeViewMode(mode) {
     currentViewMode = mode === "list" ? "list" : "grid";
-    document.getElementById("view-grid-btn")?.classList.toggle("text-primary", currentViewMode === "grid");
-    document.getElementById("view-list-btn")?.classList.toggle("text-primary", currentViewMode === "list");
-    if (currentCategoryId == null) {
-        loadMenu();
-    } else {
-        filterByCategory(currentCategoryId);
-    }
+    syncViewModeToggleStyles();
+    refreshMenuGrid();
+}
+
+function bindMenuSearchInput() {
+    const el = document.getElementById("menuSearchInput");
+    if (!el) return;
+    el.addEventListener("input", () => {
+        clearTimeout(bindMenuSearchInput._timer);
+        bindMenuSearchInput._timer = setTimeout(() => refreshMenuGrid(), 180);
+    });
 }
 
 function openCategoryModal() {
@@ -346,45 +436,60 @@ async function deleteSelectedCategory() {
     }
 }
 
-// ===== EDIT (simple) =====
+// ===== Sửa món (mở modal giống thêm) =====
 async function editItem(id) {
     try {
-        const data = await api(`${MENU_ADMIN_BASE}/menu-items`);
-        const item = (data.data || []).find((x) => x.id === id);
+        if (!document.getElementById("category")?.options?.length) {
+            await loadCategories();
+        }
+
+        let item = menuItemsSnapshot.find((x) => x.id === id);
         if (!item) {
-            alert("Khong tim thay mon can sua.");
+            const data = await api(`${MENU_ADMIN_BASE}/menu-items`);
+            item = (data.data || []).find((x) => x.id === id);
+        }
+        if (!item) {
+            showActionToast("Không tìm thấy món.", "error");
             return;
         }
 
-        const name = prompt("Ten moi:", item.name || "");
-        if (name == null) return;
-        const priceRaw = prompt("Gia moi:", String(item.price || 0));
-        if (priceRaw == null) return;
-        const description = prompt("Mo ta moi:", item.description || "");
-        if (description == null) return;
-        const imageUrl = prompt("Link anh moi:", item.imageUrl || "");
-        if (imageUrl == null) return;
-
-        const price = Number(priceRaw);
-        if (!name.trim() || !Number.isFinite(price) || price < 0) {
-            alert("Ten hoac gia khong hop le.");
-            return;
+        if (!menuModalInstance) {
+            menuModalInstance = new bootstrap.Modal(document.getElementById("menuModal"));
         }
 
-        await api(`${MENU_ADMIN_BASE}/menu-items/${id}`, {
-            method: "PUT",
-            body: JSON.stringify({
-                name: name.trim(),
-                price,
-                description: description.trim(),
-                imageUrl: imageUrl.trim()
-            })
-        });
+        editingMenuItemId = id;
+        const titleEl = document.getElementById("menuModalTitle");
+        if (titleEl) titleEl.textContent = "Sửa món";
 
-        loadMenu();
-        showActionToast("Cap nhat mon thanh cong", "success");
+        resetCreateForm();
+
+        document.getElementById("name").value = item.name || "";
+        document.getElementById("price").value =
+            item.price !== undefined && item.price !== null ? String(item.price) : "";
+        document.getElementById("desc").value = item.description || "";
+        document.getElementById("img").value = item.imageUrl || "";
+
+        const catSel = document.getElementById("category");
+        if (catSel && item.categoryId != null) {
+            catSel.value = String(item.categoryId);
+        } else if (catSel && item.categoryName) {
+            const want = String(item.categoryName).trim();
+            const opt = Array.from(catSel.options).find((o) => o.textContent.trim() === want);
+            if (opt) catSel.value = opt.value;
+        }
+
+        const preview = document.getElementById("imgPreview");
+        const uploadNote = document.getElementById("imgUploadNote");
+        const rawImg = (item.imageUrl || "").trim();
+        if (rawImg && preview) {
+            preview.src = resolveImageUrl(item.imageUrl);
+            preview.classList.remove("d-none");
+            if (uploadNote) uploadNote.classList.add("d-none");
+        }
+
+        menuModalInstance.show();
     } catch (err) {
-        showActionToast(err.message || "Sua mon that bai", "error");
+        showActionToast(err.message || "Không mở được form sửa.", "error");
     }
 }
 
@@ -421,6 +526,10 @@ function openCreateModal() {
     if (!menuModalInstance) {
         menuModalInstance = new bootstrap.Modal(document.getElementById("menuModal"));
     }
+    editingMenuItemId = null;
+    const titleEl = document.getElementById("menuModalTitle");
+    if (titleEl) titleEl.textContent = "Thêm món";
+    resetCreateForm();
     menuModalInstance.show();
 }
 
@@ -449,6 +558,7 @@ function resetCreateForm() {
     }
     if (uploadNote) {
         uploadNote.textContent = "Chua co anh duoc chon.";
+        uploadNote.classList.remove("d-none");
     }
     if (categorySelect && categorySelect.options.length > 0) {
         categorySelect.selectedIndex = 0;
@@ -472,7 +582,10 @@ function bindUploadImageInput() {
             }
             preview.src = "";
             preview.classList.add("d-none");
-            if (uploadNote) uploadNote.textContent = "Chua co anh duoc chon.";
+            if (uploadNote) {
+                uploadNote.textContent = "Chua co anh duoc chon.";
+                uploadNote.classList.remove("d-none");
+            }
             return;
         }
         if (uploadedPreviewObjectUrl) {
@@ -482,6 +595,7 @@ function bindUploadImageInput() {
         preview.src = uploadedPreviewObjectUrl;
         preview.classList.remove("d-none");
         if (uploadNote) {
+            uploadNote.classList.remove("d-none");
             uploadNote.textContent = `Da chon file: ${file.name}. Anh se duoc luu khi bam Luu.`;
         }
         const reader = new FileReader();
@@ -498,7 +612,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalEl = document.getElementById("menuModal");
     if (modalEl) {
         menuModalInstance = new bootstrap.Modal(modalEl);
-        modalEl.addEventListener("hidden.bs.modal", resetCreateForm);
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            editingMenuItemId = null;
+            const titleEl = document.getElementById("menuModalTitle");
+            if (titleEl) titleEl.textContent = "Thêm món";
+            resetCreateForm();
+        });
     }
     const categoryModalEl = document.getElementById("categoryModal");
     if (categoryModalEl) {
@@ -506,6 +625,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     document.getElementById("categoryEditSelect")?.addEventListener("change", bindCategoryEditForm);
     bindUploadImageInput();
+    bindMenuSearchInput();
+    syncViewModeToggleStyles();
     loadMenu();
     loadCategories();
 });

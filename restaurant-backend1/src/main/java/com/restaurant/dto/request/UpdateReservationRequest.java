@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class UpdateReservationRequest {
+    private Long tableId;
     private LocalDateTime reservationTime;
     private Integer numberOfGuests;
     private String customerName;

@@ -5,6 +5,7 @@ import com.restaurant.entity.enums.OrderStatus;
 import com.restaurant.entity.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,14 +24,29 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByUserId(Long userId, Pageable pageable);
     List<Order> findByStatus(OrderStatus status);
     List<Order> findByStatusIn(List<OrderStatus> statuses);   // R10: lấy nhiều trạng thái
+
+    List<Order> findByStatusIn(List<OrderStatus> statuses, Sort sort);
     List<Order> findByPaymentStatus(PaymentStatus paymentStatus);
 
     Page<Order> findByStatusAndPaymentStatus(OrderStatus status, PaymentStatus paymentStatus, Pageable pageable);
+
+    /**
+     * Đơn cần xử lý tại quầy: đang chế biến/phục vụ, hoặc đã bị đánh COMPLETED oan (chưa PAID) để thu tiền.
+     */
+    @Query("""
+            SELECT o FROM Order o
+            WHERE o.status IN ('PENDING', 'PREPARING', 'SERVING')
+               OR (o.status = 'COMPLETED' AND o.paymentStatus = 'UNPAID')
+            ORDER BY o.createdAt DESC
+            """)
+    List<Order> findStaffQueueOrders();
 
     @Query("""
         SELECT DISTINCT o FROM Order o
         LEFT JOIN FETCH o.table
         LEFT JOIN FETCH o.user
+        LEFT JOIN FETCH o.reservation res
+        LEFT JOIN FETCH res.user
         LEFT JOIN FETCH o.orderItems oi
         LEFT JOIN FETCH oi.menuItem
         WHERE o.id = :id
@@ -39,10 +55,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("""
         SELECT o FROM Order o
+        LEFT JOIN o.reservation r
+        WHERE (o.user IS NOT NULL AND o.user.id = :userId)
+           OR (r IS NOT NULL AND r.user IS NOT NULL AND r.user.id = :userId)
+        """)
+    Page<Order> findOrdersForCustomerAccount(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        SELECT o FROM Order o
         WHERE o.table.id = :tableId
-        AND o.status NOT IN ('COMPLETED', 'CANCELLED')
+        AND o.status <> 'CANCELLED'
+        AND NOT (o.status = 'COMPLETED' AND o.paymentStatus = 'PAID')
         ORDER BY o.createdAt DESC
-    """)
+        """)
     List<Order> findActiveOrdersByTable(@Param("tableId") Long tableId);
 
     @Query("""

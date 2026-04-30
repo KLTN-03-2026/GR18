@@ -43,6 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/"/g, "&quot;");
     }
 
+    function coerceApiDate(dateData) {
+        if (typeof dateData !== "string") return dateData;
+        return dateData.trim().replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(?::\d{2})?)/, "$1T$2");
+    }
+
     function formatDate(dateData) {
         if (!dateData) return "N/A";
         if (Array.isArray(dateData)) {
@@ -50,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const date = new Date(y, m - 1, d);
             return date.toLocaleDateString("vi-VN");
         }
-        const date = new Date(dateData);
+        const date = new Date(coerceApiDate(dateData));
         if (isNaN(date)) return "—";
         return date.toLocaleDateString("vi-VN");
     }
@@ -61,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const [y, m, d, h = 0, min = 0] = dateData;
             return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y} ${h}:${String(min).padStart(2, "0")}`;
         }
-        const date = new Date(dateData);
+        const date = new Date(coerceApiDate(dateData));
         if (isNaN(date)) return "—";
         return date.toLocaleString("vi-VN", {
             day: "2-digit",
@@ -78,7 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const [y, m, d, h = 0, min = 0, sec = 0] = dateData;
             return new Date(y, m - 1, d, h, min, sec).getTime();
         }
-        const t = new Date(dateData).getTime();
+        const coerced = coerceApiDate(dateData);
+        const t = new Date(coerced).getTime();
         return isNaN(t) ? 0 : t;
     }
 

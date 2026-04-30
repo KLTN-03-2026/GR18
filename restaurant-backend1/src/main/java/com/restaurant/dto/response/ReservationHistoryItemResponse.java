@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReservationHistoryItemResponse {
     private Long id;
+    /** FK `restaurant_tables.id`; null nếu chưa gắn bàn cụ thể */
+    private Long tableId;
     private LocalDateTime reservationTime;
     private Integer numberOfGuests;
     private String customerName;

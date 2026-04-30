@@ -10,10 +10,13 @@ import com.restaurant.entity.User;
 import com.restaurant.dto.response.order.StaffOrderResponse;
 import com.restaurant.entity.enums.OrderStatus;
 import com.restaurant.entity.enums.OrderItemStatus;
+import com.restaurant.entity.enums.ReservationStatus;
 import com.restaurant.entity.enums.PaymentMethod;
 import com.restaurant.entity.enums.PaymentStatus;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.dto.request.OrderRequest;
+import com.restaurant.dto.request.StaffPlaceOrderRequest;
+import com.restaurant.entity.Reservation;
 import com.restaurant.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 
@@ -45,27 +49,66 @@ public class OrderService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
+    private final ReservationRepository reservationRepository;
 
-    // Khách quét QR -> đặt món (không cần đăng nhập)
+    /** Khách / QR – theo {@link OrderRequest#getQrToken()}. */
     public Order createOrder(OrderRequest request) {
         RestaurantTable table = tableRepository.findByQrCodeToken(request.getQrToken())
                 .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ hoặc đã hết hạn"));
+        return placeOrderInternal(
+                table,
+                request.getUserId(),
+                request.getGuestName(),
+                request.getNote(),
+                request.getItems());
+    }
+
+    /** Nhân viên chọn {@code tableId}; logic gán user / đặt bàn như QR. */
+    public StaffOrderResponse createStaffOrderForTable(StaffPlaceOrderRequest req) {
+        RestaurantTable table = tableRepository.findById(req.getTableId())
+                .orElseThrow(() -> new IllegalArgumentException("Không có bàn này."));
+        if (!Boolean.TRUE.equals(table.getIsActive())) {
+            throw new IllegalArgumentException("Bàn không còn hoạt động.");
+        }
+        Order saved = placeOrderInternal(table, null, req.getGuestName(), req.getNote(), req.getItems());
+        Order detail = orderRepository.findDetailById(saved.getId()).orElse(saved);
+        return toStaffOrderResponse(detail);
+    }
+
+    private Order placeOrderInternal(
+            RestaurantTable table,
+            Long userIdFromRequestOrNull,
+            String guestName,
+            String note,
+            List<OrderRequest.OrderItemRequest> itemRequests) {
+
+        Optional<Reservation> seated =
+                reservationRepository.findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(
+                        table.getId(), ReservationStatus.ARRIVED);
+
+        Reservation linkedReservation = seated.orElse(null);
+        User resolvedUser = null;
+        if (linkedReservation != null
+                && userIdFromRequestOrNull == null
+                && linkedReservation.getUser() != null) {
+            resolvedUser = linkedReservation.getUser();
+        }
+        if (userIdFromRequestOrNull != null) {
+            resolvedUser = userRepository.findById(userIdFromRequestOrNull).orElse(resolvedUser);
+        }
 
         Order order = Order.builder()
                 .table(table)
-                .guestName(request.getGuestName())
+                .user(resolvedUser)
+                .reservation(linkedReservation)
+                .guestName(guestName)
                 .status(OrderStatus.PENDING)
                 .paymentStatus(PaymentStatus.UNPAID)
-                .note(request.getNote())
+                .note(note)
                 .build();
 
-        if (request.getUserId() != null) {
-            userRepository.findById(request.getUserId()).ifPresent(order::setUser);
-        }
-
-        // Tính toán items
         BigDecimal totalAmount = BigDecimal.ZERO;
-        for (OrderRequest.OrderItemRequest itemReq : request.getItems()) {
+        for (OrderRequest.OrderItemRequest itemReq : itemRequests) {
             MenuItem menuItem = menuItemRepository.findById(itemReq.getMenuItemId())
                     .orElseThrow(() -> new IllegalArgumentException("Món ăn không tồn tại: " + itemReq.getMenuItemId()));
 
@@ -94,7 +137,6 @@ public class OrderService {
         table.setStatus(TableStatus.OCCUPIED);
         tableRepository.save(table);
 
-        // Gửi realtime notification cho nhân viên (JSON object để STOMP/Jackson ổn định)
         messagingTemplate.convertAndSend(
                 "/topic/orders/new",
                 Map.of(
@@ -109,6 +151,12 @@ public class OrderService {
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        if (status == OrderStatus.COMPLETED
+                && order.getPaymentStatus() != PaymentStatus.PAID
+                && order.getStatus() != OrderStatus.COMPLETED) {
+            throw new IllegalArgumentException(
+                    "Không thể hoàn tất đơn khi chưa thanh toán. Hãy dùng xác nhận thanh toán (tiền mặt hoặc QR).");
+        }
         order.setStatus(status);
         Order updated = orderRepository.save(order);
 
@@ -173,8 +221,7 @@ public class OrderService {
     }
 
     public List<Order> getAllActiveOrders() {
-        return orderRepository.findByStatusIn(
-                List.of(OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.SERVING));
+        return orderRepository.findStaffQueueOrders();
     }
 
     public List<StaffOrderResponse> getAllActiveOrderSummaries() {
@@ -196,11 +243,26 @@ public class OrderService {
     public StaffOrderDetailResponse getCustomerOrderDetail(Long orderId, Long userId) {
         Order order = orderRepository.findDetailById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
-        User owner = order.getUser();
-        if (owner == null || !owner.getId().equals(userId)) {
+        if (!customerOwnsOrder(order, userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xem đơn này");
         }
         return buildStaffOrderDetailResponse(order);
+    }
+
+    /** Đặt có user_id Hoặc đơn QR gắn reservation của khách đó */
+    private static boolean customerOwnsOrder(Order order, Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        User direct = order.getUser();
+        if (direct != null && userId.equals(direct.getId())) {
+            return true;
+        }
+        Reservation link = order.getReservation();
+        if (link != null && link.getUser() != null && userId.equals(link.getUser().getId())) {
+            return true;
+        }
+        return false;
     }
 
     private StaffOrderDetailResponse buildStaffOrderDetailResponse(Order order) {
@@ -275,7 +337,7 @@ public class OrderService {
     // A1: Lịch sử đơn hàng của user (US08) — map DTO trong transaction (open-in-view=false)
     @Transactional(readOnly = true)
     public Page<GuestOrderResponse> getUserOrderResponses(Long userId, Pageable pageable) {
-        return orderRepository.findByUserId(userId, pageable).map(this::toGuestOrderResponse);
+        return orderRepository.findOrdersForCustomerAccount(userId, pageable).map(this::toGuestOrderResponse);
     }
 
     // C7: Lấy userId từ JWT Authentication object

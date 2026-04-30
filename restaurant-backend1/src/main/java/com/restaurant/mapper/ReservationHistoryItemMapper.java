@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 public class ReservationHistoryItemMapper {
 
     public ReservationHistoryItemResponse fromResultSet(ResultSet rs) throws SQLException {
+        long tableIdRaw = rs.getLong("table_id");
         return ReservationHistoryItemResponse.builder()
                 .id(rs.getLong("id"))
+                .tableId(rs.wasNull() ? null : tableIdRaw)
                 .reservationTime(toLocalDateTime(rs.getTimestamp("reservation_time")))
                 .numberOfGuests(rs.getInt("number_of_guests"))
                 .customerName(rs.getString("customer_name"))

@@ -105,7 +105,8 @@ public class AdminMenuController {
                         .imageUrl(item.getImageUrl())
                         .isAvailable(item.getIsAvailable())
                         .isActive(item.getIsActive())
-                        .categoryName(item.getCategory().getName())
+                        .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                        .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
                         .totalSold(item.getTotalSold())
                         .avgRating(item.getAvgRating() != null
                                 ? item.getAvgRating().doubleValue()
@@ -234,6 +235,7 @@ public class AdminMenuController {
                 .imageUrl(item.getImageUrl())
                 .isAvailable(item.getIsAvailable())
                 .isActive(item.getIsActive())
+                .categoryId(category != null ? category.getId() : null)
                 .categoryName(category != null ? category.getName() : null)
                 .totalSold(item.getTotalSold())
                 .avgRating(item.getAvgRating() != null ? item.getAvgRating().doubleValue() : 0.0)

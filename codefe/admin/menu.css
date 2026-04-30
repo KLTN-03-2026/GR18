@@ -7,7 +7,11 @@
     min-height: 100vh;
 }
 
-/* Card Món ăn */
+/* Ô tìm món (reuse .search-container / .search-input trong datcho.css) */
+.menu-admin-toolbar-search {
+    min-width: min(100%, 220px);
+    max-width: 380px;
+}
 .menu-grid-card {
     background: var(--surface-container);
     border: 1px solid var(--outline-variant);
@@ -69,6 +73,21 @@
     color: var(--primary);
     font-size: 1.25rem;
     font-weight: 800;
+}
+
+/* Mô tả dưới giá — giới hạn ~4 dòng, list mode có thể nới */
+.menu-item-description {
+    margin-top: -0.15rem;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+}
+#menuContainer.menu-list-mode .menu-item-description {
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
 }
 
 /* Line clamp (Giới hạn 2 dòng mô tả) */
@@ -141,11 +160,55 @@
 }
 
 .menu-image-preview {
-    width: 100%;
-    max-height: 220px;
-    object-fit: cover;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 270px;
+    object-fit: contain;
     border-radius: 0.75rem;
     border: 1px solid var(--outline-variant);
+    background: #f8f9fa;
+}
+
+/* Modal thêm/sửa món: chữ và ô nhập đen trên nền sáng (không ảnh hưởng modal danh mục dark) */
+#menuModal .menu-modal-content {
+    background: #ffffff;
+    color: #000000;
+}
+
+#menuModal .menu-modal-content h5,
+#menuModal .menu-modal-content .form-label {
+    color: #000000 !important;
+}
+
+#menuModal .menu-modal-content .form-control,
+#menuModal .menu-modal-content .form-select {
+    color: #000000;
+    background-color: #ffffff;
+    border-color: #ced4da;
+}
+
+#menuModal .menu-modal-content .form-control::placeholder {
+    color: #000000;
+    opacity: 0.5;
+}
+
+#menuModal .menu-modal-content .menu-modal-helper {
+    color: #000000 !important;
+}
+
+#menuModal .menu-modal-close {
+    background: #f1f3f5;
+    border-color: #dee2e6;
+    color: #212529;
+}
+
+#menuModal .menu-modal-close:hover {
+    color: #000000;
+    border-color: #adb5bd;
 }
 
 /* Che do xem dang list */

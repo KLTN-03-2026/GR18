@@ -32,6 +32,11 @@ public class Order extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    /** Đặt bàn online (đã ARRIVED, trùng bàn QR) — gắn đơn QR với tài khoản khách */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id")
+    private Reservation reservation;
+
     // Tên hiển thị của khách vãng lai
     @Column(name = "guest_name", length = 100)
     private String guestName;

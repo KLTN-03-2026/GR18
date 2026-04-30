@@ -3,6 +3,7 @@ const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").rep
 
 const STAFF_ALLOWED_PAGES = new Set([
     "tongquan.html",
+    "menu.html",
     "datcho.html",
     "donhang.html",
     "qltrangthaiban.html",

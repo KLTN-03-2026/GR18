@@ -1,6 +1,7 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.request.OrderRequest;
+import com.restaurant.dto.request.StaffPlaceOrderRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.order.GuestOrderResponse;
 import com.restaurant.dto.response.order.StaffOrderDetailResponse;
@@ -97,6 +98,15 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<StaffOrderResponse>>> getOrdersByTable(@PathVariable Long tableId) {
         return ResponseEntity.ok(ApiResponse.success(orderService.getActiveOrderSummariesByTable(tableId)));
+    }
+
+    @PostMapping("/staff/table-orders")
+    @Operation(summary = "Nhân viên: Tạo đơn gắn bàn (không quét QR)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<StaffOrderResponse>> createStaffOrderForTable(
+            @Valid @RequestBody StaffPlaceOrderRequest request) {
+        StaffOrderResponse summary = orderService.createStaffOrderForTable(request);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Đã tạo đơn và gắn bàn."));
     }
 
     @GetMapping("/staff/orders/paid-recent")

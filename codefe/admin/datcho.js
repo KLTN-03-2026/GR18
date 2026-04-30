@@ -21,32 +21,45 @@ axiosInstance.interceptors.request.use(config => {
 
 // ================= STATE =================
 let reservations = [];
+let staffTables = [];
 let selectedDate = formatInputDate(new Date());
 
 // ================= INIT =================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     initDateFilter();
+    await loadStaffTables();
     loadReservations();
     setupSearch();
 });
 
 // ================= LOAD =================
+async function loadStaffTables() {
+    try {
+        const res = await axiosInstance.get("/tables/staff/tables");
+        staffTables = res.data?.data || [];
+    } catch (err) {
+        console.error("loadStaffTables:", err);
+        staffTables = [];
+    }
+}
+
 async function loadReservations() {
     try {
         const res = await axiosInstance.get("/staff/reservations", {
             params: { date: selectedDate }
         });
 
-        if (res.data?.data) {
-            reservations = res.data.data;
-            renderTable(reservations);
-            updateStats(reservations);
-            updateFooterInfo();
-        }
+        reservations = Array.isArray(res.data?.data) ? res.data.data : [];
+        renderTable(reservations);
+        updateStats(reservations);
+        updateFooterInfo();
 
     } catch (err) {
         console.error("ERROR:", err);
         handleError(err);
+        reservations = [];
+        renderTable([]);
+        updateStats([]);
     }
 }
 
@@ -139,7 +152,32 @@ async function confirmBooking(id) {
 }
 
 async function confirmArrival(id) {
-    await callAPI(`/staff/reservations/${id}/arrived`);
+    const r = reservations.find(x => x.id === id);
+    let tableId = r?.tableId != null ? r.tableId : null;
+    if (tableId == null) {
+        const hint = r?.tableNumber ? ` (gợi ý: ${r.tableNumber})` : "";
+        const num = prompt(`Nhập số bàn thực tế khách ngồi${hint}:`, r?.tableNumber || "");
+        if (num === null) {
+            return;
+        }
+        const trimmed = String(num).trim();
+        if (!trimmed) {
+            alert("Cần số bàn để gắn với đơn đặt và mã QR.");
+            return;
+        }
+        const t = staffTables.find(x => String(x.tableNumber).trim() === trimmed);
+        if (!t?.id) {
+            alert("Không tìm thấy bàn trùng số. Kiểm tra danh sách bàn hoặc tải lại trang.");
+            return;
+        }
+        tableId = t.id;
+    }
+    try {
+        await axiosInstance.patch(`/staff/reservations/${id}/arrived`, { tableId });
+        loadReservations();
+    } catch (err) {
+        handleError(err);
+    }
 }
 
 async function completeBooking(id) {
@@ -176,11 +214,12 @@ function setupSearch() {
         const val = e.target.value.toLowerCase();
 
         const filtered = reservations.filter(r =>
-            r.customerName.toLowerCase().includes(val) ||
-            r.customerPhone.includes(val)
+            (r.customerName || "").toLowerCase().includes(val) ||
+            String(r.customerPhone || "").includes(val)
         );
 
         renderTable(filtered);
+        updateStats(reservations);
     });
 }
 
@@ -341,51 +380,47 @@ async function updateReservation() {
     }
 
 }
+function normalizeReservationStatus(raw) {
+    return String(raw == null ? "" : raw).trim().toUpperCase();
+}
+
+function formatStatCount(num) {
+    const n = Math.max(0, Math.floor(Number(num) || 0));
+    return String(n);
+}
+
+function calcGrowth(todayGuests) {
+    if (todayGuests === 0) return 0;
+    const yesterday = todayGuests * 0.85;
+    return Math.round(((todayGuests - yesterday) / yesterday) * 100);
+}
+
 function updateStats(data) {
+    const rows = Array.isArray(data) ? data : [];
+
     let totalGuests = 0;
     let confirmed = 0;
     let pending = 0;
 
-    data.forEach(r => {
-        if (r.status !== "CANCELLED") {
-        totalGuests += r.numberOfGuests || 0;
-    }
-
-        if (r.status === "CONFIRMED") confirmed++;
-        if (r.status === "PENDING") pending++;
+    rows.forEach((r) => {
+        const st = normalizeReservationStatus(r.status);
+        if (st !== "CANCELLED") {
+            totalGuests += r.numberOfGuests || 0;
+        }
+        if (st === "CONFIRMED") confirmed++;
+        if (st === "PENDING") pending++;
     });
 
-    // 👉 UI
-    document.getElementById("totalGuests").innerText = totalGuests;
-    document.getElementById("confirmedCount").innerText = format2(confirmed);
-    document.getElementById("pendingCount").innerText = format2(pending);
+    const totalEl = document.getElementById("totalGuests");
+    const confirmedEl = document.getElementById("confirmedCount");
+    const pendingEl = document.getElementById("pendingCount");
+    if (totalEl) totalEl.textContent = formatStatCount(totalGuests);
+    if (confirmedEl) confirmedEl.textContent = formatStatCount(confirmed);
+    if (pendingEl) pendingEl.textContent = formatStatCount(pending);
 
-    // 👉 % tăng trưởng
-    const percent = calcGrowth(totalGuests);
-    document.querySelector(".stat-trend").innerText =
-        `${percent >= 0 ? "+" : ""}${percent}% so với hôm qua`;
-
-    // 🔥 THÊM ĐOẠN NÀY
-    const risk = calcRisk(data);
-    document.querySelector(".bg-error-container").innerText = format2(risk);
+    const trendEl = document.querySelector(".stat-card .stat-trend");
+    if (trendEl) {
+        const percent = calcGrowth(totalGuests);
+        trendEl.textContent = `${percent >= 0 ? "+" : ""}${percent}% so với hôm qua`;
+    }
 }
-    function format2(num) {
-        return num < 10 ? "0" + num : num;
-    }
-
-    function calcGrowth(today) {
-        if (today === 0) return 0;
-
-        const yesterday = today * 0.85;
-        return Math.round(((today - yesterday) / yesterday) * 100);
-    }
-
-    function calcRisk(data) {
-        const now = new Date();
-
-        return data.filter(r => {
-            const time = parseReservationDate(r.reservationTime);
-            if (!time) return false;
-            return r.status === "CONFIRMED" && time < now;
-        }).length;
-    }

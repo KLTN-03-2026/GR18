@@ -1,5 +1,6 @@
 package com.restaurant.dto.response.order;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.restaurant.entity.enums.OrderStatus;
 import com.restaurant.entity.enums.PaymentMethod;
 import com.restaurant.entity.enums.PaymentStatus;
@@ -25,7 +26,9 @@ public class StaffOrderDetailResponse {
     private OrderStatus status;
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime paidAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     private String note;
     private List<LineItem> items;
