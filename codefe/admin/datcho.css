@@ -233,3 +233,79 @@ body {
     justify-content: center;
     z-index: 1000;
 }
+
+/* Toast thông báo thời gian thực (header STOMP): giữa phía trên, ~5s */
+#admin-header-notify-toast {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    left: 50%;
+    z-index: 11050;
+    max-width: min(520px, calc(100vw - 24px));
+    transform: translateX(-50%) translateY(-140%);
+    opacity: 0;
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease;
+    pointer-events: none;
+}
+
+#admin-header-notify-toast.admin-header-notify-toast--visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.admin-header-notify-toast__panel {
+    display: block;
+    background: var(--surface-container-high);
+    border: 1px solid rgba(137, 206, 255, 0.35);
+    border-radius: 16px;
+    padding: 14px 18px;
+    color: var(--on-surface);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    text-decoration: none;
+}
+
+a.admin-header-notify-toast__panel {
+    color: inherit;
+}
+
+a.admin-header-notify-toast__panel:hover {
+    border-color: rgba(137, 206, 255, 0.55);
+    color: var(--on-surface);
+}
+
+.admin-header-notify-toast__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.admin-header-notify-toast__icon {
+    font-size: 26px;
+    color: var(--primary);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.admin-header-notify-toast__title {
+    display: block;
+    font-family: "Manrope", sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.admin-header-notify-toast__body {
+    color: var(--text-slate);
+    line-height: 1.45;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.admin-header-notify-toast__hint {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary);
+    margin-top: 8px;
+}

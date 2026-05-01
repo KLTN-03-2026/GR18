@@ -77,6 +77,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    /** Tóm tắt bàn + vị trí trong danh sách lịch sử đặt bàn */
+    function bookingRowSummary(item) {
+        const n = item.numberOfGuests;
+        if (!item.tableNumber) return `Chưa xếp (${n} khách)`;
+        const loc = item.tableLocation ? ` · ${escapeHtml(item.tableLocation)}` : "";
+        return `Bàn ${escapeHtml(item.tableNumber)}${loc} (${n} khách)`;
+    }
+
     function toTimestamp(dateData) {
         if (!dateData) return 0;
         if (Array.isArray(dateData)) {
@@ -191,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <td>${date}</td>
                     <td><b class="text-orange">Đặt bàn</b></td>
-                    <td>Bàn ${item.tableNumber || "Chưa xếp"} (${item.numberOfGuests} khách)</td>
+                    <td>${bookingRowSummary(item)}</td>
                     <td><span class="${badgeClass}">${statusVN}</span></td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm px-3"
@@ -278,7 +286,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr>
                         <td>${date}</td>
                         <td><b class="text-orange">Đặt bàn</b></td>
-                        <td>Bàn ${item.tableNumber || "Chưa xếp"} (${item.numberOfGuests} khách)</td>
+                        <td>${bookingRowSummary(item)}</td>
                         <td><span class="${badgeClass}">${statusVN}</span></td>
                         <td>
                             <button type="button" class="btn btn-outline-danger btn-sm px-3"
@@ -373,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p><b>SĐT:</b> ${escapeHtml(item.customerPhone)}</p>
                     <p><b>Thời gian:</b> ${formatDateTime(item.reservationTime)}</p>
                     <p><b>Số khách:</b> ${item.numberOfGuests}</p>
-                    <p><b>Bàn:</b> ${escapeHtml(item.tableNumber || "Chờ xếp")}</p>
+                    <p><b>Bàn:</b> ${item.tableNumber ? `${escapeHtml(item.tableNumber)}${item.tableLocation ? ` · ${escapeHtml(item.tableLocation)}` : ""}` : "Chờ xếp"}</p>
                     <p><b>Ghi chú:</b><br>${escapeHtml(item.note || "Không có")}</p>
                 </div>`;
 

@@ -6,6 +6,8 @@
     const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
     const FEED_STORAGE_KEY = "adminHeaderNotifyFeedV1";
     const MAX_FEED = 24;
+    /** Thời gian hiển thị popup giữa phía trên khi có thông báo mới (STOMP). */
+    const HEADER_NOTIFY_TOAST_MS = 5000;
     let stompClient = null;
     let pollTimer = null;
     let refreshDebounce = null;
@@ -109,11 +111,57 @@
         return escapeHtml(s).replace(/'/g, "&#39;");
     }
 
+    /** Popup giữa phía trên màn hình, tự ẩn sau ~5 giây (hoặc reset khi có tin mới). */
+    function showHeaderNotifyToast(title, body, href) {
+        let root = document.getElementById("admin-header-notify-toast");
+        if (!root) {
+            root = document.createElement("div");
+            root.id = "admin-header-notify-toast";
+            root.setAttribute("role", "status");
+            root.setAttribute("aria-live", "polite");
+            document.body.appendChild(root);
+        }
+
+        const safeTitle = escapeHtml(title);
+        const safeBody = escapeHtml(body);
+        const h = href ? String(href).trim() : "";
+        const safeHref = h ? escapeAttr(h) : "";
+
+        const inner = `
+            <div class="admin-header-notify-toast__row">
+                <span class="material-symbols-outlined admin-header-notify-toast__icon" aria-hidden="true">notifications_active</span>
+                <div class="flex-grow-1 min-w-0">
+                    <strong class="admin-header-notify-toast__title">${safeTitle}</strong>
+                    <p class="admin-header-notify-toast__body mb-0">${safeBody}</p>
+                    ${safeHref ? `<p class="admin-header-notify-toast__hint mb-0">${escapeHtml("Bấm để mở trang")}</p>` : ""}
+                </div>
+            </div>`;
+
+        if (safeHref) {
+            root.innerHTML = `<a class="admin-header-notify-toast__panel" href="${safeHref}">${inner}</a>`;
+        } else {
+            root.innerHTML = `<div class="admin-header-notify-toast__panel">${inner}</div>`;
+        }
+
+        root.classList.remove("admin-header-notify-toast--visible");
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                root.classList.add("admin-header-notify-toast--visible");
+            });
+        });
+
+        clearTimeout(showHeaderNotifyToast._hideTimer);
+        showHeaderNotifyToast._hideTimer = setTimeout(function () {
+            root.classList.remove("admin-header-notify-toast--visible");
+        }, HEADER_NOTIFY_TOAST_MS);
+    }
+
     function pushFeedEntry(title, body, href) {
         const items = loadFeedFromStorage();
         items.unshift({ title, body, time: formatTime(), href: href || "" });
         saveFeedToStorage(items);
         renderFeed(loadFeedFromStorage());
+        showHeaderNotifyToast(title, body, href || "");
     }
 
     async function refreshCounts() {

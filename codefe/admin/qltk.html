@@ -3,147 +3,214 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quản lý Người dùng | Restaurant AI</title>
-    
+    <title>Quản lý tài khoản | Restaurant AI</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="datcho.css"> 
+
+    <link rel="stylesheet" href="datcho.css">
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="qltk.css">
 </head>
-<body class="bg-background">
+<body class="bg-background qltk-page">
 
     <div id="sidebar-container"></div>
     <div id="header-container"></div>
 
     <main class="main-content">
         <div class="container-fluid px-4 pt-4 pb-5">
-            
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 gap-4">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
                 <div>
-                    <h2 class="page-title mb-1">Quản lý Người dùng</h2>
-                    <p class="text-secondary mb-0">Quản lý quyền hạn và quyền truy cập dự đoán cho đội ngũ của bạn.</p>
+                    <h2 class="page-title mb-1">Quản lý tài khoản</h2>
+                    <p class="text-secondary mb-0">Tạo và quản lý khách hàng, nhân viên, tài khoản quản trị (chỉ Admin).</p>
                 </div>
-                <button class="btn btn-primary d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold shadow-primary">
-                    <span class="material-symbols-outlined">person_add</span> Thêm Thành viên
+                <button type="button" id="btn-open-create" class="btn btn-primary d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold shadow-primary">
+                    <span class="material-symbols-outlined">person_add</span> Thêm tài khoản
                 </button>
             </div>
 
-            <div class="row g-4 mb-5">
-                <div class="col-6 col-md-3">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-4" role="tablist" id="role-tabs">
+                <button type="button" class="btn btn-sm rounded-pill px-3 qltk-role-tab active" data-role-tab="ALL">Tất cả</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 qltk-role-tab" data-role-tab="CUSTOMER">Khách hàng</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 qltk-role-tab" data-role-tab="STAFF">Nhân viên</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 qltk-role-tab" data-role-tab="ADMIN">Quản trị</button>
+                <div class="ms-auto flex-grow-1 flex-md-grow-0" style="min-width: 200px;">
+                    <input type="search" id="member-search" class="form-control form-control-sm rounded-3"
+                           placeholder="Tìm theo tên, email, SĐT…" autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-6 col-md-4 col-lg-3">
                     <div class="stat-card-simple p-4 rounded-4 h-100">
-                        <span class="stat-label text-uppercase small fw-bold text-secondary">Tổng nhân sự</span>
+                        <span class="stat-label text-uppercase small fw-bold text-secondary">Trong nhóm đang xem</span>
                         <div class="d-flex align-items-baseline gap-2 mt-2">
-                            <h3 class="fw-800 mb-0">24</h3>
-                            <span class="text-success small fw-bold d-flex align-items-center">
-                                <span class="material-symbols-outlined fs-6">trending_up</span> +2
-                            </span>
+                            <h3 class="fw-800 mb-0" id="stat-total">0</h3>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-4 col-lg-3">
                     <div class="stat-card-simple p-4 rounded-4 h-100">
                         <span class="stat-label text-uppercase small fw-bold text-secondary">Đang hoạt động</span>
                         <div class="d-flex align-items-center gap-2 mt-2">
-                            <h3 class="fw-800 mb-0">18</h3>
-                            <div class="pulse-dot bg-success"></div>
+                            <h3 class="fw-800 mb-0 text-success" id="stat-active">0</h3>
+                            <span class="dot-sm bg-success"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="stat-card-simple p-4 rounded-4 h-100">
+                        <span class="stat-label text-uppercase small fw-bold text-secondary">Đã khóa</span>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <h3 class="fw-800 mb-0 text-secondary" id="stat-locked">0</h3>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="table-card rounded-4    shadow-lg overflow-hidden border border-outline-variant">
+            <div class="table-card rounded-4 shadow-lg overflow-hidden border border-outline-variant">
                 <div class="table-responsive">
                     <table class="table custom-table-dark align-middle mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-4">TÊN & ĐỊNH DANH</th>
+                                <th class="ps-4">TÊN &amp; ĐỊNH DANH</th>
+                                <th>SỐ ĐIỆN THOẠI</th>
+                                <th>EMAIL</th>
                                 <th>VAI TRÒ</th>
-                                <th>ĐỊA CHỈ EMAIL</th>
                                 <th>TRẠNG THÁI</th>
                                 <th class="text-end pe-4">THAO TÁC</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr class="user-row">
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-init bg-primary-container text-primary fw-bold">SM</div>
-                                        <div>
-                                            <p class="mb-0 fw-bold">Sarah Miller</p>
-                                            <p class="smaller text-secondary mb-0">Tham gia Th10 2023</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge-role bg-secondary-container-soft text-secondary">QUẢN TRỊ</span>
-                                </td>
-                                <td><span class="small text-light-emphasis">s.miller@atrium.com</span></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="dot-sm bg-success"></span>
-                                        <span class="small text-success fw-medium">Hoạt động</span>
-                                    </div>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="action-btns">
-                                        <button class="btn btn-icon-sm me-2"><span class="material-symbols-outlined fs-5">edit_note</span></button>
-                                        <button class="btn btn-icon-sm text-danger"><span class="material-symbols-outlined fs-5">delete_sweep</span></button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr class="user-row row-alt">
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-init bg-surface-highest text-white fw-bold">JW</div>
-                                        <div>
-                                            <p class="mb-0 fw-bold">James Wilson</p>
-                                            <p class="smaller text-secondary mb-0">Tham gia Th1 2024</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge-role bg-primary-container-soft text-primary">NHÂN VIÊN</span>
-                                </td>
-                                <td><span class="small text-light-emphasis">j.wilson@atrium.com</span></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="dot-sm bg-success"></span>
-                                        <span class="small text-success fw-medium">Hoạt động</span>
-                                    </div>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="action-btns">
-                                        <button class="btn btn-icon-sm me-2"><span class="material-symbols-outlined fs-5">edit_note</span></button>
-                                        <button class="btn btn-icon-sm text-danger"><span class="material-symbols-outlined fs-5">delete_sweep</span></button>
-                                    </div>
-                                </td>
-                            </tr>
+                        <tbody id="member-tbody">
+                            <tr><td colspan="6" class="text-center py-4 text-secondary">Đang tải…</td></tr>
                         </tbody>
                     </table>
                 </div>
-                
-                <div class="table-footer d-flex justify-content-between align-items-center p-3 px-4">
-                    <span class="smaller text-secondary">Hiển thị <span class="text-white fw-bold">2</span> trên 24 thành viên</span>
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item"><a class="page-link" href="#"><span class="material-symbols-outlined fs-6">chevron_left</span></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><span class="material-symbols-outlined fs-6">chevron_right</span></a></li>
-                        </ul>
-                    </nav>
+                <div class="table-footer d-flex justify-content-between align-items-center p-3 px-4 border-top border-outline-variant">
+                    <span class="smaller text-secondary" id="member-footer">—</span>
                 </div>
             </div>
-
-        
-
         </div>
     </main>
 
+    <!-- Tạo tài khoản -->
+    <div class="modal fade" id="modal-create" tabindex="-1" aria-labelledby="modal-create-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4" style="background: var(--surface-container-high);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modal-create-label">Thêm tài khoản</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="create-fullname">Họ tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="create-fullname" maxlength="100" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="create-role">Vai trò <span class="text-danger">*</span></label>
+                        <select class="form-select rounded-3" id="create-role">
+                            <option value="CUSTOMER">Khách hàng</option>
+                            <option value="STAFF">Nhân viên</option>
+                            <option value="ADMIN">Quản trị</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="create-email">Email</label>
+                        <input type="email" class="form-control rounded-3" id="create-email" maxlength="150" placeholder="Tùy chọn nếu đăng nhập bằng email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="create-phone">Số điện thoại</label>
+                        <input type="tel" class="form-control rounded-3" id="create-phone" placeholder="0xxxxxxxxx (10 số)" maxlength="10" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-semibold" for="create-password">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control rounded-3" id="create-password" minlength="6" autocomplete="new-password" />
+                        <p class="small text-secondary mt-1 mb-0">Tối thiểu 6 ký tự.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary rounded-3 fw-semibold px-4" id="btn-create-save">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sửa thông tin -->
+    <div class="modal fade" id="modal-edit" tabindex="-1" aria-labelledby="modal-edit-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4" style="background: var(--surface-container-high);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modal-edit-label">Chỉnh sửa tài khoản</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <input type="hidden" id="edit-id" />
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="edit-fullname">Họ tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="edit-fullname" maxlength="100" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="edit-role">Vai trò</label>
+                        <select class="form-select rounded-3" id="edit-role">
+                            <option value="CUSTOMER">Khách hàng</option>
+                            <option value="STAFF">Nhân viên</option>
+                            <option value="ADMIN">Quản trị</option>
+                        </select>
+                        <p class="small text-warning mb-0 mt-1 d-none" id="edit-role-hint-self">Không đổi vai trò tài khoản đang đăng nhập.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="edit-email">Email</label>
+                        <input type="email" class="form-control rounded-3" id="edit-email" maxlength="150" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-semibold" for="edit-phone">Số điện thoại</label>
+                        <input type="tel" class="form-control rounded-3" id="edit-phone" maxlength="10" placeholder="0xxxxxxxxx" />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary rounded-3 fw-semibold px-4" id="btn-edit-save">Cập nhật</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Đặt lại mật khẩu -->
+    <div class="modal fade" id="modal-reset-pw" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4" style="background: var(--surface-container-high);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Đặt lại mật khẩu</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <input type="hidden" id="reset-id" />
+                    <p class="small text-secondary mb-3">Tài khoản: <span class="text-white fw-semibold" id="reset-label">—</span></p>
+                    <label class="form-label small fw-semibold" for="reset-password">Mật khẩu mới <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control rounded-3" id="reset-password" minlength="6" autocomplete="new-password" />
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary rounded-3 fw-semibold px-4" id="btn-reset-save">Lưu mật khẩu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="qltk-toast" class="toast align-items-center text-white border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="qltk-toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>
+    <script src="qltk.js"></script>
 </body>
 </html>

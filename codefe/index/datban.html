@@ -59,17 +59,21 @@
                   </div>
                 </div>
 
-                <div class="mb-4">
-                  <label class="form-label small fw-bold">Khu vực</label>
-                  <div class="d-flex gap-2">
-                    <input type="radio" class="btn-check" name="area" id="outdoor" value="Ngoài trời" autocomplete="off" />
-                    <label class="btn btn-outline-secondary btn-sm rounded-pill px-3" for="outdoor">Ngoài trời</label>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Khu vực / vị trí</label>
+                  <p class="text-muted small mb-2">Theo vị trí bàn đã cấu hình trong hệ thống nhà hàng.</p>
+                  <div id="locationOptions" class="d-flex flex-wrap gap-2">
+                    <span class="small text-secondary">Đang tải…</span>
+                  </div>
+                </div>
 
-                    <input type="radio" class="btn-check" name="area" id="indoor" value="Trong nhà" autocomplete="off" checked />
-                    <label class="btn btn-outline-secondary btn-sm rounded-pill px-3" for="indoor">Trong nhà</label>
-
-                    <input type="radio" class="btn-check" name="area" id="vip" value="VIP" autocomplete="off" />
-                    <label class="btn btn-outline-secondary btn-sm rounded-pill px-3" for="vip">VIP</label>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold" for="tablePreference">Bàn ưu tiên (tuỳ chọn)</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-chair text-muted"></i></span>
+                    <select id="tablePreference" class="form-control border-start-0 ps-0">
+                      <option value="">— Chưa chọn — nhà hàng sắp xếp</option>
+                    </select>
                   </div>
                 </div>
 

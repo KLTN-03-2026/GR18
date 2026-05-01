@@ -1,5 +1,130 @@
 /* qltk.css - Restaurant AI User Management */
 
+/* ── Dark shell (#111827) — ghi đè nền trắng mặc định của Bootstrap ── */
+body.qltk-page {
+    background-color: #111827 !important;
+    color: #f3f4f6;
+}
+
+body.qltk-page .main-content {
+    background-color: #111827;
+}
+
+body.qltk-page .page-title {
+    color: #ffffff;
+}
+
+body.qltk-page .text-secondary,
+body.qltk-page .small.text-secondary {
+    color: #9ca3af !important;
+}
+
+body.qltk-page .text-muted {
+    color: #6b7280 !important;
+}
+
+body.qltk-page .text-light-emphasis {
+    color: #9ca3af !important;
+}
+
+body.qltk-page .stat-card-simple {
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.qltk-page .stat-label.text-secondary,
+body.qltk-page .stat-card-simple .text-secondary {
+    color: #9ca3af !important;
+}
+
+body.qltk-page .table-card {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.qltk-page .table-footer.border-top {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Bảng: bỏ nền trắng Bootstrap */
+body.qltk-page .custom-table-dark.table,
+body.qltk-page .custom-table-dark.table > :not(caption) > * {
+    --bs-table-bg: transparent;
+    --bs-table-color: #f3f4f6;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+body.qltk-page .custom-table-dark thead th {
+    color: #9ca3af;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    background: transparent;
+}
+
+body.qltk-page .custom-table-dark tbody td {
+    background-color: transparent;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+    color: #e5e7eb;
+}
+
+body.qltk-page .custom-table-dark tbody td .fw-bold {
+    color: #ffffff;
+}
+
+body.qltk-page .border-outline-variant {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Ô tìm kiếm */
+body.qltk-page .form-control {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+}
+
+body.qltk-page .form-control::placeholder {
+    color: #6b7280;
+}
+
+body.qltk-page .form-control:focus {
+    background-color: #1f2937;
+    border-color: #60a5fa;
+    color: #f9fafb;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+/* Modal */
+body.qltk-page .modal-content {
+    background: #1f2937 !important;
+    color: #f3f4f6;
+}
+
+body.qltk-page .modal-header .modal-title,
+body.qltk-page .form-label {
+    color: #e5e7eb;
+}
+
+body.qltk-page .form-select {
+    background-color: #111827;
+    border-color: #374151;
+    color: #f9fafb;
+}
+
+body.qltk-page .btn-close-white {
+    filter: invert(1) grayscale(100%);
+}
+
+/* Badge trạng thái / vai trò (giữ tương phản trên nền tối) */
+body.qltk-page .badge.bg-primary-subtle {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #93c5fd !important;
+}
+
+body.qltk-page .badge.bg-success-subtle.text-success,
+body.qltk-page .text-success.fw-medium {
+    color: #34d399 !important;
+}
+
 .main-content {
     margin-left: 260px;
     padding-top: 64px;
@@ -92,6 +217,7 @@
 
 .bg-secondary-container-soft { background: rgba(78, 222, 163, 0.1); }
 .bg-primary-container-soft { background: rgba(137, 206, 255, 0.1); }
+.bg-surface-container-highest { background: var(--surface-container-highest); }
 
 .dot-sm { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 
@@ -151,6 +277,52 @@
     background: rgba(78, 222, 163, 0.1);
     color: var(--secondary);
     border: 1px solid rgba(78, 222, 163, 0.2);
+}
+
+body.qltk-page .qltk-role-tab {
+    background: #1f2937;
+    color: #d1d5db;
+}
+body.qltk-page .qltk-role-tab:hover {
+    color: #fff;
+    border-color: #4b5563;
+}
+body.qltk-page .qltk-role-tab.active {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.qltk-role-tab {
+    background: var(--surface-container-highest);
+    color: var(--outline);
+    border: 1px solid transparent;
+}
+.qltk-role-tab:hover {
+    color: var(--on-surface);
+    border-color: var(--outline-variant);
+}
+.qltk-role-tab.active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+}
+
+body.qltk-page .user-row.row-alt {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.qltk-page .user-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.qltk-page .btn-icon-sm {
+    background: #374151;
+    color: #d1d5db;
+}
+
+body.qltk-page .btn-icon-sm:hover {
+    color: #60a5fa;
 }
 
 @media (max-width: 991px) {

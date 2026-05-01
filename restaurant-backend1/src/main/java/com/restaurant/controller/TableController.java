@@ -2,6 +2,7 @@ package com.restaurant.controller;
 
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.RestaurantTableResponse;
+import com.restaurant.dto.response.TableBookingOptionsResponse;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.service.TableService;
@@ -32,6 +33,12 @@ public class TableController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> scanQrCode(@PathVariable String token) {
         Map<String, Object> data = tableService.buildQrScanWelcomeData(token);
         return ResponseEntity.ok(ApiResponse.success(data, "Chào mừng bạn đến với nhà hàng!"));
+    }
+
+    @GetMapping("/booking-options")
+    @Operation(summary = "Khu vực & danh sách bàn cho form đặt bàn (Public)")
+    public ResponseEntity<ApiResponse<TableBookingOptionsResponse>> bookingOptions() {
+        return ResponseEntity.ok(ApiResponse.success(tableService.getBookingOptionsForPublic()));
     }
 
     @PatchMapping("/staff/tables/{id}/status")

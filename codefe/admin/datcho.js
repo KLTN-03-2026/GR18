@@ -1,32 +1,78 @@
 // ================= CONFIG =================
-const API_BASE_URL = "http://localhost:8080/api";
-const TOKEN_KEY = "token";
+const API_BASE_URL = (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "http://localhost:8080/api";
 
 // ================= AXIOS =================
 const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    //withCredentials: true
+    baseURL: API_BASE_URL.replace(/\/+$/, "")
 });
 
-// Auto attach JWT
-axiosInstance.interceptors.request.use(config => {
-    const token = localStorage.getItem("token");
-
+axiosInstance.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
 });
 
 // ================= STATE =================
 let reservations = [];
+/** Danh sau lọc tìm kiếm */
+let filteredRows = [];
+/** Trang trong danh sách (phân trang client) */
+let currentPage = 1;
+const PAGE_SIZE = 6;
 let staffTables = [];
 let selectedDate = formatInputDate(new Date());
+
+function extractPreferredArea(note) {
+    if (!note) return "";
+    const m = String(note).match(/Khu vực mong muốn:\s*([^.]*)/);
+    return m ? m[1].trim() : "";
+}
+
+function extractPreferredTableNum(note) {
+    if (!note) return "";
+    const m = String(note).match(/Bàn mong muốn:\s*([^.]*)/);
+    return m ? m[1].trim() : "";
+}
+
+function formatLocationDesk(r) {
+    const loc = r.tableLocation && String(r.tableLocation).trim();
+    const tn = r.tableNumber && String(r.tableNumber).trim();
+    if (tn) {
+        return `<div><span class="fw-semibold">${escapeHtml(tn)}</span></div><div class="cust-sub">${escapeHtml(loc || "—")}</div>`;
+    }
+    const area = extractPreferredArea(r.note);
+    const wishBn = extractPreferredTableNum(r.note);
+    const parts = [];
+    if (area) parts.push(`<span class="small">Khu: ${escapeHtml(area)}</span>`);
+    if (wishBn) parts.push(`<span class="small">Bàn mong muốn: ${escapeHtml(wishBn)}</span>`);
+    if (!parts.length) return `<span class="cust-sub">—</span>`;
+    return `<div class="d-flex flex-column gap-1">${parts.join("")}</div>`;
+}
+
+function refillEditTableSelect() {
+    const sel = document.getElementById("editTableId");
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML =
+        '<option value="">— Chưa gán bàn —</option>' +
+        staffTables
+            .map(
+                (t) =>
+                    `<option value="${t.id}">${escapeHtml(String(t.tableNumber))} · ${escapeHtml(
+                        String(t.location || "—")
+                    )} (${t.capacity} chỗ)</option>`
+            )
+            .join("");
+    if (keep && staffTables.some((x) => String(x.id) === keep)) sel.value = keep;
+}
 
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", async () => {
     initDateFilter();
+    bindViewTabs();
+    bindPagination();
     await loadStaffTables();
     loadReservations();
     setupSearch();
@@ -40,6 +86,8 @@ async function loadStaffTables() {
     } catch (err) {
         console.error("loadStaffTables:", err);
         staffTables = [];
+    } finally {
+        refillEditTableSelect();
     }
 }
 
@@ -50,99 +98,119 @@ async function loadReservations() {
         });
 
         reservations = Array.isArray(res.data?.data) ? res.data.data : [];
-        renderTable(reservations);
+        filteredRows = reservations.slice();
+        currentPage = 1;
+        redrawList();
         updateStats(reservations);
-        updateFooterInfo();
 
     } catch (err) {
         console.error("ERROR:", err);
         handleError(err);
         reservations = [];
-        renderTable([]);
+        filteredRows = [];
+        redrawList();
         updateStats([]);
+        updateFooterInfo();
     }
 }
 
 // ================= RENDER =================
-function renderTable(data) {
-    const tbody = document.querySelector(".custom-table tbody");
+function redrawList() {
+    renderTablePage();
+    renderPaginationDash();
+    updateFooterInfo();
+}
+
+function renderTablePage() {
+    const tbody = document.getElementById("reservationTableBody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    data.forEach(r => {
-        const row = `
-        <tr class="row-low">
+    const total = filteredRows.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage > pages) currentPage = pages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = filteredRows.slice(start, start + PAGE_SIZE);
 
+    if (!slice.length) {
+        tbody.innerHTML =
+            '<tr><td colspan="6" class="text-center py-5 text-secondary">Không có đặt chỗ cho ngày này.</td></tr>';
+        return;
+    }
+
+    slice.forEach((r) => {
+        tbody.innerHTML += `
+        <tr class="row-low">
             <td>
                 <div class="cust-info">
-                    <div class="avatar primary-text">
-                        ${getInitial(r.customerName)}
-                    </div>
+                    <div class="avatar primary-text">${escapeHtml(getInitial(r.customerName))}</div>
                     <div>
-                        <p class="cust-name">${r.customerName}</p>
-                        <p class="cust-sub">${r.customerPhone}</p>
+                        <p class="cust-name">${escapeHtml(r.customerName)}</p>
+                        <p class="cust-sub">${escapeHtml(String(r.customerPhone || ""))}</p>
                     </div>
                 </div>
             </td>
-
-            <td>${r.numberOfGuests}</td>
-
+            <td>${escapeHtml(String(r.numberOfGuests ?? ""))}</td>
             <td>
                 <p class="time-text">${formatHour(r.reservationTime)}</p>
-                <p class="date-sub">
-                    ${formatDate(r.reservationTime)}
-                </p>
+                <p class="date-sub">${formatDate(r.reservationTime)}</p>
             </td>
-
+            <td>${formatLocationDesk(r)}</td>
             <td>${renderStatus(r.status)}</td>
-
-            <td class="text-end">
-                ${renderActions(r)}
-            </td>
-
-        </tr>
-        `;
-
-        tbody.innerHTML += row;
+            <td class="text-end">${renderActions(r)}</td>
+        </tr>`;
     });
+}
+
+function renderPaginationDash() {
+    const el = document.getElementById("paginationDash");
+    if (!el) return;
+
+    const total = filteredRows.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    let html = "";
+    for (let p = 1; p <= pages; p++) {
+        html += `<button type="button" class="${p === currentPage ? "active-pg" : ""}" data-page="${p}" aria-current="${p === currentPage ? "page" : "false"}">${p}</button>`;
+    }
+
+    el.innerHTML = html || `<button type="button" class="active-pg" data-page="1">1</button>`;
 }
 
 // ================= STATUS =================
 function renderStatus(status) {
-    switch (status) {
+    const st = normalizeReservationStatus(status);
+    switch (st) {
         case "PENDING":
             return `<span class="badge-status tertiary">Chờ xử lý</span>`;
         case "CONFIRMED":
             return `<span class="badge-status confirmed">Đã xác nhận</span>`;
         case "ARRIVED":
-            return `<span class="badge bg-info">Đã đến</span>`;
+            return `<span class="badge-status tertiary">Đã đến</span>`;
         case "COMPLETED":
-            return `<span class="badge bg-success">Hoàn thành</span>`;
+            return `<span class="badge-status completed">Hoàn thành</span>`;
         case "CANCELLED":
-            return `<span class="badge bg-danger">Đã hủy</span>`;
+            return `<span class="badge-status" style="background:rgba(239,68,68,.15);color:#f87171;">Đã hủy</span>`;
         default:
-            return status;
+            return escapeHtml(status);
     }
 }
 
 function renderActions(r) {
+    const st = normalizeReservationStatus(r.status);
     return `
-    <div class="action-wrap">
-
-        <button onclick="openEdit(${r.id})" class="btn-action">
-            ✏️
-        </button>
-
-        ${r.status === "PENDING" ? `
-        <button onclick="confirmBooking(${r.id})" class="btn-action ok">✔</button>` : ""}
-
-        ${r.status === "CONFIRMED" ? `
-        <button onclick="confirmArrival(${r.id})" class="btn-action ok">✔✔</button>` : ""}
-
-        ${r.status === "ARRIVED" ? `
-        <button onclick="completeBooking(${r.id})" class="btn-action ok">✔✔✔</button>` : ""}
-
+    <div class="action-wrap d-inline-flex align-items-center gap-2 justify-content-end flex-wrap">
+        <button type="button" onclick="openEdit(${r.id})" class="btn-action-single" title="Sửa"><span class="material-symbols-outlined">edit</span></button>
+        ${st === "PENDING"
+            ? `<button type="button" onclick="confirmBooking(${r.id})" class="btn-action ok" title="Xác nhận">✔</button>`
+            : ""}
+        ${st === "CONFIRMED"
+            ? `<button type="button" onclick="confirmArrival(${r.id})" class="btn-action ok" title="Khách đã đến">✔✔</button>`
+            : ""}
+        ${st === "ARRIVED"
+            ? `<button type="button" onclick="completeBooking(${r.id})" class="btn-action ok" title="Hoàn thành">✔✔✔</button>`
+            : ""}
     </div>`;
 }
 
@@ -205,20 +273,48 @@ async function callAPI(url) {
     }
 }
 
+function bindPagination() {
+    document.getElementById("paginationDash")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-page]");
+        if (!btn) return;
+        const p = Number(btn.getAttribute("data-page"));
+        if (!Number.isFinite(p) || p === currentPage) return;
+        currentPage = p;
+        renderTablePage();
+        renderPaginationDash();
+        updateFooterInfo();
+    });
+}
+
+function bindViewTabs() {
+    const listBtn = document.getElementById("btnViewList");
+    const calBtn = document.getElementById("btnViewCalendar");
+    listBtn?.addEventListener("click", () => {
+        listBtn.classList.add("active");
+        calBtn?.classList.remove("active");
+    });
+    calBtn?.addEventListener("click", () => {
+        if (typeof toastr !== "undefined") {
+            toastr.info("Chế độ lịch đang được phát triển.", "Thông báo");
+        }
+    });
+}
+
 // ================= SEARCH =================
 function setupSearch() {
     const input = document.querySelector(".search-input");
     if (!input) return;
 
-    input.addEventListener("input", e => {
-        const val = e.target.value.toLowerCase();
+    input.addEventListener("input", (e) => {
+        const val = String(e.target.value || "").toLowerCase();
 
-        const filtered = reservations.filter(r =>
-            (r.customerName || "").toLowerCase().includes(val) ||
-            String(r.customerPhone || "").includes(val)
+        filteredRows = reservations.filter(
+            (r) =>
+                (r.customerName || "").toLowerCase().includes(val) ||
+                String(r.customerPhone || "").includes(val)
         );
-
-        renderTable(filtered);
+        currentPage = 1;
+        redrawList();
         updateStats(reservations);
     });
 }
@@ -245,8 +341,14 @@ function initDateFilter() {
 function updateFooterInfo() {
     const el = document.getElementById("footerInfo");
     if (!el) return;
-    const d = new Date(`${selectedDate}T00:00:00`);
-    el.textContent = `Đang hiển thị dữ liệu ngày ${d.toLocaleDateString("vi-VN")}`;
+    const d = new Date(`${selectedDate}T12:00:00`);
+    const total = filteredRows.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage > pages) currentPage = pages;
+    const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, total);
+    const range = total ? ` (${start}–${end} / ${total})` : "";
+    el.textContent = `Đang hiển thị dữ liệu ngày ${d.toLocaleDateString("vi-VN")}${range}`;
 }
 
 // ================= HELPER =================
@@ -321,7 +423,20 @@ function toDatetimeLocal(d) {
 
 function getInitial(name) {
     if (!name) return "?";
-    return name.split(" ").map(n => n[0]).join("").toUpperCase();
+    const p = String(name)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    const parts = p.slice(0, 3);
+    return parts.map((w) => [...w][0]).join("").toUpperCase() || "?";
+}
+
+function escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
 }
 
 // ================= ERROR =================
@@ -352,16 +467,30 @@ function openEdit(id) {
     const dateForEdit = parseReservationDate(r.reservationTime);
     document.getElementById("editTime").value = dateForEdit ? toDatetimeLocal(dateForEdit) : "";
 
+    refillEditTableSelect();
+    const tid = r.tableId != null ? String(r.tableId) : "";
+    const sel = document.getElementById("editTableId");
+    if (sel) sel.value = tid;
+
     new bootstrap.Modal(document.getElementById("editModal")).show();
 }
 async function updateReservation() {
     const id = document.getElementById("editId").value;
 
+    if (!id) {
+        alert("Mở chỉnh sửa từ biểu tượng bút chì trên một dòng đặt chỗ.");
+        return;
+    }
+
+    const rawTable = document.getElementById("editTableId")?.value;
+    const tableId = rawTable ? Number(rawTable) : null;
+
     const data = {
         customerName: document.getElementById("editName").value,
         customerPhone: document.getElementById("editPhone").value,
-        numberOfGuests: parseInt(document.getElementById("editGuests").value),
-        reservationTime: document.getElementById("editTime").value
+        numberOfGuests: parseInt(document.getElementById("editGuests").value, 10),
+        reservationTime: document.getElementById("editTime").value,
+        tableId: rawTable !== "" && Number.isFinite(tableId) ? tableId : null
     };
 
     try {
@@ -373,7 +502,7 @@ async function updateReservation() {
 
         bootstrap.Modal.getInstance(
             document.getElementById("editModal")
-        ).hide();
+        )?.hide();
 
     } catch (err) {
         handleError(err);
@@ -384,9 +513,27 @@ function normalizeReservationStatus(raw) {
     return String(raw == null ? "" : raw).trim().toUpperCase();
 }
 
-function formatStatCount(num) {
+function formatStatCountPlain(num) {
+    return String(Math.max(0, Math.floor(Number(num) || 0)));
+}
+
+function formatCounterPadded(num) {
     const n = Math.max(0, Math.floor(Number(num) || 0));
-    return String(n);
+    if (n >= 100) return String(n);
+    return String(n).padStart(2, "0");
+}
+
+function countRiskNoShow(rows, dayStr) {
+    const now = Date.now();
+    const rowsSafe = Array.isArray(rows) ? rows : [];
+    return rowsSafe.filter((r) => {
+        const st = normalizeReservationStatus(r.status);
+        if (st !== "CONFIRMED") return false;
+        const t = parseReservationDate(r.reservationTime);
+        if (!t) return false;
+        if (formatInputDate(t) !== dayStr) return false;
+        return t.getTime() < now;
+    }).length;
 }
 
 function calcGrowth(todayGuests) {
@@ -411,14 +558,18 @@ function updateStats(data) {
         if (st === "PENDING") pending++;
     });
 
+    const risk = countRiskNoShow(rows, selectedDate);
+
     const totalEl = document.getElementById("totalGuests");
     const confirmedEl = document.getElementById("confirmedCount");
     const pendingEl = document.getElementById("pendingCount");
-    if (totalEl) totalEl.textContent = formatStatCount(totalGuests);
-    if (confirmedEl) confirmedEl.textContent = formatStatCount(confirmed);
-    if (pendingEl) pendingEl.textContent = formatStatCount(pending);
+    const riskEl = document.getElementById("riskCount");
+    if (totalEl) totalEl.textContent = formatStatCountPlain(totalGuests);
+    if (confirmedEl) confirmedEl.textContent = formatCounterPadded(confirmed);
+    if (pendingEl) pendingEl.textContent = formatCounterPadded(pending);
+    if (riskEl) riskEl.textContent = formatCounterPadded(risk);
 
-    const trendEl = document.querySelector(".stat-card .stat-trend");
+    const trendEl = document.getElementById("guestTrendText");
     if (trendEl) {
         const percent = calcGrowth(totalGuests);
         trendEl.textContent = `${percent >= 0 ? "+" : ""}${percent}% so với hôm qua`;

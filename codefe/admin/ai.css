@@ -34,16 +34,6 @@
 .bg-surface-highest { background-color: var(--surface-container-highest); }
 .btn-surface-high { background-color: var(--surface-container-high); }
 
-/* Badges */
-.badge-status-ai {
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 6px 12px;
-    border-radius: 20px;
-    letter-spacing: 1px;
-    background: rgba(78, 222, 163, 0.1);
-}
-
 .bg-secondary-container-soft { background: rgba(78, 222, 163, 0.1); }
 .bg-error-container-soft { background: rgba(255, 180, 100, 0.12); }
 .bg-primary-container-soft { background: rgba(137, 206, 255, 0.1); }
@@ -198,4 +188,72 @@
 .ai-menu-pick-row:hover {
     background: rgba(137, 206, 255, 0.06);
     border-color: rgba(137, 206, 255, 0.12);
+}
+
+/* —— Bảng «Lượt gợi ý gần đây» (dark theme, khớp dashboard) —— */
+.ai-log-table-wrap {
+    background: var(--surface-container-lowest);
+    overflow: hidden;
+}
+
+table.custom-dark-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--on-surface);
+    --bs-table-border-color: rgba(137, 206, 255, 0.08);
+    color: var(--on-surface);
+    margin-bottom: 0;
+}
+
+table.custom-dark-table > :not(caption) > * > * {
+    background-color: transparent;
+    border-bottom-color: rgba(137, 206, 255, 0.08);
+    color: inherit;
+}
+
+table.custom-dark-table thead th {
+    background: var(--surface-container-high) !important;
+    color: var(--text-slate) !important;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--outline-variant);
+    white-space: nowrap;
+}
+
+table.custom-dark-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+table.custom-dark-table tbody tr:nth-child(odd) td {
+    background: rgba(0, 0, 0, 0.14);
+}
+
+table.custom-dark-table tbody tr:nth-child(even) td {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+table.custom-dark-table tbody tr:hover td {
+    background: rgba(137, 206, 255, 0.09) !important;
+}
+
+table.custom-dark-table tbody td.small,
+table.custom-dark-table tbody td {
+    color: var(--on-surface);
+}
+
+table.custom-dark-table tbody td.text-secondary {
+    color: var(--text-slate) !important;
+}
+
+/* Badge cột NGUỒN — nền đậm + chữ sáng, dễ đọc */
+.badge-status-ai {
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    padding: 0.35rem 0.65rem !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase;
+    border-radius: 999px !important;
+    background: rgba(0, 90, 70, 0.75) !important;
+    color: #c6ffe8 !important;
+    border: 1px solid rgba(78, 222, 163, 0.45);
+    white-space: nowrap;
 }

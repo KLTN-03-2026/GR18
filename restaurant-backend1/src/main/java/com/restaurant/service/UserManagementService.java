@@ -1,6 +1,7 @@
 package com.restaurant.service;
 
 import com.restaurant.dto.request.CreateUserRequest;
+import com.restaurant.dto.request.UpdateUserRequest;
 import com.restaurant.dto.response.UserResponse;
 import com.restaurant.entity.User;
 import com.restaurant.entity.enums.UserRole;
@@ -51,34 +52,44 @@ public class UserManagementService {
     }
 
     /**
-     * Cập nhật thông tin user
+     * Cập nhật thông tin user (không đổi mật khẩu; dùng reset-password riêng)
      */
-    public UserResponse updateUser(Long userId, CreateUserRequest request) {
+    public UserResponse updateUser(Long userId, UpdateUserRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy user"));
 
         user.setFullName(request.getFullName());
-        
-        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
-            if (userRepository.existsByEmail(request.getEmail())) {
+
+        String emailNorm = normalizeBlank(request.getEmail());
+        if (emailNorm == null) {
+            user.setEmail(null);
+        } else if (!emailNorm.equals(user.getEmail())) {
+            if (userRepository.existsByEmail(emailNorm)) {
                 throw new IllegalArgumentException("Email đã được sử dụng");
             }
-            user.setEmail(request.getEmail());
-        }
-        
-        if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
-            if (userRepository.existsByPhone(request.getPhone())) {
-                throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
-            }
-            user.setPhone(request.getPhone());
+            user.setEmail(emailNorm);
         }
 
-        if (request.getRole() != null) {
-            user.setRole(request.getRole());
+        String phoneNorm = normalizeBlank(request.getPhone());
+        if (phoneNorm == null) {
+            user.setPhone(null);
+        } else if (!phoneNorm.equals(user.getPhone())) {
+            if (userRepository.existsByPhone(phoneNorm)) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+            }
+            user.setPhone(phoneNorm);
         }
+
+        user.setRole(request.getRole());
 
         user = userRepository.save(user);
         return toUserResponse(user);
+    }
+
+    private static String normalizeBlank(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     /**

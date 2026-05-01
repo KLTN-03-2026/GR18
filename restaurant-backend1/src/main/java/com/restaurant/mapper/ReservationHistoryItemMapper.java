@@ -21,6 +21,7 @@ public class ReservationHistoryItemMapper {
                 .customerPhone(rs.getString("customer_phone"))
                 .status(rs.getString("status"))
                 .tableNumber(rs.getString("table_number"))
+                .tableLocation(rs.getString("table_location"))
                 .note(rs.getString("note"))
                 .build();
     }

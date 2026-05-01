@@ -23,7 +23,7 @@ public final class PublicApiPathHelper {
         return path.startsWith("/auth")
                 || path.startsWith("/menu")
                 || path.startsWith("/categories")
-                || path.startsWith("/tables/qr")
+                || path.startsWith("/tables/booking-options")
                 || path.startsWith("/orders/guest")
                 || path.startsWith("/call-staff/guest")
                 || path.startsWith("/reviews/guest")

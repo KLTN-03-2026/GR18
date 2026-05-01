@@ -5,6 +5,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.restaurant.dto.response.RestaurantTableResponse;
+import com.restaurant.dto.response.TableBookingOptionsResponse;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.repository.RestaurantTableRepository;
@@ -19,9 +20,12 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -131,6 +135,33 @@ public class TableService {
 
     public List<RestaurantTable> getAllTables() {
         return tableRepository.findByIsActiveTrue();
+    }
+
+    /**
+     * Dữ liệu form đặt bàn: danh sách khu (location) và bàn đang hoạt động.
+     */
+    public TableBookingOptionsResponse getBookingOptionsForPublic() {
+        List<RestaurantTable> tables = tableRepository.findByIsActiveTrue();
+        List<String> locations = tables.stream()
+                .map(RestaurantTable::getLocation)
+                .filter(s -> s != null && !s.isBlank())
+                .map(String::trim)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<RestaurantTableResponse> rows = tables.stream()
+                .map(RestaurantTableResponse::from)
+                .sorted(Comparator
+                        .comparing((RestaurantTableResponse t) -> t.getLocation() == null ? "" : t.getLocation(),
+                                String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(t -> t.getTableNumber() == null ? "" : t.getTableNumber(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        return TableBookingOptionsResponse.builder()
+                .locations(locations)
+                .tables(rows)
+                .build();
     }
 
     public List<RestaurantTable> getAvailableTables() {

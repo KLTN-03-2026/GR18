@@ -1,0 +1,381 @@
+/* Trang đặt chỗ — dark #111827, đồng bộ mockup */
+
+body.datcho-page {
+    background-color: #111827 !important;
+    color: #f3f4f6;
+}
+
+body.datcho-page .main-content {
+    background-color: #111827;
+    min-height: calc(100vh - 64px);
+}
+
+body.datcho-page .page-title {
+    color: #ffffff;
+    font-size: 1.75rem;
+}
+
+body.datcho-page .filter-group {
+    background-color: #1f2937;
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+body.datcho-page .filter-btn {
+    color: #9ca3af;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+
+body.datcho-page .filter-btn.active {
+    background-color: #1e3a5f;
+    color: #93c5fd;
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+body.datcho-page .filter-btn:not(.active):hover {
+    color: #e5e7eb;
+}
+
+body.datcho-page .vr {
+    background-color: #4b5563;
+    align-self: stretch;
+    height: auto;
+    min-height: 24px;
+}
+
+body.datcho-page .date-display {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 6px 12px;
+    gap: 8px;
+    color: #e5e7eb;
+}
+
+body.datcho-page .date-display .material-symbols-outlined {
+    font-size: 18px;
+    color: #9ca3af;
+}
+
+body.datcho-page #filterDate {
+    color: #f9fafb;
+    background: transparent;
+    border: none;
+    min-width: 130px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.datcho-page #filterDate::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    cursor: pointer;
+}
+
+body.datcho-page #btnToday {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: none !important;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 0.75rem;
+}
+
+body.datcho-page #btnToday:hover {
+    background: #e5e7eb !important;
+}
+
+body.datcho-page .stat-card {
+    background: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+body.datcho-page .stat-label {
+    color: #9ca3af !important;
+    letter-spacing: 0.06em;
+}
+
+body.datcho-page .stat-value {
+    color: #ffffff !important;
+    font-size: 2.25rem;
+}
+
+body.datcho-page .stat-trend {
+    color: #34d399 !important;
+    font-weight: 600;
+}
+
+body.datcho-page .stat-card .bg-icon {
+    opacity: 0.12;
+    color: #60a5fa;
+}
+
+body.datcho-page .status-card {
+    background: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+body.datcho-page .status-card .card-subtitle {
+    color: #f9fafb;
+    font-family: Manrope, sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 1rem !important;
+}
+
+body.datcho-page .status-item {
+    color: #d1d5db;
+    font-size: 0.8rem;
+    margin-bottom: 14px;
+}
+
+body.datcho-page .status-item:last-child {
+    margin-bottom: 0;
+}
+
+body.datcho-page .status-count-pill {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #e5e7eb;
+    min-width: 2rem;
+    text-align: right;
+}
+
+body.datcho-page .table-container {
+    background: #111827 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+body.datcho-page .table-header {
+    background: rgba(31, 41, 55, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.datcho-page .table-title {
+    color: #f9fafb !important;
+    font-weight: 800;
+}
+
+body.datcho-page .tool-btn {
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 10px !important;
+    color: #9ca3af !important;
+}
+
+body.datcho-page .tool-btn:hover {
+    color: #e5e7eb !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+body.datcho-page .custom-table.table,
+body.datcho-page .custom-table.table > :not(caption) > * {
+    --bs-table-bg: transparent;
+    --bs-table-color: #e5e7eb;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+}
+
+body.datcho-page .custom-table thead th {
+    color: #9ca3af !important;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    padding-top: 1.25rem;
+    padding-bottom: 1rem;
+}
+
+body.datcho-page .custom-table tbody td {
+    border-color: rgba(255, 255, 255, 0.06);
+    vertical-align: middle;
+    padding: 1rem 1.25rem;
+}
+
+body.datcho-page .row-low {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+body.datcho-page .cust-name {
+    color: #ffffff;
+}
+
+body.datcho-page .avatar {
+    background: #374151;
+    color: #93c5fd;
+}
+
+body.datcho-page .time-text {
+    margin: 0;
+    font-weight: 700;
+    color: #f3f4f6;
+}
+
+body.datcho-page .date-sub {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+body.datcho-page .badge-status.completed {
+    background-color: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.datcho-page .btn-action-single {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #374151;
+    color: #d1d5db;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+body.datcho-page .btn-action-single:hover {
+    background: #4b5563;
+    color: #ffffff;
+}
+
+body.datcho-page .btn-action-single .material-symbols-outlined {
+    font-size: 18px;
+}
+
+body.datcho-page .action-wrap .btn-action {
+    background-color: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border-radius: 8px;
+    margin-right: 6px;
+}
+
+body.datcho-page .action-wrap .btn-action:hover {
+    background-color: rgba(52, 211, 153, 0.25);
+}
+
+body.datcho-page .table-footer {
+    border-top-color: rgba(255, 255, 255, 0.08);
+    align-items: center;
+}
+
+body.datcho-page .table-footer #footerInfo {
+    color: #9ca3af;
+}
+
+body.datcho-page .pagination-dash {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+body.datcho-page .pagination-dash button {
+    min-width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+body.datcho-page .pagination-dash button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+body.datcho-page .pagination-dash button.active-pg {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+body.datcho-page .pagination-dash button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+body.datcho-page .fab-add {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(145deg, #7dd3fc, #89ceff) !important;
+    color: #0f172a !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+body.datcho-page .fab-add .material-symbols-outlined {
+    font-variation-settings: "FILL" 1;
+    font-size: 28px;
+}
+
+body.datcho-page .modal-content.datcho-modal {
+    background: #1f2937 !important;
+    color: #f3f4f6;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+}
+
+body.datcho-page .datcho-modal .modal-title {
+    color: #ffffff;
+}
+
+body.datcho-page .datcho-modal .form-label {
+    color: #d1d5db;
+}
+
+body.datcho-page .datcho-modal .form-control {
+    background: #111827;
+    border: 1px solid #374151;
+    color: #f9fafb;
+    border-radius: 10px;
+}
+
+body.datcho-page .datcho-modal .form-control:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 0.15rem rgba(59, 130, 246, 0.25);
+}
+
+body.datcho-page .datcho-modal .btn-close {
+    filter: invert(1);
+    opacity: 0.65;
+}
+
+body.datcho-page .datcho-modal .btn-outline-secondary {
+    border-color: #4b5563;
+    color: #e5e7eb;
+}
+
+body.datcho-page .datcho-modal .btn-outline-secondary:hover {
+    background: #374151;
+    border-color: #6b7280;
+    color: #fff;
+}
+
+body.datcho-page .datcho-modal .btn-primary {
+    background: #3b82f6;
+    border: none;
+}
+
+body.datcho-page .datcho-modal .btn-primary:hover {
+    background: #2563eb;
+}
+
+@media (max-width: 991px) {
+    body.datcho-page .filter-group {
+        width: 100%;
+    }
+}

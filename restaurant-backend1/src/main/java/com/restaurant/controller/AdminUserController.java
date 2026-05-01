@@ -1,6 +1,7 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.request.CreateUserRequest;
+import com.restaurant.dto.request.UpdateUserRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.UserResponse;
 import com.restaurant.entity.enums.UserRole;
@@ -58,7 +59,7 @@ public class AdminUserController {
     @Operation(summary = "Cập nhật thông tin user")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long userId,
-            @Valid @RequestBody CreateUserRequest request) {
+            @Valid @RequestBody UpdateUserRequest request) {
         UserResponse response = userManagementService.updateUser(userId, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật thành công"));
     }

@@ -343,19 +343,55 @@ function dedupByName(items) {
     return [...map.values()];
 }
 
+/** ?dm= tên danh mục (URL-encoded): mở Menu với tab danh mục tương ứng — khớp normalizeQrCategoryKey. */
+function tryApplyMenuCategoryFromUrl() {
+    try {
+        const raw = new URLSearchParams(window.location.search).get("dm");
+        if (!raw || !danhSachMon || !danhSachMon.length) return false;
+        const bar = document.getElementById("menu-cat-tab-bar");
+        if (!bar) return false;
+
+        const targetKey = normalizeQrCategoryKey(raw);
+        let btn = null;
+        bar.querySelectorAll(".cat-tab").forEach((b) => {
+            const f = b.getAttribute("data-filter");
+            if (f === targetKey) btn = b;
+        });
+        /* Gợi ý nhãn ngắn «Lẩu» khi DB dùng «Lẩu & Nướng» hoặc tương tự */
+        if (!btn && targetKey === "lau") {
+            bar.querySelectorAll(".cat-tab").forEach((b) => {
+                const f = b.getAttribute("data-filter");
+                if (f && f !== "__all" && String(f).includes("lau")) btn = b;
+            });
+        }
+
+        if (btn) {
+            chonMenuCategoryTab(btn);
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 async function loadMenu() {
     try {
         const json = await fetchMenuWithFallback("/menu");
         danhSachMon = sortMenuCombosAndMainsFirst(dedupByName(json.data || []));
         renderMenuCategoryTabs(danhSachMon);
         renderQrCategoryList(danhSachMon);
-        renderMenu(danhSachMon);
+        if (!tryApplyMenuCategoryFromUrl()) {
+            renderMenu(danhSachMon);
+        }
     } catch (err) {
         console.error("Lỗi load menu:", err);
         danhSachMon = sortMenuCombosAndMainsFirst(DEMO_MENU.slice());
         renderMenuCategoryTabs(danhSachMon);
         renderQrCategoryList(danhSachMon);
-        renderMenu(danhSachMon);
+        if (!tryApplyMenuCategoryFromUrl()) {
+            renderMenu(danhSachMon);
+        }
         hienThongBao("Không tải được menu từ backend. Đang hiển thị dữ liệu demo. API hiện tại: " + API_BASE);
     }
 }

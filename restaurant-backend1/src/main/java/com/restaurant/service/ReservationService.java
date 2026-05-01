@@ -75,6 +75,7 @@ public class ReservationService {
                 .customerPhone(req.getCustomerPhone())
                 .status("PENDING")
                 .tableNumber(null)
+                .tableLocation(null)
                 .note(req.getNote())
                 .build();
     }
@@ -112,7 +113,7 @@ public class ReservationService {
 
         var content = jdbcTemplate.query(
                 "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
-                        "rt.table_number, r.note " +
+                        "rt.table_number, rt.location AS table_location, r.note " +
                         "FROM reservations r " +
                         "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id " +
                         "WHERE r.user_id = ? " +
@@ -222,7 +223,7 @@ public class ReservationService {
         LocalDate targetDate = date == null ? LocalDate.now() : date;
         return jdbcTemplate.query(
                 "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, " +
-                        "rt.table_number, r.note " +
+                        "rt.table_number, rt.location AS table_location, r.note " +
                         "FROM reservations r " +
                         "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id " +
                         "WHERE DATE(r.reservation_time) = ? " +

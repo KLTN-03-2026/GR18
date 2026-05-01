@@ -1,81 +1,184 @@
-/* Màu sắc chung */
-:root {
-    --sidebar-blue: #3259C3;
-    --orange-brand: #FF6B35;
+/* Tổng quan — dark shell #111827 (đồng bộ qltk) */
+
+body.tongquan-page {
+    background-color: #111827 !important;
+    color: #f3f4f6;
 }
 
-body {
-    background-color: #e9ecef;
-    font-family: sans-serif;
+body.tongquan-page .main-content {
+    background-color: #111827;
+    min-height: 100vh;
 }
 
-.text-orange { color: var(--orange-brand); }
-
-/* Sidebar (Thanh menu bên trái) */
-/* Sidebar phong cách phác thảo */
-.sidebar-blue {
-    background-color: #3B66D1; /* Màu xanh đậm theo hình */
-    min-height: calc(100vh - 56px);
-    position: sticky;
-    top: 56px;
+body.tongquan-page .page-title {
+    color: #ffffff;
 }
 
-.sidebar-blue .nav-link {
-    color: white !important;
-    font-size: 15px;
-    padding: 1rem;
-    transition: background 0.2s;
-    border-radius: 0; /* Loại bỏ bo góc của link */
+body.tongquan-page .text-secondary,
+body.tongquan-page .stat-trend {
+    color: #9ca3af !important;
 }
 
-/* Hiệu ứng khi nhấn vào hoặc di chuột */
-.sidebar-blue .nav-link:hover, 
-.bg-blue-active {
-    background-color: #5585F2 !important; /* Màu xanh sáng hơn khi chọn */
+body.tongquan-page .ai-status {
+    color: #34d399 !important;
 }
 
-/* Đường kẻ phân cách trắng mờ */
-.border-white-50 {
-    border-color: rgba(255, 255, 255, 0.2) !important;
+body.tongquan-page .text-slate-400 {
+    color: #9ca3af !important;
 }
 
-/* Dashboard Wrapper */
-.dashboard-wrapper {
-    min-height: 80vh;
+/* Hộp ngày */
+body.tongquan-page .date-display,
+body.tongquan-page .bg-surface-container {
+    background-color: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e5e7eb;
 }
 
-/* Định dạng các ô thống kê & biểu đồ */
-.stat-card, .chart-container, .info-card {
-    background-color: #fff;
-    min-height: 120px;
+/* Stat cards */
+body.tongquan-page .stat-card {
+    background-color: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.chart-placeholder {
-    height: 200px;
-    background: linear-gradient(transparent 90%, #eee 90%), 
-                linear-gradient(90deg, transparent 90%, #eee 90%);
-    background-size: 40px 40px; /* Tạo hình ô vuông giả làm biểu đồ */
-    border-bottom: 2px solid #333;
+body.tongquan-page .stat-label {
+    color: #9ca3af !important;
 }
 
-.placeholder-content {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #ddd;
+body.tongquan-page .stat-value:not(.text-primary):not(.text-secondary) {
+    color: #ffffff;
 }
 
-.placeholder-list {
-    margin-top: 15px;
-    height: 150px;
-    border: 1px dashed #ccc;
+/* Chart + cột phải */
+body.tongquan-page .table-container {
+    background-color: #111827 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sidebar {
+body.tongquan-page .table-container .table-title {
+    color: #f9fafb;
+}
+
+body.tongquan-page .status-card {
+    background-color: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.tongquan-page .status-card .card-subtitle,
+body.tongquan-page .status-card h5 {
+    color: #f3f4f6 !important;
+}
+
+body.tongquan-page .chart-wrapper {
+    min-height: 300px;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%);
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    align-items: center;
+    justify-content: center;
 }
 
-.logout-container {
-    margin-top: auto;
+body.tongquan-page .dash-chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6px;
+    height: 220px;
+    padding: 8px 4px 0;
+    width: 100%;
+}
+
+body.tongquan-page .dash-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+body.tongquan-page .dash-bar-fill {
+    width: 100%;
+    max-width: 40px;
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(180deg, #3b82f6, rgba(59, 130, 246, 0.25));
+    min-height: 4px;
+}
+
+body.tongquan-page .dash-bar-label {
+    font-size: 0.65rem;
+    color: #9ca3af;
+}
+
+body.tongquan-page .food-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.65);
+    margin-bottom: 10px;
+    transition: 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.tongquan-page .food-item:hover {
+    background: #374151;
+}
+
+body.tongquan-page .cust-name {
+    color: #ffffff;
+}
+
+/* Header bảng đơn */
+body.tongquan-page .table-header {
+    background-color: rgba(31, 41, 55, 0.92) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Bảng — bỏ nền trắng Bootstrap */
+body.tongquan-page .custom-table.table,
+body.tongquan-page .custom-table.table > :not(caption) > * {
+    --bs-table-bg: transparent;
+    --bs-table-color: #e5e7eb;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+body.tongquan-page .custom-table thead th {
+    color: #9ca3af !important;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: transparent;
+}
+
+body.tongquan-page .custom-table tbody td {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #e5e7eb;
+}
+
+body.tongquan-page .custom-table tbody td.fw-bold {
+    color: #ffffff;
+}
+
+body.tongquan-page .row-low {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Nút outline */
+body.tongquan-page .btn-outline-primary {
+    color: #60a5fa;
+    border-color: #3b82f6;
+}
+
+body.tongquan-page .btn-outline-primary:hover {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+@media (max-width: 991px) {
+    body.tongquan-page .main-content {
+        margin-left: 0;
+    }
 }
