@@ -110,6 +110,24 @@
         }
     }
 
+    /** Trang đăng nhập / đăng ký: nút đang xem bọc btn-orange để không bị “đứng màu” khi đổi trang. */
+    function markAuthNavHighlight() {
+        var login = document.getElementById("header-link-login");
+        var reg = document.getElementById("header-link-register");
+        if (!login || !reg) return;
+        var p = (window.location.pathname || "").toLowerCase();
+        var onReg = p.indexOf("dangky.html") >= 0;
+        login.classList.remove("btn-orange", "btn-outline-dark");
+        reg.classList.remove("btn-orange", "btn-outline-dark");
+        if (onReg) {
+            reg.classList.add("btn-orange");
+            login.classList.add("btn-outline-dark");
+        } else {
+            login.classList.add("btn-orange");
+            reg.classList.add("btn-outline-dark");
+        }
+    }
+
     function markActiveNav() {
         var p = (window.location.pathname || "").toLowerCase();
         var map = [
@@ -204,7 +222,10 @@
         var token = localStorage.getItem("accessToken");
         try {
             if (token) {
-                await fetch("http://localhost:8080/api/auth/logout", {
+                var apiBase = (typeof window.RESTAURANT_API_BASE === "string" && window.RESTAURANT_API_BASE.trim())
+                    ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, "")
+                    : "http://127.0.0.1:8080/api";
+                await fetch(apiBase + "/auth/logout", {
                     method: "POST",
                     headers: { Authorization: "Bearer " + token }
                 });
@@ -274,6 +295,7 @@
         }
 
         markActiveNav();
+        markAuthNavHighlight();
         applyQrMode();
         if (typeof window.syncHeaderCartVisibility === "function") window.syncHeaderCartVisibility();
     }

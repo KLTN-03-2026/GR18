@@ -29,7 +29,16 @@ public class GlobalExceptionHandler {
                 errors.put(error.getObjectName(), error.getDefaultMessage());
             }
         });
-        return ApiResponse.error("Dữ liệu không hợp lệ: " + errors);
+        String summary = errors.isEmpty()
+                ? "Dữ liệu không hợp lệ"
+                : (errors.size() == 1
+                        ? errors.values().iterator().next()
+                        : String.join(" ", errors.values()));
+        return ApiResponse.<Map<String, String>>builder()
+                .success(false)
+                .message(summary)
+                .data(errors)
+                .build();
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
