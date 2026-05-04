@@ -68,35 +68,142 @@
         return "tertiary";
     }
 
-    function renderChart(dailyBreakdown) {
+    /** Khóa YYYY-MM-DD theo giờ local (đồng bộ param start/end của API). */
+    function isoKeyLocal(d) {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${mo}-${day}`;
+    }
+
+    /** Chỉ nhận chuối/ngày hợp lệ làm nhãn trục; không dùng slice() trên số tiền. */
+    function dateKeyFromCell(v) {
+        if (v == null || v === "") return null;
+        if (typeof v === "object" && !Array.isArray(v)) {
+            const y = v.year;
+            const mo = v.monthValue != null ? v.monthValue : v.month != null ? v.month : null;
+            const dd = v.dayOfMonth != null ? v.dayOfMonth : v.day != null ? v.day : null;
+            if (y != null && mo != null && dd != null) {
+                const d = new Date(Number(y), Number(mo) - 1, Number(dd));
+                return Number.isNaN(d.getTime()) ? null : isoKeyLocal(d);
+            }
+            return null;
+        }
+        if (Array.isArray(v) && v.length >= 3 && typeof v[0] === "number") {
+            const d = new Date(v[0], Number(v[1]) - 1, Number(v[2]));
+            return Number.isNaN(d.getTime()) ? null : isoKeyLocal(d);
+        }
+        const n = typeof v === "number" ? v : Number(v);
+        if (Number.isFinite(n) && n >= 1596739200000 && n <= 2100840192000) {
+            const d = new Date(n);
+            return Number.isNaN(d.getTime()) ? null : isoKeyLocal(d);
+        }
+        const s = String(v).trim();
+        const iso = /^(\d{4})-(\d{2})-(\d{2})\b/.exec(s);
+        if (iso) {
+            const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+            return Number.isNaN(d.getTime()) ? null : isoKeyLocal(d);
+        }
+        const dGuess = new Date(s);
+        if (!Number.isNaN(dGuess.getTime()) && !/^\d{8,}(\.\d+)?$/.test(s)) return isoKeyLocal(dGuess);
+        return null;
+    }
+
+    function finiteAmount(cell) {
+        const n = Number(cell);
+        return Number.isFinite(n) ? n : NaN;
+    }
+
+    /** Một tuple [a,b]: thử đúng thứ tự (date, amount) và đảo chỗ — API đôi khi/ghi nhầm. */
+    function decodeTuple(cell0, cell1) {
+        const tryNorm = dateKeyFromCell(cell0);
+        const a0 = finiteAmount(cell1);
+        if (tryNorm && !Number.isNaN(a0)) return { key: tryNorm, amount: Math.max(a0, 0) };
+
+        const trySwap = dateKeyFromCell(cell1);
+        const a1 = finiteAmount(cell0);
+        if (trySwap && !Number.isNaN(a1)) return { key: trySwap, amount: Math.max(a1, 0) };
+
+        return null;
+    }
+
+    /** Một phần tử dailyBreakdown từ BE: mảng 2 ô hoặc map { date, revenue }… */
+    function accumulateBreakdown(byKey, r) {
+        if (!r) return;
+        let parsed = null;
+
+        if (Array.isArray(r) && r.length >= 2) {
+            parsed = decodeTuple(r[0], r[1]);
+        } else if (typeof r === "object" && !Array.isArray(r)) {
+            const dateRaw =
+                r.date != null ? r.date : r.day != null ? r.day : r.paidAt != null ? r.paidAt : r[0] != null ? r[0] : null;
+            const amtRaw =
+                r.revenue != null ? r.revenue : r.amount != null ? r.amount : r.total != null ? r.total : r[1];
+            const k = dateKeyFromCell(dateRaw);
+            const amt = finiteAmount(amtRaw);
+            if (k && !Number.isNaN(amt)) parsed = { key: k, amount: Math.max(amt, 0) };
+
+            if (!parsed && amtRaw !== undefined && dateRaw !== undefined) {
+                parsed = decodeTuple(dateRaw, amtRaw);
+            }
+        }
+
+        if (!parsed || !parsed.key) return;
+
+        const prev = byKey[parsed.key] || 0;
+        byKey[parsed.key] = prev + parsed.amount;
+    }
+
+    /** Luôn 7 cột tiếp nối từ periodStartLocal (00:00 local), có ngày 0 đồng. */
+    function buildSevenDayBars(periodStartLocal, dailyBreakdown) {
+        const byKey = Object.create(null);
+        const rows = Array.isArray(dailyBreakdown) ? dailyBreakdown : [];
+        for (let i = 0; i < rows.length; i++) accumulateBreakdown(byKey, rows[i]);
+
+        const start = new Date(
+            periodStartLocal.getFullYear(),
+            periodStartLocal.getMonth(),
+            periodStartLocal.getDate(),
+            0,
+            0,
+            0,
+            0
+        );
+
+        const out = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+            const k = isoKeyLocal(d);
+            out.push({
+                label: d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+                amount: byKey[k] || 0
+            });
+        }
+        return out;
+    }
+
+    function renderChart(periodStartLocal, dailyBreakdown) {
         const root = $("dash-chart-root");
         if (!root) return;
-        const rows = Array.isArray(dailyBreakdown) ? dailyBreakdown : [];
-        if (!rows.length) {
+
+        const bars = buildSevenDayBars(periodStartLocal, dailyBreakdown);
+        const values = bars.map((b) => b.amount);
+        const max = Math.max(...values, 1);
+        const hasAny = values.some((v) => v > 0);
+
+        if (!hasAny) {
             root.innerHTML = '<p class="text-slate-400 small mb-0">Chưa có doanh thu trong 7 ngày gần đây.</p>';
             return;
         }
-        const values = rows.map((r) => Number(r[1] || 0));
-        const max = Math.max(...values, 1);
+
         root.innerHTML = `
             <div class="dash-chart-bars">
-                ${rows
-                    .map((r, i) => {
-                        const rawLabel = r[0];
-                        let label = String(i + 1);
-                        if (rawLabel != null) {
-                            const s = String(rawLabel);
-                            const d = new Date(s);
-                            if (!Number.isNaN(d.getTime())) {
-                                label = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
-                            } else if (s.length >= 10) {
-                                label = s.slice(8, 10) + "/" + s.slice(5, 7);
-                            }
-                        }
+                ${bars
+                    .map((b, i) => {
                         const h = Math.round((values[i] / max) * 100);
                         return `<div class="dash-bar-col" title="${formatVnd(values[i])}">
                             <div class="dash-bar-fill" style="height:${Math.max(h, 6)}%"></div>
-                            <span class="dash-bar-label">${label}</span>
+                            <span class="dash-bar-label">${escapeHtml(b.label)}</span>
                         </div>`;
                     })
                     .join("")}
@@ -201,7 +308,8 @@
             if (elPending) elPending.textContent = String(pending);
             if (elPaid) elPaid.textContent = String(paidToday);
 
-            renderChart(revenue && revenue.dailyBreakdown);
+            const chartAnchor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            renderChart(chartAnchor, revenue && revenue.dailyBreakdown);
             renderTopSelling(top);
             renderRecentOrders(recent);
 

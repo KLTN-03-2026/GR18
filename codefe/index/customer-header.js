@@ -96,6 +96,35 @@
         }
     }
 
+    /**
+     * Đăng nhập / đăng ký / đặt bàn: luôn dùng header & điều hướng kiểu website,
+     * không giữ phiên QR (tránh link kèm ?t=, ép về qr-menu, ẩn nút Đăng nhập…).
+     */
+    function clearQrContextOnFullSitePages() {
+        var path = "";
+        try {
+            path = (window.location.pathname || "").toLowerCase();
+        } catch (e) {
+            return;
+        }
+        var onAuthOrBooking =
+            path.indexOf("dangnhap.html") >= 0 ||
+            path.indexOf("dangky.html") >= 0 ||
+            path.indexOf("datban.html") >= 0;
+        if (!onAuthOrBooking) return;
+        try {
+            sessionStorage.removeItem("activeQrToken");
+        } catch (e2) {}
+        try {
+            var u = new URL(window.location.href);
+            if (u.searchParams.has("t")) {
+                u.searchParams.delete("t");
+                var q = u.searchParams.toString();
+                history.replaceState({}, "", u.pathname + (q ? "?" + q : "") + u.hash);
+            }
+        } catch (e3) {}
+    }
+
     function setAuthNavLinks() {
         var login = document.getElementById("header-link-login");
         var reg = document.getElementById("header-link-register");
@@ -154,8 +183,14 @@
 
     /** Trang gọi món tại bàn sau khi quét QR: rút gọn nav, ẩn Đăng nhập / Đăng ký (giữ danh sách đồng bộ với qr-session.js). */
     var QR_MENU_FLOW_PAGES = ["qr-menu.html", "menu-detail.html", "giohang.html"];
-    /** Cho phép mở kèm ?t= mà không bị ép về menu (đăng nhập/đăng ký vẫn dùng được nếu khách muốn). */
-    var QR_ALLOW_WITH_TOKEN_PAGES = QR_MENU_FLOW_PAGES.concat(["dangnhap.html", "dangky.html", "danhgia.html"]);
+    /** Trang được mở bình thường kèm token QR (không ép về menu tại bàn). */
+    var QR_ALLOW_WITH_TOKEN_PAGES = QR_MENU_FLOW_PAGES.concat([
+        "dangnhap.html",
+        "dangky.html",
+        "danhgia.html",
+        /** Đặt bàn không thuộc luồng “chỉ gọi món”; nếu thiếu sẽ bị ép về qr-menu khi cookie/session còn t= */
+        "datban.html"
+    ]);
 
     function applyQrMode() {
         var token = getActiveQrTokenSafe();
@@ -242,6 +277,8 @@
     }
 
     function bindHeaderData() {
+        clearQrContextOnFullSitePages();
+
         setAuthNavLinks();
 
         var u = parseUser();

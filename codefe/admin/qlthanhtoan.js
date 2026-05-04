@@ -1,3 +1,8 @@
+/**
+ * US20 / PB20 — Xử lý thanh toán (Thu ngân): cập nhật payment_status → PAID và phương thức
+ * qua PATCH /staff/orders/{id}/payment. Tách biệt với điều phối đơn US18 (donhang.js — Order.status).
+ */
+
 const BASE_URL = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
 
 function getPaymentToken() {
@@ -8,6 +13,48 @@ let unpaidOrders = [];
 let paidHistory = [];
 let paymentListFilter = "ALL";
 let pendingPaymentOrderId = null;
+let focusOrderHandled = false;
+
+function stripFocusOrderFromUrl() {
+    try {
+        const u = new URL(window.location.href);
+        if (!u.searchParams.has("focusOrder")) return;
+        u.searchParams.delete("focusOrder");
+        const q = u.searchParams.toString();
+        window.history.replaceState({}, "", u.pathname + (q ? "?" + q : "") + u.hash);
+    } catch (e) {
+        /* ignore */
+    }
+}
+
+/** Liên kết từ điều phối đơn (donhang): nhảy tới hóa đơn chờ thu. */
+function focusUnpaidOrderCardOnce() {
+    if (focusOrderHandled) return;
+    let raw = "";
+    try {
+        raw = (new URLSearchParams(window.location.search).get("focusOrder") || "").trim();
+    } catch (e) {
+        return;
+    }
+    if (!/^\d+$/.test(raw)) return;
+    focusOrderHandled = true;
+    const id = raw;
+    requestAnimationFrame(() => {
+        const card = document.querySelector(`.invoice-card[data-order-id="${id}"]`);
+        stripFocusOrderFromUrl();
+        if (!card) {
+            showPageAlert(
+                `Đơn #${id} không còn trong danh sách chưa thu hoặc không tồn tại.`,
+                "error"
+            );
+            setTimeout(() => showPageAlert("", null), 4500);
+            return;
+        }
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("invoice-card-focus");
+        setTimeout(() => card.classList.remove("invoice-card-focus"), 2400);
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     if (!getPaymentToken()) {
@@ -76,6 +123,7 @@ async function loadPaymentPageData() {
         renderUnpaidList();
         renderHistoryList();
         showPageAlert("", null);
+        focusUnpaidOrderCardOnce();
     } catch (err) {
         showPageAlert(err.message || "Không tải được dữ liệu thanh toán.", "error");
     }
@@ -279,7 +327,7 @@ async function showPaymentDetail(orderId) {
     const bodyEl = document.getElementById("payment-detail-body");
     const titleEl = document.getElementById("payment-detail-title");
     if (titleEl) titleEl.textContent = `Chi tiết đơn #${orderId}`;
-    if (bodyEl) bodyEl.innerHTML = '<p class="text-muted mb-0">Đang tải…</p>';
+    if (bodyEl) bodyEl.innerHTML = '<p class="text-secondary mb-0 small">Đang tải…</p>';
     try {
         const d = await api(`/staff/orders/${orderId}`);
         if (bodyEl) bodyEl.innerHTML = renderDetailBody(d);
@@ -297,7 +345,7 @@ function renderDetailBody(d) {
     const items = Array.isArray(d.items) ? d.items : [];
     const rows = items
         .map((it) => {
-            const note = it.note ? `<div class="small text-muted">${escapeHtml(it.note)}</div>` : "";
+            const note = it.note ? `<div class="small text-secondary">${escapeHtml(it.note)}</div>` : "";
             return `<tr><td><div class="fw-semibold">${escapeHtml(it.itemName || "Món")}</div>${note}</td>
                 <td class="text-center">${it.quantity != null ? it.quantity : "—"}</td>
                 <td class="text-end">${formatCurrency(it.unitPrice)}</td>
@@ -310,10 +358,10 @@ function renderDetailBody(d) {
             : "";
     return `<p class="small text-secondary mb-2">${escapeHtml(translateOrderStatus(d.status))} · TT: ${escapeHtml(paymentStatusLabel(d.paymentStatus))}</p>
         ${noteBlock}
-        <div class="table-responsive"><table class="table table-sm table-dark align-middle mb-0"><thead><tr><th>Món</th><th class="text-center">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Tạm tính</th></tr></thead><tbody>
+        <div class="table-responsive rounded-3 overflow-hidden border border-secondary-subtle border-opacity-25"><table class="table table-sm align-middle mb-0 payment-detail-table"><thead><tr><th>Món</th><th class="text-center">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Tạm tính</th></tr></thead><tbody>
         ${rows || '<tr><td colspan="4" class="text-secondary">Không có món.</td></tr>'}
         </tbody></table></div>
-        <p class="text-end fs-5 fw-bold mb-0">${formatCurrency(d.totalAmount)}</p>`;
+        <p class="text-end fs-5 fw-bold mb-0 payment-detail-total">${formatCurrency(d.totalAmount)}</p>`;
 }
 
 function showPageAlert(message, type) {

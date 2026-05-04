@@ -28,6 +28,12 @@
     border-color: var(--primary) !important;
 }
 
+.invoice-card-focus {
+    outline: 2px solid rgba(120, 180, 255, 0.95);
+    outline-offset: 3px;
+    transition: outline 0.25s ease;
+}
+
 .table-badge-wrapper {
     min-width: 80px;
 }
@@ -82,4 +88,121 @@
 
 @media (max-width: 1199px) {
     .main-content { margin-left: 0; }
+}
+
+/* —— Modals: ép nền theme tối (Bootstrap mặc định làm modal trắng) —— */
+#payment-detail-modal .modal-content,
+#payment-confirm-modal .modal-content {
+    background-color: var(--surface-container) !important;
+    color: var(--on-surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+#payment-detail-modal .modal-header,
+#payment-confirm-modal .modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+#payment-detail-modal .modal-footer,
+#payment-confirm-modal .modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+#payment-detail-modal .modal-title,
+#payment-confirm-modal .modal-title {
+    color: var(--on-surface);
+}
+
+#payment-detail-modal .btn-close,
+#payment-confirm-modal .btn-close {
+    filter: invert(1) grayscale(1);
+    opacity: 0.65;
+}
+
+#payment-detail-modal .modal-body,
+#payment-confirm-modal .modal-body {
+    color: var(--on-surface);
+}
+
+#payment-detail-modal .text-muted {
+    color: var(--text-slate) !important;
+}
+
+/* Bảng chi tiết hóa đơn (không dùng Bootstrap table-dark) */
+.payment-detail-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--on-surface);
+    margin-bottom: 0;
+}
+
+.payment-detail-table thead th {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.65rem 0.875rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+}
+
+.payment-detail-table tbody td {
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: middle;
+}
+
+.payment-detail-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.payment-detail-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.payment-detail-total {
+    color: var(--primary);
+    margin-top: 0.75rem;
+}
+
+/* Modal xác nhận — radio/card lựa chọn */
+#payment-confirm-modal .payment-method-option {
+    background: var(--surface-container-low);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+#payment-confirm-modal .payment-method-option:hover {
+    border-color: rgba(137, 206, 255, 0.35) !important;
+    background: var(--surface-container);
+}
+
+#payment-confirm-modal .form-check-input {
+    background-color: var(--surface-container-highest);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+#payment-confirm-modal .form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+#payment-confirm-modal .btn-secondary {
+    background: var(--surface-container-high);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--on-surface);
+}
+
+#payment-confirm-modal .btn-secondary:hover {
+    background: var(--surface-container-highest);
+    color: #fff;
+}
+
+.invoice-card {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.modal-open .modal-backdrop.show {
+    opacity: 0.75;
 }

@@ -71,7 +71,6 @@ function refillEditTableSelect() {
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", async () => {
     initDateFilter();
-    bindViewTabs();
     bindPagination();
     await loadStaffTables();
     loadReservations();
@@ -283,20 +282,6 @@ function bindPagination() {
         renderTablePage();
         renderPaginationDash();
         updateFooterInfo();
-    });
-}
-
-function bindViewTabs() {
-    const listBtn = document.getElementById("btnViewList");
-    const calBtn = document.getElementById("btnViewCalendar");
-    listBtn?.addEventListener("click", () => {
-        listBtn.classList.add("active");
-        calBtn?.classList.remove("active");
-    });
-    calBtn?.addEventListener("click", () => {
-        if (typeof toastr !== "undefined") {
-            toastr.info("Chế độ lịch đang được phát triển.", "Thông báo");
-        }
     });
 }
 

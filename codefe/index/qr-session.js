@@ -1,7 +1,4 @@
-/**
- * QR tại bàn: giữ token trong session, tách giỏ hàng theo bàn (localStorage key).
- * Dùng chung cho menu.js, menu-detail, giohang.
- */
+
 (function () {
     var host = window.location.hostname || "";
     var isLocalHost = host === "localhost" || host === "127.0.0.1";
@@ -107,15 +104,20 @@
         } catch (e) {}
     };
 
-    /** Chỉ hiện icon giỏ hàng trên header khi đã quét QR bàn (có ?t= hoặc session). */
+    /** Icon giỏ: chỉ hiện khi có QR bàn; luôn ẩn ở trang đăng nhập / đăng ký. */
     window.syncHeaderCartVisibility = function () {
+        var path = "";
+        try {
+            path = (window.location.pathname || "").toLowerCase();
+        } catch (e) {}
+        var hideOnAuthPages = path.indexOf("dangnhap.html") >= 0 || path.indexOf("dangky.html") >= 0;
         var t = "";
         try {
             t = (typeof window.getActiveQrToken === "function" && window.getActiveQrToken()) || "";
-        } catch (e) {}
+        } catch (e2) {}
         document.querySelectorAll("#header-cart-wrap").forEach(function (el) {
-            if (t) el.classList.remove("d-none");
-            else el.classList.add("d-none");
+            if (hideOnAuthPages || !t || !String(t).trim()) el.classList.add("d-none");
+            else el.classList.remove("d-none");
         });
     };
 

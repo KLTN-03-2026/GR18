@@ -81,7 +81,8 @@ body.tongquan-page .chart-wrapper {
 
 body.tongquan-page .dash-chart-bars {
     display: flex;
-    align-items: flex-end;
+    /* stretch: mỗi cột cao bằng vùng biểu đồ — % height trên .dash-bar-fill mới tính được */
+    align-items: stretch;
     justify-content: space-between;
     gap: 6px;
     height: 220px;
@@ -94,6 +95,7 @@ body.tongquan-page .dash-bar-col {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     min-width: 0;
 }
