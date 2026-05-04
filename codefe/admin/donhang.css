@@ -14,7 +14,7 @@
 }
 
 .btn-filter {
-    color: var(--outline);
+    color: var(--text-slate);
     font-weight: 600;
     font-size: 0.85rem;
     padding: 8px 20px;
@@ -83,24 +83,65 @@
 
 .custom-table-dark {
     color: var(--on-surface);
+    /* Bootstrap 5: tránh --bs-table-bg trắng trên layout tối */
+    --bs-table-color: var(--on-surface);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(255, 255, 255, 0.08);
+    --bs-table-striped-bg: transparent;
+    --bs-table-hover-bg: transparent;
+    --bs-table-active-bg: rgba(255, 255, 255, 0.08);
 }
 
 .custom-table-dark thead th {
     background: transparent;
-    color: var(--outline);
+    color: var(--text-slate);
     font-size: 0.75rem;
     letter-spacing: 1px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 1rem;
 }
 
-.custom-table-dark tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    transition: background 0.3s;
+.custom-table-dark tbody td {
+    background-color: var(--surface-container) !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: var(--on-surface);
 }
 
-.custom-table-dark tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+.custom-table-dark tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s ease;
+}
+
+.custom-table-dark tbody tr:hover td {
+    background-color: var(--surface-container-high) !important;
+}
+
+/* Chữ Bootstrap .text-secondary trên nền tối: xám Bootstrap quá đậm → khó đọc */
+.table-container-modern .custom-table-dark .text-secondary {
+    color: var(--text-slate) !important;
+}
+
+.table-container-modern .custom-table-dark .text-muted {
+    color: var(--text-slate) !important;
+}
+
+/* text-light-emphasis của BS (light theme) không hợp nền tối sau khi sửa bảng */
+.table-container-modern .custom-table-dark .text-light-emphasis {
+    color: rgba(218, 226, 253, 0.88) !important;
+}
+
+.table-container-modern .table-header h5 {
+    color: var(--on-surface);
+}
+
+.table-container-modern .table-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(6, 14, 32, 0.45);
+}
+
+.table-container-modern .table-footer .small,
+.table-container-modern #order-table-meta {
+    color: var(--text-slate) !important;
 }
 
 .table-id-box {
@@ -114,8 +155,8 @@
     font-size: 0.85rem;
 }
 
-.item-summary { font-size: 0.9rem; font-weight: 500; }
-.item-extra { font-size: 0.7rem; color: var(--outline); margin-top: 2px; }
+.item-summary { font-size: 0.9rem; font-weight: 500; color: var(--on-surface); }
+.item-extra { font-size: 0.7rem; color: var(--text-slate); margin-top: 2px; }
 
 .order-placed-cell {
     white-space: nowrap;
@@ -258,6 +299,210 @@
     background-color: var(--surface-container);
     color: var(--on-surface);
     border-color: rgba(255, 255, 255, 0.12);
+}
+
+/*
+ * Modal "Tạo đơn gắn bàn" — theme sáng, chữ đen, tránh ô trắng + chữ xám nhạt khó đọc
+ */
+#staff-create-order-modal .modal-content.order-detail-modal-content {
+    background: #f8fafc;
+    color: #0f172a;
+    overflow: visible;
+}
+
+#staff-create-order-modal .modal-header,
+#staff-create-order-modal .modal-footer {
+    background: #ffffff;
+    border-color: #e2e8f0 !important;
+}
+
+#staff-create-order-modal .modal-body {
+    background: #f8fafc;
+    overflow: visible;
+}
+
+#staff-create-order-modal .modal-title {
+    color: #0f172a !important;
+}
+
+#staff-create-order-modal .form-label.small,
+#staff-create-order-modal .fw-semibold.text-secondary {
+    color: #475569 !important;
+}
+
+#staff-create-order-modal .form-select,
+#staff-create-order-modal .form-control {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #cbd5e1 !important;
+}
+
+#staff-create-order-modal .form-select:focus,
+#staff-create-order-modal .form-control:focus {
+    background-color: #ffffff !important;
+    border-color: #3b82f6 !important;
+    color: #111827 !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.22);
+}
+
+#staff-create-order-modal .form-control::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1;
+}
+
+#staff-create-order-modal .form-select option {
+    color: #111827;
+    background: #ffffff;
+}
+
+#staff-create-order-modal .staff-order-lines {
+    color: #0f172a;
+}
+
+#staff-create-order-modal .staff-order-lines thead th {
+    background: #e2e8f0 !important;
+    color: #334155 !important;
+    border-bottom-color: #cbd5e1 !important;
+}
+
+#staff-create-order-modal .staff-order-lines tbody td {
+    background: #ffffff;
+    border-color: #e2e8f0 !important;
+    vertical-align: middle;
+}
+
+#staff-create-order-modal .staff-order-lines .form-select,
+#staff-create-order-modal .staff-order-lines .form-control {
+    background-color: #f1f5f9 !important;
+    color: #111827 !important;
+    border-color: #cbd5e1 !important;
+}
+
+#staff-create-order-modal .staff-order-lines .form-select:focus,
+#staff-create-order-modal .staff-order-lines .form-control:focus {
+    background-color: #ffffff !important;
+}
+
+#staff-create-order-modal .table-responsive.rounded-3 {
+    background: #ffffff;
+    border-color: #e2e8f0 !important;
+    /* Không để wrapper cắt dropdown position:absolute của ô “Món” */
+    overflow: visible !important;
+}
+
+/* Ô chứa combobox không clip gợi ý ra ngoài hàng */
+/* Cột đầu = ô combobox — không clip danh gợi ý */
+#staff-create-order-modal .staff-order-lines tbody td:first-child {
+    overflow: visible !important;
+    vertical-align: top;
+}
+
+#staff-create-order-modal #staff-order-form-hint {
+    color: #64748b !important;
+}
+
+#staff-create-order-modal .staff-menu-combo-wrap {
+    min-width: 12rem;
+    z-index: 1;
+}
+#staff-create-order-modal .staff-menu-combo-wrap:focus-within {
+    z-index: 2000;
+}
+
+#staff-create-order-modal .staff-menu-suggest {
+    top: calc(100% + 4px);
+    left: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: min(55vh, 22rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    z-index: 2001;
+}
+
+#staff-create-order-modal .staff-menu-suggest .list-group-item {
+    cursor: pointer;
+}
+
+#staff-create-order-modal .staff-menu-suggest .list-group-item-action:hover {
+    background-color: #e8f5e9;
+}
+
+#staff-create-order-modal .staff-menu-panel {
+    top: calc(100% + 4px);
+    left: 0;
+    padding: 0;
+    overflow: hidden;
+    max-height: min(60vh, 26rem);
+    z-index: 2003;
+    display: flex;
+    flex-direction: column;
+}
+
+#staff-create-order-modal .staff-menu-panel-toolbar {
+    flex-shrink: 0;
+    background: #f1f5f9;
+}
+
+#staff-create-order-modal .staff-menu-panel-toolbar .staff-menu-cat-select {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #111827 !important;
+}
+
+#staff-create-order-modal .staff-menu-panel-scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+#staff-create-order-modal .staff-menu-cat-heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #eef2ff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+#staff-create-order-modal .staff-menu-panel-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-radius: 0;
+    border-bottom: 1px solid #eef2f6;
+    background: #ffffff;
+    padding: 0.45rem 0.65rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #0f172a;
+    cursor: pointer;
+}
+
+#staff-create-order-modal .staff-menu-panel-item:hover,
+#staff-create-order-modal .staff-menu-panel-item:focus-visible {
+    background: #e8f5e9;
+    outline: none;
+}
+
+#staff-create-order-modal .btn-outline-secondary {
+    color: #334155 !important;
+    border-color: #cbd5e1 !important;
+    background: #ffffff;
+}
+
+#staff-create-order-modal .btn-outline-secondary:hover {
+    background: #f1f5f9;
+    color: #0f172a !important;
 }
 
 .fab-add {

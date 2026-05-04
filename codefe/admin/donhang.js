@@ -9,6 +9,10 @@ let orderDetailModalInstance = null;
 let viewMode = "ACTIVE";
 let ordersPollTimer = null;
 
+/** Menu cho form tạo đơn gắn bàn (ô tìm + gợi ý; nameNorm / categoryLabel) */
+/** @type {{ id: number; name: string; price: number | null; nameNorm: string; categoryLabel: string }[]} */
+let staffWalkInMenuItems = [];
+
 /** Hiển thị trạng thái bàn (API trả enum tiếng Anh) → tiếng Việt */
 const TABLE_STATUS_VI = {
     AVAILABLE: "Trống",
@@ -21,6 +25,301 @@ function formatTableStatusVi(raw) {
     if (raw == null) return "";
     const key = String(raw).trim().toUpperCase();
     return TABLE_STATUS_VI[key] || String(raw).trim();
+}
+
+function normalizeStaffMenuQuery(s) {
+    return String(s || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d");
+}
+
+const STAFF_MENU_SUGGEST_MAX = 22;
+
+function cancelStaffSuggestFrame(ul) {
+    if (!ul || !ul._staffMenuRaf) return;
+    cancelAnimationFrame(ul._staffMenuRaf);
+    ul._staffMenuRaf = null;
+}
+
+/** Gộp nhiều sự kiện input trong cùng một khung hình (giảm jank khi gõ). */
+function scheduleStaffSuggestRender(ul, query) {
+    if (!ul) return;
+    cancelStaffSuggestFrame(ul);
+    ul._staffMenuRaf = requestAnimationFrame(function () {
+        ul._staffMenuRaf = null;
+        renderStaffMenuSuggestions(ul, query);
+    });
+}
+
+function renderStaffMenuSuggestions(ul, query) {
+    if (!ul) return;
+    ul.innerHTML = "";
+    if (!staffWalkInMenuItems.length) {
+        const empty = document.createElement("li");
+        empty.className = "list-group-item py-2 px-2 small text-muted border-0";
+        empty.textContent = "Chưa có dữ liệu menu.";
+        ul.appendChild(empty);
+        ul.classList.remove("d-none");
+        return;
+    }
+    const q = normalizeStaffMenuQuery(query);
+    let list = staffWalkInMenuItems;
+    if (q) {
+        list = staffWalkInMenuItems.filter(function (m) {
+            return m.nameNorm.includes(q);
+        });
+    } else {
+        list = staffWalkInMenuItems.slice(0, STAFF_MENU_SUGGEST_MAX);
+    }
+    const show = list.slice(0, STAFF_MENU_SUGGEST_MAX);
+    show.forEach(function (m) {
+        const li = document.createElement("li");
+        li.className = "list-group-item list-group-item-action py-2 px-2 small staff-menu-suggest-item";
+        li.setAttribute("role", "option");
+        li.dataset.id = String(m.id);
+        let label = m.name;
+        if (m.price != null && Number.isFinite(Number(m.price))) {
+            label +=
+                " — " +
+                Number(m.price).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) +
+                "\u202fđ";
+        }
+        li.textContent = label;
+        ul.appendChild(li);
+    });
+    if (q && !list.length) {
+        const none = document.createElement("li");
+        none.className = "list-group-item py-2 px-2 small text-muted border-0";
+        none.textContent = "Không tìm thấy món phù hợp.";
+        ul.appendChild(none);
+    } else if (q && list.length > STAFF_MENU_SUGGEST_MAX) {
+        const more = document.createElement("li");
+        more.className = "list-group-item py-1 px-2 smaller text-muted border-0";
+        more.textContent =
+            "… còn " + (list.length - STAFF_MENU_SUGGEST_MAX) + " món — gõ thêm ký tự để lọc chính xác hơn.";
+        ul.appendChild(more);
+    }
+    ul.classList.remove("d-none");
+}
+
+function hideAllStaffMenuSuggests() {
+    document.querySelectorAll("#staff-order-lines-body .staff-menu-suggest").forEach(function (ul) {
+        cancelStaffSuggestFrame(ul);
+        ul.classList.add("d-none");
+        ul.innerHTML = "";
+    });
+}
+
+function hideAllStaffMenuPanels() {
+    document.querySelectorAll("#staff-order-lines-body .staff-menu-panel").forEach(function (panel) {
+        panel.classList.add("d-none");
+    });
+    document.querySelectorAll("#staff-order-lines-body .staff-menu-panel-toggle").forEach(function (btn) {
+        btn.setAttribute("aria-expanded", "false");
+    });
+}
+
+function cancelStaffPanelFrame(wrap) {
+    if (!wrap || !wrap._staffPanelRaf) return;
+    cancelAnimationFrame(wrap._staffPanelRaf);
+    wrap._staffPanelRaf = null;
+}
+
+function scheduleStaffPanelRender(wrap) {
+    if (!wrap) return;
+    cancelStaffPanelFrame(wrap);
+    wrap._staffPanelRaf = requestAnimationFrame(function () {
+        wrap._staffPanelRaf = null;
+        renderStaffFullMenuPanel(wrap);
+    });
+}
+
+function hideStaffMenuPanelSingle(wrap) {
+    if (!wrap) return;
+    const panel = wrap.querySelector(".staff-menu-panel");
+    const btn = wrap.querySelector(".staff-menu-panel-toggle");
+    if (panel) panel.classList.add("d-none");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+/** @returns {HTMLElement | null} */
+function staffWalkInClosestComboWrap(el) {
+    const w = el && el.closest && el.closest(".staff-menu-combo-wrap");
+    var body = document.getElementById("staff-order-lines-body");
+    return w && body && body.contains(w) ? w : null;
+}
+
+function applyStaffWalkInMenuPick(wrap, id) {
+    if (!wrap || id == null || id === "") return;
+    const hid = wrap.querySelector(".staff-line-menu-id");
+    const inp = wrap.querySelector(".staff-line-menu-search");
+    const ul = wrap.querySelector(".staff-menu-suggest");
+    const m = staffWalkInMenuItems.find(function (x) {
+        return String(x.id) === String(id);
+    });
+    if (hid) hid.value = String(id);
+    if (inp && m) inp.value = m.name;
+    if (ul) {
+        cancelStaffSuggestFrame(ul);
+        ul.classList.add("d-none");
+        ul.innerHTML = "";
+    }
+    cancelStaffPanelFrame(wrap);
+    hideStaffMenuPanelSingle(wrap);
+}
+
+function getStaffWalkInSortedCategories() {
+    var set = new Set();
+    for (var i = 0; i < staffWalkInMenuItems.length; i++) {
+        var m = staffWalkInMenuItems[i];
+        var c =
+            typeof m.categoryLabel === "string" && m.categoryLabel.trim().length
+                ? m.categoryLabel.trim()
+                : "Khác";
+        set.add(c);
+    }
+    return [...set].sort(function (a, b) {
+        return a.localeCompare(b, "vi");
+    });
+}
+
+function renderStaffFullMenuPanel(wrap) {
+    var scrollEl = wrap.querySelector(".staff-menu-panel-scroll");
+    var catSel = wrap.querySelector(".staff-menu-cat-select");
+    var inp = wrap.querySelector(".staff-line-menu-search");
+    if (!scrollEl || !catSel) return;
+
+    var prevCat = String(catSel.value || "");
+
+    catSel.replaceChildren();
+    var optAll = document.createElement("option");
+    optAll.value = "";
+    optAll.textContent = "Tất cả danh mục";
+    catSel.appendChild(optAll);
+    var allCats = getStaffWalkInSortedCategories();
+    for (var k = 0; k < allCats.length; k++) {
+        var opt = document.createElement("option");
+        opt.value = allCats[k];
+        opt.textContent = allCats[k];
+        catSel.appendChild(opt);
+    }
+    if (prevCat && allCats.indexOf(prevCat) >= 0) {
+        catSel.value = prevCat;
+    } else {
+        catSel.value = "";
+    }
+
+    scrollEl.replaceChildren();
+
+    if (!staffWalkInMenuItems.length) {
+        var empty = document.createElement("div");
+        empty.className = "staff-menu-panel-empty px-3 py-2 small text-muted";
+        empty.textContent = "Chưa có dữ liệu menu.";
+        scrollEl.appendChild(empty);
+        return;
+    }
+
+    var q = normalizeStaffMenuQuery(inp ? inp.value : "");
+    var filtered = staffWalkInMenuItems.slice();
+    if (q) {
+        filtered = filtered.filter(function (m) {
+            return m.nameNorm.includes(q);
+        });
+    }
+    var catFilter = String(catSel.value || "").trim();
+    if (catFilter) {
+        filtered = filtered.filter(function (m) {
+            var c =
+                typeof m.categoryLabel === "string" && m.categoryLabel.trim().length
+                    ? m.categoryLabel.trim()
+                    : "Khác";
+            return c === catFilter;
+        });
+    }
+
+    filtered.sort(function (a, b) {
+        return a.name.localeCompare(b.name, "vi");
+    });
+
+    if (!filtered.length) {
+        var none = document.createElement("div");
+        none.className = "staff-menu-panel-empty px-3 py-2 small text-muted";
+        none.textContent = "Không có món phù hợp.";
+        scrollEl.appendChild(none);
+        return;
+    }
+
+    function appendItemButton(m) {
+        var bt = document.createElement("button");
+        bt.type = "button";
+        bt.className = "staff-menu-panel-item";
+        bt.setAttribute("role", "option");
+        bt.dataset.id = String(m.id);
+        var line = m.name;
+        if (m.price != null && Number.isFinite(Number(m.price))) {
+            line +=
+                " · " +
+                Number(m.price).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) +
+                "\u202fđ";
+        }
+        bt.textContent = line;
+        scrollEl.appendChild(bt);
+    }
+
+    if (catFilter) {
+        for (var j = 0; j < filtered.length; j++) {
+            appendItemButton(filtered[j]);
+        }
+        return;
+    }
+
+    var byCat = new Map();
+    for (var i = 0; i < filtered.length; i++) {
+        var mx = filtered[i];
+        var c =
+            typeof mx.categoryLabel === "string" && mx.categoryLabel.trim().length
+                ? mx.categoryLabel.trim()
+                : "Khác";
+        if (!byCat.has(c)) byCat.set(c, []);
+        byCat.get(c).push(mx);
+    }
+    var cats = [...byCat.keys()].sort(function (a, b) {
+        return a.localeCompare(b, "vi");
+    });
+
+    for (var ci = 0; ci < cats.length; ci++) {
+        var cat = cats[ci];
+        var h = document.createElement("div");
+        h.className = "staff-menu-cat-heading small fw-semibold text-secondary px-2 py-1";
+        h.textContent = cat;
+        scrollEl.appendChild(h);
+
+        var bucket = /** @type {typeof staffWalkInMenuItems} */ (byCat.get(cat));
+        for (var j2 = 0; j2 < bucket.length; j2++) {
+            appendItemButton(bucket[j2]);
+        }
+    }
+}
+
+function syncStaffLineMenuCombosAfterChoicesLoad() {
+    document.querySelectorAll("#staff-order-lines-body tr").forEach(function (tr) {
+        const hid = tr.querySelector(".staff-line-menu-id");
+        const inp = tr.querySelector(".staff-line-menu-search");
+        if (!hid || !inp) return;
+        const id = hid.value;
+        if (!id) return;
+        const m = staffWalkInMenuItems.find(function (x) {
+            return String(x.id) === String(id);
+        });
+        if (m) inp.value = m.name;
+        else {
+            hid.value = "";
+            inp.value = "";
+        }
+    });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -605,7 +904,6 @@ function setHtmlEl(id, htmlTrustedLiteralsFromEscape) {
 }
 
 /* ——— Nhân viên tạo đơn gắn bàn ——— */
-let staffMenuOptionsHtml = "";
 let staffWalkInBootstrapModal = null;
 
 function initStaffWalkInModal() {
@@ -632,7 +930,7 @@ function initStaffWalkInModal() {
         staffWalkInBootstrapModal.show();
         try {
             await ensureStaffWalkInChoices();
-            syncStaffLineMenuDropdownsAfterChoicesLoad();
+            syncStaffLineMenuCombosAfterChoicesLoad();
         } catch (_e) {
             showAlert("Không tải được danh sách bàn hoặc menu. Kiểm tra kết nối và đăng nhập nhân viên.", "error");
         }
@@ -643,15 +941,102 @@ function initStaffWalkInModal() {
         if (g) g.focus();
     });
 
+    modalEl.addEventListener("click", (e) => {
+        if (!e.target.closest(".staff-menu-combo-wrap")) {
+            hideAllStaffMenuSuggests();
+            hideAllStaffMenuPanels();
+        }
+    });
+
     if (addBtn) addBtn.addEventListener("click", () => addStaffOrderLine());
 
     if (tbody) {
+        tbody.addEventListener("change", (e) => {
+            const sel = e.target.closest(".staff-menu-cat-select");
+            if (!sel || !tbody.contains(sel)) return;
+            const wrap = staffWalkInClosestComboWrap(sel);
+            if (!wrap) return;
+            cancelStaffPanelFrame(wrap);
+            renderStaffFullMenuPanel(wrap);
+        });
+
         tbody.addEventListener("click", (e) => {
+            const tgl = e.target.closest(".staff-menu-panel-toggle");
+            if (tgl && tbody.contains(tgl)) {
+                e.preventDefault();
+                e.stopPropagation();
+                const wrap = staffWalkInClosestComboWrap(tgl);
+                if (!wrap) return;
+                const panel = wrap.querySelector(".staff-menu-panel");
+                const wasOpen = panel && !panel.classList.contains("d-none");
+
+                hideAllStaffMenuPanels();
+                hideAllStaffMenuSuggests();
+
+                if (!wasOpen && panel) {
+                    const ul = wrap.querySelector(".staff-menu-suggest");
+                    if (ul) {
+                        cancelStaffSuggestFrame(ul);
+                        ul.classList.add("d-none");
+                        ul.innerHTML = "";
+                    }
+                    panel.classList.remove("d-none");
+                    tgl.setAttribute("aria-expanded", "true");
+                    cancelStaffPanelFrame(wrap);
+                    renderStaffFullMenuPanel(wrap);
+                }
+                return;
+            }
+
             const rm = e.target.closest(".staff-line-remove");
             if (!rm) return;
             const tr = rm.closest("tr");
             const n = tbody.querySelectorAll("tr").length;
             if (tr && n > 1) tr.remove();
+        });
+
+        tbody.addEventListener("mousedown", (e) => {
+            const sug = e.target.closest(".staff-menu-suggest-item");
+            const pit = e.target.closest(".staff-menu-panel-item");
+            const item = sug || pit;
+            if (!item || !tbody.contains(item)) return;
+            e.preventDefault();
+            const id = item.getAttribute("data-id");
+            if (!id) return;
+            const wrap = staffWalkInClosestComboWrap(item);
+            if (!wrap) return;
+            applyStaffWalkInMenuPick(wrap, id);
+        });
+
+        tbody.addEventListener("focusin", (e) => {
+            const inp = e.target.closest(".staff-line-menu-search");
+            if (!inp || !tbody.contains(inp)) return;
+            hideAllStaffMenuPanels();
+            const wrap = inp.closest(".staff-menu-combo-wrap");
+            const ul = wrap && wrap.querySelector(".staff-menu-suggest");
+            if (!ul || !wrap) return;
+            cancelStaffSuggestFrame(ul);
+            cancelStaffPanelFrame(wrap);
+            renderStaffMenuSuggestions(ul, inp.value);
+        });
+
+        tbody.addEventListener("input", (e) => {
+            const inp = e.target.closest(".staff-line-menu-search");
+            if (!inp || !tbody.contains(inp)) return;
+            const wrap = inp.closest(".staff-menu-combo-wrap");
+            if (!wrap) return;
+            const hid = wrap.querySelector(".staff-line-menu-id");
+            if (hid) hid.value = "";
+            const ul = wrap.querySelector(".staff-menu-suggest");
+            const panel = wrap.querySelector(".staff-menu-panel");
+            const panelOpen = panel && !panel.classList.contains("d-none");
+            if (panelOpen) {
+                if (ul) cancelStaffSuggestFrame(ul);
+                scheduleStaffPanelRender(wrap);
+            } else if (ul) {
+                cancelStaffPanelFrame(wrap);
+                scheduleStaffSuggestRender(ul, inp.value);
+            }
         });
     }
 
@@ -680,42 +1065,22 @@ async function ensureStaffWalkInChoices() {
     const resMenu = await fetch(`${BASE_URL}/menu`);
     const jsonMenu = await resMenu.json().catch(() => ({}));
     const menu = Array.isArray(jsonMenu.data) ? jsonMenu.data : [];
-    staffMenuOptionsHtml =
-        `<option value="">${escapeHtml("— Chọn món —")}</option>` +
-        menu
-            .map(function (m) {
-                const name = escapeHtml(String(m.name != null ? m.name : ""));
-                let priceLabel = "";
-                try {
-                    if (m.price != null && !Number.isNaN(Number(m.price))) {
-                        priceLabel =
-                            " — " +
-                            Number(m.price).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) +
-                            "\u202fđ";
-                    }
-                } catch (_) {
-                    priceLabel = "";
-                }
-                return `<option value="${Number(m.id)}">${name}${priceLabel}</option>`;
-            })
-            .join("");
-
-    if (!menu.length) {
-        staffMenuOptionsHtml =
-            `<option value="">${escapeHtml("Không có món — kiểm tra menu hệ thống")}</option>`;
-    }
-}
-
-function syncStaffLineMenuDropdownsAfterChoicesLoad() {
-    const html =
-        staffMenuOptionsHtml && staffMenuOptionsHtml.length
-            ? staffMenuOptionsHtml
-            : `<option value="">${escapeHtml("—")}</option>`;
-    document.querySelectorAll("#staff-order-lines-body .staff-line-menu").forEach((sel) => {
-        const prev = sel.value;
-        sel.innerHTML = html;
-        if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
-    });
+    staffWalkInMenuItems = menu
+        .map(function (m) {
+            var idNum = Number(m.id);
+            var name = String(m.name != null ? m.name : "").trim();
+            var catRaw = String(m.categoryName != null ? m.categoryName : "").trim();
+            return {
+                id: idNum,
+                name: name,
+                price: m.price != null && !Number.isNaN(Number(m.price)) ? Number(m.price) : null,
+                categoryLabel: catRaw.length ? catRaw : "Khác",
+                nameNorm: normalizeStaffMenuQuery(name)
+            };
+        })
+        .filter(function (x) {
+            return Number.isFinite(x.id) && x.id > 0 && x.name.length > 0;
+        });
 }
 
 function resetStaffOrderForm() {
@@ -733,18 +1098,33 @@ function resetStaffOrderForm() {
 function addStaffOrderLine() {
     const tbody = document.getElementById("staff-order-lines-body");
     if (!tbody) return;
-    const inner =
-        staffMenuOptionsHtml && staffMenuOptionsHtml.length ? staffMenuOptionsHtml : `<option value="">—</option>`;
-    tbody.insertAdjacentHTML("beforeend", buildStaffOrderLineRow(inner));
+    tbody.insertAdjacentHTML("beforeend", buildStaffOrderLineRow());
 }
 
-function buildStaffOrderLineRow(innerOptionsHtml) {
-    return `<tr>` +
-        `<td class="ps-2 pt-2"><select class="form-select form-select-sm rounded-3 staff-line-menu" required>${innerOptionsHtml}</select></td>` +
+function buildStaffOrderLineRow() {
+    return (
+        `<tr>` +
+        `<td class="ps-2 pt-2 align-top">` +
+        `<div class="position-relative staff-menu-combo-wrap">` +
+        `<input type="hidden" class="staff-line-menu-id" value="">` +
+        `<div class="d-flex gap-1 align-items-center staff-menu-controls">` +
+        `<input type="text" class="form-control form-control-sm flex-grow-1 rounded-3 staff-line-menu-search" maxlength="200" placeholder="Tìm món hoặc bấm menu…" autocomplete="off">` +
+        `<button type="button" class="btn btn-outline-secondary btn-sm rounded-3 flex-shrink-0 staff-menu-panel-toggle px-2" aria-expanded="false" aria-label="Mở danh mục món" title="Danh mục món">` +
+        `<span class="material-symbols-outlined lh-1" style="font-size:1.2rem">restaurant_menu</span>` +
+        `</button></div>` +
+        `<ul class="list-group position-absolute staff-menu-suggest w-100 d-none shadow-sm rounded-2 border text-start" role="listbox"></ul>` +
+        `<div class="staff-menu-panel position-absolute bg-white rounded-3 border shadow-sm text-start d-none w-100" role="listbox">` +
+        `<div class="staff-menu-panel-toolbar px-2 py-2 border-bottom">` +
+        `<label class="form-label small text-secondary mb-1">Danh mục</label>` +
+        `<select class="form-select form-select-sm staff-menu-cat-select rounded-2" aria-label="Chọn danh mục"></select>` +
+        `</div>` +
+        `<div class="staff-menu-panel-scroll"></div></div>` +
+        `</div></td>` +
         `<td class="pt-2"><input type="number" min="1" step="1" value="1" class="form-control form-control-sm rounded-3 staff-line-qty" required /></td>` +
         `<td class="pt-2"><input type="text" class="form-control form-control-sm rounded-3 staff-line-note" maxlength="200" placeholder="Tuỳ chọn món" /></td>` +
         `<td class="text-end align-middle pe-2"><button type="button" class="btn btn-link text-danger btn-sm py-0 staff-line-remove" title="Xóa">&times;</button></td>` +
-        `</tr>`;
+        `</tr>`
+    );
 }
 
 async function submitStaffWalkInOrder() {
@@ -772,13 +1152,24 @@ async function submitStaffWalkInOrder() {
 
     for (let i = 0; i < rows.length; i++) {
         const tr = rows[i];
-        const menuEl = tr.querySelector(".staff-line-menu");
+        const hid = tr.querySelector(".staff-line-menu-id");
+        const searchInp = tr.querySelector(".staff-line-menu-search");
         const qtyEl = tr.querySelector(".staff-line-qty");
         const lnEl = tr.querySelector(".staff-line-note");
-        const midRaw = menuEl ? menuEl.value : "";
+        const midRaw = hid ? String(hid.value || "").trim() : "";
+        const typed = searchInp ? String(searchInp.value || "").trim() : "";
         const qty = qtyEl ? Number(qtyEl.value) : NaN;
         const ln = lnEl ? String(lnEl.value || "").trim() : "";
-        if (!midRaw) continue;
+        if (!midRaw) {
+            if (typed) {
+                showAlert(
+                    "Chưa ghép được món: gõ ô tìm và chọn trong gợi ý, hoặc bấm biểu tượng thực đơn rồi chọn một món trong danh mục.",
+                    "error"
+                );
+                return;
+            }
+            continue;
+        }
         if (!qty || qty < 1) {
             showAlert("Số lượng mỗi dòng đã chọn món phải ≥ 1.", "error");
             return;
