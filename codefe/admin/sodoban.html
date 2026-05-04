@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="sodoban.css">
 </head>
-<body class="bg-background">
+<body class="bg-background sodoban-page">
 
     <div id="sidebar-container"></div>
     <div id="header-container"></div>
@@ -26,10 +26,10 @@
                     <h2 class="page-title mb-1 text-on-surface">Quản lý Sơ đồ bàn & QR</h2>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-surface-container d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold border-outline-variant">
+                    <button type="button" class="btn btn-surface-container d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold border-outline-variant" id="btn-floor-editor-placeholder" title="Tính năng sơ đồ kéo thả sẽ bổ sung sau">
                         <span class="material-symbols-outlined fs-5">edit_square</span> Chỉnh sửa mặt bằng
                     </button>
-                    <button class="btn btn-primary d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold shadow-primary">
+                    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 rounded-xl px-4 py-2 fw-bold shadow-primary" id="btn-add-table">
                         <span class="material-symbols-outlined fs-5">add</span> Thêm bàn
                     </button>
                 </div>
@@ -46,7 +46,6 @@
                             <label class="form-label small fw-bold mb-1" for="qr-menu-base-url">URL trang menu khách (QR chứa link này + mã bàn)</label>
                             <input type="url" class="form-control form-control-sm rounded-xl" id="qr-menu-base-url"
                                    placeholder="http://host:port/index/menu.html">
-                            <p class="small text-secondary mb-0 mt-2">URL gốc cho QR <strong>tự lấy theo trang admin bạn đang mở</strong> (mỗi lần đổi mạng / IP chỉ cần mở lại admin qua đúng địa chỉ hoặc gõ lại ô này). Trên điện thoại cùng Wi‑Fi: tránh <code>127.0.0.1</code> trong QR. Mặc định tính từ đường dẫn: <code>index/menu.html</code> (muốn landing app: <code>index/qr-menu.html</code>). Production: domain/HTTPS.</p>
                         </div>
                         <div class="qr-list custom-scrollbar pe-2 overflow-y-auto" style="max-height: 480px;" id="qr-list-root">
                             <p class="text-secondary small mb-0">Đang tải danh sách bàn…</p>
@@ -113,9 +112,35 @@
         </div>
     </main>
 
-    <button class="btn-fab-scanner position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center">
-        <span class="material-symbols-outlined fs-2">qr_code_scanner</span>
-    </button>
+    <div class="modal fade" id="modal-table-form" tabindex="-1" aria-labelledby="modal-table-form-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border border-outline-variant bg-surface-container shadow">
+                <div class="modal-header border-bottom border-outline-variant">
+                    <h5 class="modal-title fw-bold" id="modal-table-form-title">Thêm bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-secondary mb-3" id="table-form-hint-add">Tạo bàn mới sẽ sinh mã QR tương ứng trên server.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" for="table-form-number">Số bàn</label>
+                        <input type="text" class="form-control rounded-xl" id="table-form-number" autocomplete="off" placeholder="VD: B12" maxlength="32" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" for="table-form-capacity">Sức chứa (khách)</label>
+                        <input type="number" class="form-control rounded-xl" id="table-form-capacity" min="1" max="99" step="1" placeholder="4" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold" for="table-form-location">Khu / vị trí</label>
+                        <input type="text" class="form-control rounded-xl" id="table-form-location" autocomplete="off" placeholder="Sảnh chính, tầng 2…" maxlength="120" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-outline-variant">
+                    <button type="button" class="btn btn-surface-container rounded-xl px-4 fw-bold" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="button" class="btn btn-primary rounded-xl px-4 fw-bold shadow-primary" id="btn-table-form-submit">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

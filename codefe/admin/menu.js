@@ -20,6 +20,10 @@ const BACKEND_ORIGIN = RESTAURANT_ROOT.replace(/\/api\/?$/, "");
 let currentCategoryId = null;
 let currentViewMode = "grid";
 let categoryCache = [];
+/** Blob URL preview cho modal danh mục (xoá khi đổi form / đóng modal). */
+let categoryEditPreviewObjectUrl = null;
+/** Giá trị option trong `#categoryEditSelect` khi tạo danh mục mới (POST). */
+const CATEGORY_MODAL_NEW = "__new__";
 /** null = thêm món; số = đang sửa */
 let editingMenuItemId = null;
 /** Món đang hiển thị theo API (đã lọc danh mục); ô tìm kiếm lọc cục bộ trên mảng này */
@@ -89,6 +93,78 @@ async function api(url, options = {}) {
         throw new Error(json?.message || "Yeu cau that bai");
     }
     return json;
+}
+
+/** Upload ảnh admin (Cloudinary) — dùng chung cho món và danh mục. */
+async function uploadAdminImageMultipart(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${MENU_ADMIN_BASE}/menu-items/upload-image`, {
+        method: "POST",
+        headers: {
+            Authorization: "Bearer " + getToken()
+        },
+        body: fd
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.success === false) {
+        throw new Error(json?.message || "Upload ảnh thất bại.");
+    }
+    const url = json.data?.imageUrl;
+    if (!url) {
+        throw new Error("Không nhận được URL ảnh sau upload.");
+    }
+    return url;
+}
+
+function setCategoryEditImagePreviewFromStoredUrl(url) {
+    const hid = document.getElementById("categoryEditImageUrl");
+    const prev = document.getElementById("categoryEditImagePreview");
+    const note = document.getElementById("categoryEditImageNote");
+    if (!prev) return;
+    if (hid) hid.value = url || "";
+    if (categoryEditPreviewObjectUrl) {
+        URL.revokeObjectURL(categoryEditPreviewObjectUrl);
+        categoryEditPreviewObjectUrl = null;
+    }
+    const fi = document.getElementById("categoryEditImageFile");
+    const u = (url || "").trim();
+    if (u) {
+        prev.src = resolveImageUrl(u);
+        prev.classList.remove("d-none");
+    } else {
+        prev.src = "";
+        prev.classList.add("d-none");
+    }
+    if (fi) fi.value = "";
+    if (note) note.classList.add("d-none");
+}
+
+function bindCategoryEditImageInput() {
+    const fi = document.getElementById("categoryEditImageFile");
+    const prev = document.getElementById("categoryEditImagePreview");
+    const note = document.getElementById("categoryEditImageNote");
+    if (!fi || !prev) return;
+
+    fi.addEventListener("change", () => {
+        const file = fi.files?.[0];
+        if (!file) {
+            const hid = document.getElementById("categoryEditImageUrl");
+            setCategoryEditImagePreviewFromStoredUrl(hid?.value || "");
+            return;
+        }
+        if (categoryEditPreviewObjectUrl) {
+            URL.revokeObjectURL(categoryEditPreviewObjectUrl);
+            categoryEditPreviewObjectUrl = null;
+        }
+        categoryEditPreviewObjectUrl = URL.createObjectURL(file);
+        prev.src = categoryEditPreviewObjectUrl;
+        prev.classList.remove("d-none");
+        if (note) {
+            note.textContent = "Ảnh sẽ được tải lên khi bấm Lưu (cần cấu hình Cloudinary trên backend).";
+            note.classList.remove("d-none");
+        }
+    });
 }
 
 /** Hiển thị an toàn trong innerHTML template */
@@ -305,8 +381,15 @@ function fillCategoryEditSelect(categories) {
     if (!select) return;
     select.innerHTML = "";
     (categories || []).forEach((c) => {
-        select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        select.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
     });
+    select.innerHTML += `<option value="${CATEGORY_MODAL_NEW}">➕ Thêm danh mục mới</option>`;
+
+    if (categories && categories.length > 0) {
+        select.selectedIndex = 0;
+    } else {
+        select.value = CATEGORY_MODAL_NEW;
+    }
     bindCategoryEditForm();
 }
 
@@ -378,61 +461,125 @@ function openCategoryModal() {
 function bindCategoryEditForm() {
     const select = document.getElementById("categoryEditSelect");
     if (!select) return;
+
+    const title = document.getElementById("categoryModalTitle");
+    const delBtn = document.getElementById("category-delete-btn");
+
+    if (select.value === CATEGORY_MODAL_NEW) {
+        if (title) title.textContent = "Thêm danh mục";
+        if (delBtn) delBtn.classList.add("d-none");
+
+        let nextOrder = 0;
+        (categoryCache || []).forEach((c) => {
+            const s = Number(c.sortOrder);
+            if (!Number.isNaN(s)) nextOrder = Math.max(nextOrder, s + 1);
+        });
+
+        document.getElementById("categoryEditName").value = "";
+        document.getElementById("categoryEditDescription").value = "";
+        document.getElementById("categoryEditSortOrder").value = String(nextOrder);
+        setCategoryEditImagePreviewFromStoredUrl("");
+        return;
+    }
+
+    if (title) title.textContent = "Sửa danh mục";
+    if (delBtn) delBtn.classList.remove("d-none");
+
     const selectedId = Number(select.value);
-    const selected = categoryCache.find((c) => c.id === selectedId) || categoryCache[0];
-    if (!selected) return;
+    const selected =
+        (categoryCache || []).find((c) => c.id === selectedId) || (categoryCache || [])[0];
+    if (!selected) {
+        select.value = CATEGORY_MODAL_NEW;
+        bindCategoryEditForm();
+        return;
+    }
 
     if (select.value !== String(selected.id)) {
         select.value = String(selected.id);
     }
     document.getElementById("categoryEditName").value = selected.name || "";
     document.getElementById("categoryEditDescription").value = selected.description || "";
-    document.getElementById("categoryEditImageUrl").value = selected.imageUrl || "";
     document.getElementById("categoryEditSortOrder").value = selected.sortOrder ?? 0;
+    setCategoryEditImagePreviewFromStoredUrl(selected.imageUrl || "");
 }
 
 async function saveSelectedCategory() {
     const select = document.getElementById("categoryEditSelect");
-    const id = Number(select?.value);
-    if (!id) return;
+    const nameRaw = document.getElementById("categoryEditName")?.value?.trim();
+    const pendingFile = document.getElementById("categoryEditImageFile")?.files?.[0];
+    let imageUrl = document.getElementById("categoryEditImageUrl")?.value?.trim() || "";
+
+    if (pendingFile) {
+        try {
+            imageUrl = await uploadAdminImageMultipart(pendingFile);
+        } catch (err) {
+            showActionToast(err.message || "Không upload được ảnh.", "error");
+            return;
+        }
+    }
 
     const body = {
-        name: document.getElementById("categoryEditName").value.trim(),
+        name: nameRaw || "",
         description: document.getElementById("categoryEditDescription").value.trim(),
-        imageUrl: document.getElementById("categoryEditImageUrl").value.trim(),
+        imageUrl,
         sortOrder: Number(document.getElementById("categoryEditSortOrder").value || 0)
     };
 
     try {
-        await api(`${MENU_ADMIN_BASE}/categories/${id}`, {
-            method: "PUT",
-            body: JSON.stringify(body)
-        });
-        showActionToast("Cap nhat danh muc thanh cong", "success");
-        await loadCategories();
+        if (select.value === CATEGORY_MODAL_NEW) {
+            if (!body.name) {
+                showActionToast("Nhập tên danh mục.", "error");
+                return;
+            }
+            const res = await api(`${MENU_ADMIN_BASE}/categories`, {
+                method: "POST",
+                body: JSON.stringify(body)
+            });
+            showActionToast(res?.message || "Đã tạo danh mục.", "success");
+            const newId = res?.data?.id;
+            await loadCategories();
+            if (newId) {
+                const sel = document.getElementById("categoryEditSelect");
+                if (sel && [...sel.options].some((o) => o.value === String(newId))) {
+                    sel.value = String(newId);
+                    bindCategoryEditForm();
+                }
+            }
+        } else {
+            const id = Number(select?.value);
+            if (!id) return;
+            await api(`${MENU_ADMIN_BASE}/categories/${id}`, {
+                method: "PUT",
+                body: JSON.stringify(body)
+            });
+            showActionToast("Đã cập nhật danh mục.", "success");
+            await loadCategories();
+        }
+
         if (currentCategoryId == null) {
             await loadMenu();
         } else {
             await filterByCategory(currentCategoryId);
         }
     } catch (err) {
-        showActionToast(err.message || "Cap nhat danh muc that bai", "error");
+        showActionToast(err.message || "Không lưu được danh mục.", "error");
     }
 }
 
 async function deleteSelectedCategory() {
     const select = document.getElementById("categoryEditSelect");
+    if (select.value === CATEGORY_MODAL_NEW) return;
     const id = Number(select?.value);
     if (!id) return;
-    if (!confirm("Ban co chac muon xoa danh muc nay?")) return;
+    if (!confirm("Bạn có chắc muốn xóa danh mục này?")) return;
     try {
         await api(`${MENU_ADMIN_BASE}/categories/${id}`, { method: "DELETE" });
-        showActionToast("Xoa danh muc thanh cong", "success");
+        showActionToast("Đã xóa danh mục.", "success");
         currentCategoryId = null;
         await loadCategories();
         await loadMenu();
     } catch (err) {
-        showActionToast(err.message || "Xoa danh muc that bai", "error");
+        showActionToast(err.message || "Không xóa được danh mục.", "error");
     }
 }
 
@@ -583,7 +730,7 @@ function bindUploadImageInput() {
             preview.src = "";
             preview.classList.add("d-none");
             if (uploadNote) {
-                uploadNote.textContent = "Chua co anh duoc chon.";
+                uploadNote.textContent = "Chưa có ảnh được chọn.";
                 uploadNote.classList.remove("d-none");
             }
             return;
@@ -622,8 +769,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const categoryModalEl = document.getElementById("categoryModal");
     if (categoryModalEl) {
         categoryModalInstance = new bootstrap.Modal(categoryModalEl);
+        categoryModalEl.addEventListener("hidden.bs.modal", () => {
+            if (categoryEditPreviewObjectUrl) {
+                URL.revokeObjectURL(categoryEditPreviewObjectUrl);
+                categoryEditPreviewObjectUrl = null;
+            }
+            const fi = document.getElementById("categoryEditImageFile");
+            if (fi) fi.value = "";
+            const hid = document.getElementById("categoryEditImageUrl");
+            const prev = document.getElementById("categoryEditImagePreview");
+            const u = hid?.value?.trim() || "";
+            if (prev) {
+                if (u) {
+                    prev.src = resolveImageUrl(u);
+                    prev.classList.remove("d-none");
+                } else {
+                    prev.src = "";
+                    prev.classList.add("d-none");
+                }
+            }
+        });
     }
     document.getElementById("categoryEditSelect")?.addEventListener("change", bindCategoryEditForm);
+    bindCategoryEditImageInput();
     bindUploadImageInput();
     bindMenuSearchInput();
     syncViewModeToggleStyles();

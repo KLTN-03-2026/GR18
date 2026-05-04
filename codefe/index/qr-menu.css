@@ -27,6 +27,11 @@
 /* ——— Landing ——— */
 .qr-landing {
     max-width: 100%;
+    box-sizing: border-box;
+    /* Đẩy khối tìm kiếm + menu xuống dưới fold: màn đầu chỉ thấy branding & CTA */
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100dvh - 4rem);
+    min-height: calc(100svh - 4rem);
 }
 
 .qr-brand-name {
@@ -199,8 +204,9 @@
     color: #2c2c2c;
 }
 
-/* Nút CTA chính */
+/* Nút CTA chính — margin-top tách khỏi lưới 3 ô, đẩy nút xuống rõ hơn */
 .qr-cta-main {
+    margin-top: 2rem;
     border: none;
     border-radius: 16px;
     padding: 0.9rem 1rem;

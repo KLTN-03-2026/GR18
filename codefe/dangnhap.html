@@ -55,6 +55,9 @@
                                 <hr class="flex-grow-1" />
                             </div>
 
+                            <!-- Google Sign-In: lỗi 400 origin_mismatch = vào GCP → OAuth client (Web)
+                                 → Authorized JavaScript origins → thêm ĐÚNG origin (scheme+host+cổng), ví dụ:
+                                 http://127.0.0.1:5501 và http://localhost:5501 (hai origin khác nhau). -->
                             <div class="d-flex justify-content-center mb-4">
                                 <div id="g_id_onload"
                                      data-client_id="69603544612-rb1t7phvocsqs89p8ap2sj0dtb82tbig.apps.googleusercontent.com"
