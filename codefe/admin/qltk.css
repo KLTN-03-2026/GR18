@@ -236,11 +236,6 @@ body.qltk-page .text-success.fw-medium {
 }
 
 .user-row .action-btns {
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.user-row:hover .action-btns {
     opacity: 1;
 }
 

@@ -385,6 +385,12 @@ function bindOrderTableRowOpens() {
     const tbody = document.getElementById("order-table-body");
     if (!tbody) return;
     tbody.addEventListener("click", (e) => {
+        const detailHist = e.target.closest("button.order-history-detail");
+        if (detailHist && detailHist.dataset.orderId != null && detailHist.dataset.orderId !== "") {
+            const id = Number(detailHist.dataset.orderId);
+            if (Number.isFinite(id)) openOrderDetail(id);
+            return;
+        }
         if (e.target.closest("button")) return;
         const tr = e.target.closest("tr[data-order-id]");
         if (!tr) return;
@@ -559,7 +565,7 @@ function renderRow(order) {
     )}</td>
             <td class="fw-bold text-primary">${formatCurrency(order.totalAmount)}</td>
             <td><span class="badge-status ${statusClassForOrder(order)}">${orderStatusLabel(order)}</span></td>
-            <td class="text-end pe-4" onclick="event.stopPropagation()" role="presentation">
+            <td class="text-end pe-4 order-actions-cell" role="presentation">
                 ${renderActionButtons(order)}
             </td>
         </tr>
@@ -574,7 +580,7 @@ function renderPaymentControls(orderId) {
 
 function renderActionButtons(order) {
     if (viewMode === "HISTORY") {
-        return `<span class="small text-muted">Chi tiết</span>`;
+        return `<button type="button" class="btn btn-link btn-sm p-0 order-history-detail text-primary text-decoration-underline fw-semibold" data-order-id="${order.id}" title="Xem chi tiết đơn">Chi tiết</button>`;
     }
     if (order.status === "PENDING") {
         return `<button class="btn btn-settle" onclick="updateOrderStatus(${order.id}, 'PREPARING')">Xác nhận & chuyển bếp</button>`;
