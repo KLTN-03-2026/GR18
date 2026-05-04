@@ -152,12 +152,15 @@
                 <input id="categoryEditName" type="text" class="form-control mb-3 bg-dark text-white border-secondary" placeholder="Tên danh mục">
                 <label class="form-label small text-secondary">Mô tả</label>
                 <textarea id="categoryEditDescription" class="form-control mb-3 bg-dark text-white border-secondary" rows="2" placeholder="Mô tả"></textarea>
-                <label class="form-label small text-secondary">URL ảnh</label>
-                <input id="categoryEditImageUrl" type="text" class="form-control mb-3 bg-dark text-white border-secondary" placeholder="https://...">
+                <label class="form-label small text-secondary">Ảnh danh mục</label>
+                <input id="categoryEditImageFile" type="file" class="form-control mb-2 bg-dark text-white border-secondary" accept="image/*">
+                <p id="categoryEditImageNote" class="small text-secondary mb-2 d-none"></p>
+                <input type="hidden" id="categoryEditImageUrl" value="">
+                <img id="categoryEditImagePreview" alt="Xem trước ảnh danh mục" class="rounded border border-secondary mb-3 d-none mx-auto" style="max-height:160px;max-width:100%;object-fit:contain;">
                 <label class="form-label small text-secondary">Thứ tự hiển thị</label>
                 <input id="categoryEditSortOrder" type="number" class="form-control mb-4 bg-dark text-white border-secondary" placeholder="0">
                 <div class="d-flex flex-wrap justify-content-between gap-2 pt-1">
-                    <button type="button" class="btn btn-outline-danger" onclick="deleteSelectedCategory()">Xóa danh mục</button>
+                    <button type="button" class="btn btn-outline-danger" id="category-delete-btn" onclick="deleteSelectedCategory()">Xóa danh mục</button>
                     <div class="d-flex gap-2 ms-auto">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
                         <button type="button" class="btn btn-primary" onclick="saveSelectedCategory()">Lưu</button>

@@ -9,6 +9,20 @@ let orderDetailModalInstance = null;
 let viewMode = "ACTIVE";
 let ordersPollTimer = null;
 
+/** Hiển thị trạng thái bàn (API trả enum tiếng Anh) → tiếng Việt */
+const TABLE_STATUS_VI = {
+    AVAILABLE: "Trống",
+    OCCUPIED: "Đang dùng",
+    RESERVED: "Đã đặt",
+    CLEANING: "Đang dọn"
+};
+
+function formatTableStatusVi(raw) {
+    if (raw == null) return "";
+    const key = String(raw).trim().toUpperCase();
+    return TABLE_STATUS_VI[key] || String(raw).trim();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     if (!token) {
         window.location.href = "../dangnhap.html";
@@ -656,7 +670,9 @@ async function ensureStaffWalkInChoices() {
         active
             .map(function (t) {
                 const num = escapeHtml(String(t.tableNumber != null ? t.tableNumber : "Bàn " + t.id));
-                const st = escapeHtml(String(t.status != null ? t.status : ""));
+                const stRaw = t.status != null ? t.status : "";
+                const stVi = formatTableStatusVi(stRaw);
+                const st = stVi ? escapeHtml(stVi) : "";
                 return `<option value="${Number(t.id)}">${num}${st ? " · " + st : ""}</option>`;
             })
             .join("");
