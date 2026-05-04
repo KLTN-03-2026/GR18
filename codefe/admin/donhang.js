@@ -1,3 +1,8 @@
+/**
+ * US18 / PB18 — Điều phối đơn: chỉ PATCH trạng thái tiến độ phục vụ (Order.status:
+ * PENDING, PREPARING, SERVING, COMPLETED …). Không gọi API thanh toán tại đây — payment_status / PAID là US20 / PB20 (qlthanhtoan.js).
+ */
+
 const BASE_URL = "http://localhost:8080/api";
 const token = localStorage.getItem("accessToken");
 
@@ -572,10 +577,17 @@ function renderRow(order) {
     `;
 }
 
-function renderPaymentControls(orderId) {
-    const payCash = `<button type="button" class="btn btn-settle" onclick="processStaffPayment(${orderId}, 'CASH')">Tiền mặt</button>`;
-    const payQr = `<button type="button" class="btn btn-table-action" onclick="processStaffPayment(${orderId}, 'QR_CODE')">QR / CK</button>`;
-    return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end">${payCash}${payQr}</div>`;
+/** Liên kết sang Thu ngân (US20); nhảy tới hóa đơn nhờ ?focusOrder= */
+function cashierHref(orderId) {
+    return `qlthanhtoan.html?focusOrder=${encodeURIComponent(String(orderId))}`;
+}
+
+function renderGoToCashier(orderId) {
+    const href = escapeHtml(cashierHref(orderId));
+    return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end align-items-center">
+            <span class="small text-secondary d-none d-xl-inline me-1">Chờ thu · chuyển quầy</span>
+            <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán (US20)</a>
+        </div>`;
 }
 
 function renderActionButtons(order) {
@@ -589,21 +601,9 @@ function renderActionButtons(order) {
         return `<button class="btn btn-table-action" onclick="updateOrderStatus(${order.id}, 'SERVING')">Đánh dấu phục vụ</button>`;
     }
     if (needsStaffPayment(order)) {
-        return renderPaymentControls(order.id);
+        return renderGoToCashier(order.id);
     }
     return `<span class="small text-secondary">Không có thao tác</span>`;
-}
-
-async function processStaffPayment(orderId, method) {
-    const label = method === "CASH" ? "tiền mặt" : "QR/chuyển khoản";
-    if (!window.confirm(`Xác nhận đã thu (${label}) cho đơn #${orderId}?`)) return;
-    try {
-        await api(`/staff/orders/${orderId}/payment?method=${encodeURIComponent(method)}`, { method: "PATCH" });
-        showAlert(`Đã thanh toán đơn #${orderId} (${label}). Đơn hoàn tất.`, "success");
-        await reloadCurrentOrderLists();
-    } catch (err) {
-        showAlert(err.message || "Thu tiền thất bại.", "error");
-    }
 }
 
 async function updateOrderStatus(orderId, status) {
@@ -860,7 +860,14 @@ function fillOrderDetailModal(d, fallbackOrderId) {
     }
 
     const payEl = document.getElementById("detail-payment");
-    if (payEl) payEl.innerHTML = translatePayment(d.paymentStatus, d.paymentMethod, d.paidAt);
+    const summaryPay = { status: d.status, paymentStatus: d.paymentStatus };
+    let payHtml = translatePayment(d.paymentStatus, d.paymentMethod, d.paidAt);
+    if (needsStaffPayment(summaryPay) && d.id != null) {
+        payHtml += `<div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+            <a class="btn btn-outline-secondary btn-sm rounded-3" href="${escapeHtml(cashierHref(d.id))}">Xử lý thanh toán tại màn Thu ngân (US20)</a>
+        </div>`;
+    }
+    if (payEl) payEl.innerHTML = payHtml;
 
     setTextEl("detail-created", formatDateTime(d.createdAt));
 

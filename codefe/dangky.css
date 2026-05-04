@@ -50,6 +50,17 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.feature-item.qr-demo-banner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.qr-demo-img {
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
 /* Floating icons */
 .social-floating {
     position: absolute;

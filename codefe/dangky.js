@@ -5,6 +5,33 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    /** QR thử — khớp seed DB / admin sodobán: demo-qr-b01 */
+    const DEMO_QR_TOKEN = 'demo-qr-b01';
+
+    function initDemoQrLink() {
+        const imgEl = document.getElementById('demo-qr-img');
+        const openEl = document.getElementById('demo-qr-open');
+        if (!imgEl && !openEl) return;
+        let menuUrl = '';
+        try {
+            menuUrl = new URL('index/qr-menu.html?t=' + encodeURIComponent(DEMO_QR_TOKEN), window.location.href).href;
+        } catch (_) {
+            menuUrl = '';
+        }
+        if (!menuUrl) return;
+        if (openEl) {
+            openEl.setAttribute('href', menuUrl);
+        }
+        if (imgEl) {
+            imgEl.alt = 'QR mở menu tại bàn (thử nghiệm)';
+            imgEl.src =
+                'https://api.qrserver.com/v1/create-qr-code/?size=160x160&charset-source=UTF-8&data=' +
+                encodeURIComponent(menuUrl);
+        }
+    }
+
+    initDemoQrLink();
+
     if (typeof toastr !== 'undefined') {
         toastr.options = {
             closeButton: true,
