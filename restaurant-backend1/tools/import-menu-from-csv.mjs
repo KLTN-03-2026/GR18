@@ -10,7 +10,6 @@ const MAX_ITEMS = Number(process.env.MAX_ITEMS || "0"); // 0 = all
 const AUTO_CREATE_CATEGORIES = String(process.env.AUTO_CREATE_CATEGORIES || "true").toLowerCase() !== "false";
 const CATEGORY_ID_BY_RANGE = {
   KHAI_VI: Number(process.env.CAT_ID_KHAI_VI || "13"),
-  SALAD: Number(process.env.CAT_ID_SALAD || "2"),
   SUSHI: Number(process.env.CAT_ID_SUSHI || "5"),
   SASHIMI: Number(process.env.CAT_ID_SASHIMI || "6"),
   THIT_THUONG_HANG: Number(process.env.CAT_ID_THIT_THUONG_HANG || "14"),
@@ -22,7 +21,7 @@ const CATEGORY_ID_BY_RANGE = {
 
 const CATEGORY_ALIAS = {
   "món ăn phụ": "Khai Vị",
-  "salad": "Salad",
+  "salad": "Khai Vị",
   "sushi": "Sushi",
   "sashimi": "Sashimi",
   "thịt thượng hạng": "Thịt thượng hạng",
@@ -33,8 +32,7 @@ const CATEGORY_ALIAS = {
 };
 
 const STT_CATEGORY_RANGES = [
-  { from: 1, to: 20, name: "Khai Vị", key: "KHAI_VI" },
-  { from: 21, to: 39, name: "Salad", key: "SALAD" },
+  { from: 1, to: 39, name: "Khai Vị", key: "KHAI_VI" },
   { from: 40, to: 89, name: "Sushi", key: "SUSHI" },
   { from: 90, to: 121, name: "Sashimi", key: "SASHIMI" },
   { from: 122, to: 134, name: "Thịt thượng hạng", key: "THIT_THUONG_HANG" },
