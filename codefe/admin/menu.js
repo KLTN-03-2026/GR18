@@ -297,7 +297,11 @@ async function deleteItem(id) {
         await api(`${MENU_ADMIN_BASE}/menu-items/${id}`, {
             method: "DELETE"
         });
-        loadMenu();
+        if (currentCategoryId == null) {
+            await loadMenu();
+        } else {
+            await filterByCategory(currentCategoryId);
+        }
         showActionToast("Xoa mon thanh cong", "success");
     } catch (err) {
         showActionToast(err.message || "Xoa mon that bai", "error");
@@ -310,7 +314,11 @@ async function toggleAvailable(id, isAvailable) {
         method: "PATCH"
     });
 
-    loadMenu();
+    if (currentCategoryId == null) {
+        await loadMenu();
+    } else {
+        await filterByCategory(currentCategoryId);
+    }
 }
 
 // ===== Thêm / Sửa món (cùng modal) =====
@@ -358,7 +366,11 @@ async function submitMenuModal() {
             showActionToast("Đã thêm món.", "success");
         }
         menuModalInstance?.hide();
-        loadMenu();
+        if (currentCategoryId == null) {
+            await loadMenu();
+        } else {
+            await filterByCategory(currentCategoryId);
+        }
     } catch (err) {
         console.error("Lưu món:", err);
         showActionToast(err.message || "Không lưu được món.", "error");

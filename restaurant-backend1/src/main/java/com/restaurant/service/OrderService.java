@@ -31,9 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +75,45 @@ public class OrderService {
         return toStaffOrderResponse(detail);
     }
 
+    /**
+     * Gắn đơn gọi qua QR (không JWT) với tài khoản đặt bàn để khách có thể xem lại qua GET /orders/me sau khi thanh toán.
+     * <ul>
+     *   <li>Ưu tiên reservation ARRIVED trên đúng bàn (khách đã đến).</li>
+     *   <li>Không có thì fallback reservation CONFIRMED cùng bàn, trong cùng ngày hiện tại (timezone server), có user — chọn bản cập nhật gần nhất.</li>
+     * </ul>
+     */
+    private Reservation resolveReservationLinkingQrOrder(RestaurantTable table) {
+        return reservationRepository
+                .findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(table.getId(), ReservationStatus.ARRIVED)
+                .orElseGet(() -> fallbackTodayConfirmedReservationForTable(table));
+    }
+
+    private Reservation fallbackTodayConfirmedReservationForTable(RestaurantTable table) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime dayStart = today.atStartOfDay();
+        LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
+
+        List<Reservation> confirmed =
+                reservationRepository.findByTableIdAndStatus(table.getId(), ReservationStatus.CONFIRMED);
+        Reservation best = null;
+        LocalDateTime bestRank = LocalDateTime.MIN;
+        for (Reservation r : confirmed) {
+            if (r.getUser() == null) {
+                continue;
+            }
+            LocalDateTime rt = r.getReservationTime();
+            if (rt == null || rt.isBefore(dayStart) || !rt.isBefore(dayEnd)) {
+                continue;
+            }
+            LocalDateTime rank = r.getUpdatedAt() != null ? r.getUpdatedAt() : rt;
+            if (best == null || rank.isAfter(bestRank)) {
+                best = r;
+                bestRank = rank;
+            }
+        }
+        return best;
+    }
+
     private Order placeOrderInternal(
             RestaurantTable table,
             Long userIdFromRequestOrNull,
@@ -82,11 +121,7 @@ public class OrderService {
             String note,
             List<OrderRequest.OrderItemRequest> itemRequests) {
 
-        Optional<Reservation> seated =
-                reservationRepository.findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(
-                        table.getId(), ReservationStatus.ARRIVED);
-
-        Reservation linkedReservation = seated.orElse(null);
+        Reservation linkedReservation = resolveReservationLinkingQrOrder(table);
         User resolvedUser = null;
         if (linkedReservation != null
                 && userIdFromRequestOrNull == null

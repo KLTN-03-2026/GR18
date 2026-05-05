@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <td>${date}</td>
                     <td><b class="text-primary">Đơn món</b></td>
-                    <td class="text-start ps-4">${brief}</td>
+                    <td>${brief}</td>
                     <td><span class="${badgeClass}">${st}</span></td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm px-3"
@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr>
                         <td>${date}</td>
                         <td><b class="text-primary">Đơn món</b></td>
-                        <td class="text-start ps-4">${brief}</td>
+                        <td>${brief}</td>
                         <td><span class="${badgeClass}">${st}</span></td>
                         <td>
                             <button type="button" class="btn btn-outline-danger btn-sm px-3"

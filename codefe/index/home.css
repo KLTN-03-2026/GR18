@@ -47,6 +47,12 @@ body {
     width: 100%;
 }
 
+.combo-desc {
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 38rem;
+}
+
 /* Footer Map */
 .map-box {
     border-radius: 4px;

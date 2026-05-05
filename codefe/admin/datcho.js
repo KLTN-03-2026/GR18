@@ -220,7 +220,19 @@ async function confirmBooking(id) {
 
 async function confirmArrival(id) {
     const r = reservations.find(x => x.id === id);
-    let tableId = r?.tableId != null ? r.tableId : null;
+    let tableId =
+        r?.tableId != null && Number(r.tableId) > 0 ? Number(r.tableId) : null;
+
+    /** id từ API có thể cũ (bàn đổi/nhập tay) → kiểm tra với ds bàn hiện tại */
+    if (tableId != null && !staffTables.some((x) => Number(x.id) === tableId)) {
+        tableId = null;
+        if (!staffTables.length) {
+            alert("Không tải được danh sách bàn. Tải lại trang rồi thử Khách đã đến.");
+            await loadStaffTables();
+            return;
+        }
+    }
+
     if (tableId == null) {
         const hint = r?.tableNumber ? ` (gợi ý: ${r.tableNumber})` : "";
         const num = prompt(`Nhập số bàn thực tế khách ngồi${hint}:`, r?.tableNumber || "");

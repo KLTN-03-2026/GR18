@@ -248,17 +248,64 @@ public class ReservationService {
      */
     @Transactional
     public boolean markArrivedByStaff(Long id, Long tableId) {
+        Long bindTableId = resolveTableIdForMarkArrived(id, tableId);
         int updated = jdbcTemplate.update(
                 "UPDATE reservations SET status = ?, " +
                         "table_id = COALESCE(?, table_id), " +
                         "arrived_at = NOW(), " +
                         "updated_at = NOW() WHERE id = ? AND status = ?",
                 "ARRIVED",
-                tableId,
+                bindTableId,
                 id,
                 "CONFIRMED"
         );
         return updated > 0;
+    }
+
+    /**
+     * {@code requestedTableId}: từ body PATCH (null → giữ table_id hiện tại của đặt bàn).
+     * Nếu không gửi bàn và đặt chỗ đang chưa có table_id → bắt buộc gán ít nhất một bàn tồn tại trong DB.
+     */
+    private Long resolveTableIdForMarkArrived(Long reservationId, Long requestedTableId) {
+        if (requestedTableId != null && requestedTableId <= 0) {
+            throw new IllegalArgumentException("tableId không hợp lệ (phải là id bàn có trong hệ thống, > 0).");
+        }
+        Long currentTableId = jdbcTemplate.query(
+                "SELECT table_id FROM reservations WHERE id = ? LIMIT 1",
+                rs -> {
+                    if (!rs.next()) {
+                        throw new IllegalArgumentException("Không tìm thấy đặt bàn id=" + reservationId + ".");
+                    }
+                    Object o = rs.getObject("table_id");
+                    return o == null ? null : rs.getLong("table_id");
+                },
+                reservationId);
+
+        if (requestedTableId != null) {
+            assertRestaurantTableExistsAndActive(requestedTableId);
+            return requestedTableId;
+        }
+
+        if (currentTableId == null || currentTableId <= 0) {
+            throw new IllegalArgumentException(
+                    "Đặt bàn chưa gắn bàn. Khi nhấn «Đã đến», hãy nhập số bàn thực tế (frontend) hoặc gán "
+                            + "`table_id` hợp lệ trong DB.");
+        }
+        assertRestaurantTableExistsAndActive(currentTableId);
+        return null;
+    }
+
+    private void assertRestaurantTableExistsAndActive(Long tableId) {
+        Long n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM restaurant_tables WHERE id = ? AND COALESCE(is_active, TRUE) = TRUE",
+                Long.class,
+                tableId);
+        if (n == null || n < 1) {
+            throw new IllegalArgumentException(
+                    "Không có bàn id="
+                            + tableId
+                            + " hoặc bàn đã ngưng dùng. Hãy tải lại danh sách bàn (admin) và chọn đúng id trong `restaurant_tables`.");
+        }
     }
 
     @Transactional

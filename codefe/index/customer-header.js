@@ -81,6 +81,121 @@
         }
     }
 
+    function getApiBase() {
+        var b =
+            typeof window.RESTAURANT_API_BASE === "string" && window.RESTAURANT_API_BASE.trim()
+                ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, "")
+                : "http://127.0.0.1:8080/api";
+        return b;
+    }
+
+    function persistUserPhone(phone) {
+        try {
+            var raw = localStorage.getItem("userInfo");
+            var u = raw ? JSON.parse(raw) : {};
+            u.phone = phone;
+            localStorage.setItem("userInfo", JSON.stringify(u));
+        } catch (e) {}
+    }
+
+    function bindPhoneEditor() {
+        var displayRow = document.getElementById("phone-display-row");
+        var editRow = document.getElementById("phone-edit-row");
+        var phoneSpan = document.getElementById("dropdownPhone");
+        var input = document.getElementById("phone-input");
+        var errEl = document.getElementById("phone-edit-err");
+        var btnEdit = document.getElementById("btn-phone-edit");
+        var btnSave = document.getElementById("btn-phone-save");
+        var btnCancel = document.getElementById("btn-phone-cancel");
+        if (!btnEdit || !editRow || !displayRow || !btnSave || !btnCancel) return;
+
+        function showErr(msg) {
+            if (!errEl) return;
+            errEl.textContent = msg || "";
+            errEl.classList.toggle("d-none", !msg);
+        }
+
+        function closeEdit() {
+            editRow.classList.add("d-none");
+            displayRow.classList.remove("d-none");
+            showErr("");
+        }
+
+        function openEdit() {
+            var u = parseUser();
+            var cur = u.phone ? String(u.phone).replace(/\D/g, "") : "";
+            if (input) input.value = cur.slice(0, 10);
+            showErr("");
+            displayRow.classList.add("d-none");
+            editRow.classList.remove("d-none");
+            if (input) input.focus();
+        }
+
+        btnEdit.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openEdit();
+        });
+        btnCancel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeEdit();
+        });
+        btnSave.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var raw = input && input.value ? String(input.value).trim().replace(/\D/g, "") : "";
+            if (raw.length !== 10) {
+                showErr("Vui lòng nhập đúng 10 chữ số.");
+                return;
+            }
+            var token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+            if (!token) {
+                showErr("Phiên đăng nhập không hợp lệ.");
+                return;
+            }
+            btnSave.disabled = true;
+            fetch(getApiBase() + "/customer/profile/phone", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + token
+                },
+                body: JSON.stringify({ phone: raw })
+            })
+                .then(function (res) {
+                    return res.json().then(function (j) {
+                        return { ok: res.ok, j: j };
+                    });
+                })
+                .then(function (x) {
+                    btnSave.disabled = false;
+                    if (!x.ok || x.j.success === false) {
+                        showErr(x.j.message || "Không lưu được.");
+                        return;
+                    }
+                    var newPhone =
+                        x.j.data && typeof x.j.data.phone === "string" ? x.j.data.phone : raw;
+                    persistUserPhone(newPhone);
+                    if (phoneSpan) phoneSpan.textContent = newPhone;
+                    closeEdit();
+                })
+                .catch(function () {
+                    btnSave.disabled = false;
+                    showErr("Lỗi kết nối. Thử lại sau.");
+                });
+        });
+
+        if (input) {
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    btnSave.click();
+                }
+            });
+        }
+    }
+
     function initials(name) {
         var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
         if (!parts.length) return "U";
@@ -253,13 +368,11 @@
         if (guestAuth) guestAuth.style.display = "none";
     }
 
-    async function logout() {
+            async function logout() {
         var token = localStorage.getItem("accessToken");
         try {
             if (token) {
-                var apiBase = (typeof window.RESTAURANT_API_BASE === "string" && window.RESTAURANT_API_BASE.trim())
-                    ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, "")
-                    : "http://127.0.0.1:8080/api";
+                var apiBase = getApiBase();
                 await fetch(apiBase + "/auth/logout", {
                     method: "POST",
                     headers: { Authorization: "Bearer " + token }
@@ -330,6 +443,8 @@
                 logout();
             });
         }
+
+        bindPhoneEditor();
 
         markActiveNav();
         markAuthNavHighlight();

@@ -36,11 +36,46 @@ let _pageSize = 16;
 let _hienTai = 16;
 let _qrCategoryKey = "__all";
 const DEMO_MENU = [
-    { id: 9001, name: "Combo gia đình 4 người", price: 490000, avgRating: 4.6, categoryName: "Combo Ưu Đãi" },
-    { id: 9002, name: "Cơm chiên hải sản", price: 89000, avgRating: 4.5, categoryName: "Món Chính" },
-    { id: 9003, name: "Mỳ Ý bò bằm", price: 99000, avgRating: 4.3, categoryName: "Món Chính" },
-    { id: 9004, name: "Salad cá ngừ", price: 79000, avgRating: 4.2, categoryName: "Khai Vị" },
-    { id: 9005, name: "Trà đào cam sả", price: 45000, avgRating: 4.7, categoryName: "Đồ Uống" }
+    {
+        id: 9001,
+        name: "Combo gia đình 4 người",
+        price: 490000,
+        avgRating: 4.6,
+        categoryName: "Combo Ưu Đãi",
+        description: "Phần combo đủ cho 4 người — lẩu, nướng & tráng miệng."
+    },
+    {
+        id: 9002,
+        name: "Cơm chiên hải sản",
+        price: 89000,
+        avgRating: 4.5,
+        categoryName: "Món Chính",
+        description: "Cơm rang giòn, tôm mực tươi, trứng và rau củ."
+    },
+    {
+        id: 9003,
+        name: "Mỳ Ý bò bằm",
+        price: 99000,
+        avgRating: 4.3,
+        categoryName: "Món Chính",
+        description: "Sốt Bolognese đậm vị, phủ phô mai parmesan."
+    },
+    {
+        id: 9004,
+        name: "Salad cá ngừ",
+        price: 79000,
+        avgRating: 4.2,
+        categoryName: "Khai Vị",
+        description: "Cá ngừ đóng hộp, salad rau tươi, sốt mè rang."
+    },
+    {
+        id: 9005,
+        name: "Trà đào cam sả",
+        price: 45000,
+        avgRating: 4.7,
+        categoryName: "Đồ Uống",
+        description: "Trà ô long, đào miếng thật, cam & sả tươi."
+    }
 ];
 
 // ============================================================
@@ -428,7 +463,12 @@ function searchMenu(keyword) {
                 .toLowerCase()
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "");
-            return name.includes(q);
+            const descRaw = item.description || item.moTa || "";
+            const desc = String(descRaw)
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+            return name.includes(q) || desc.includes(q);
         })
     );
 
@@ -559,7 +599,7 @@ function renderItem(item) {
     const descTrim = String(desc || "").trim();
     const descHtml = descTrim
         ? `<div class="menu-card-desc">${escapeHtml(descTrim)}</div>`
-        : "";
+        : `<div class="menu-card-desc menu-card-desc--placeholder"><span aria-hidden="true">—</span></div>`;
 
     return `
         <div class="col-6 col-md-4 col-lg-3">

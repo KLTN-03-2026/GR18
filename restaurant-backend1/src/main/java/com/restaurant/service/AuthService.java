@@ -124,8 +124,27 @@ public class AuthService {
                 .userId(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .role(user.getRole())
                 .build();
+    }
+
+    /**
+     * Khách (hoặc tài khoản đã đăng nhập) cập nhật số điện thoại — 10 chữ số, không trùng user khác.
+     */
+    public String updateCustomerPhone(Long userId, String phoneDigits) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+        if (phoneDigits == null || !phoneDigits.matches("\\d{10}")) {
+            throw new IllegalArgumentException("Số điện thoại phải gồm đúng 10 chữ số");
+        }
+        String current = user.getPhone();
+        if (!phoneDigits.equals(current) && userRepository.existsByPhone(phoneDigits)) {
+            throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+        }
+        user.setPhone(phoneDigits);
+        userRepository.save(user);
+        return phoneDigits;
     }
     public AuthResponse loginWithGoogleRequest(Map<String, String> requestBody) {
         if (requestBody == null) {

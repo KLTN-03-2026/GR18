@@ -39,8 +39,22 @@ body { font-family: 'Segoe UI', sans-serif; }
 .custom-table thead {
     background-color: #D9D9D9;
 }
-.custom-table th { padding: 20px; text-align: center; }
-.custom-table td { padding: 15px; text-align: center; background: white; border-bottom: 1px solid #eee; }
+/* Căn giữa tiêu đề + nội dung (kể cả badge, nút) */
+.history-card .table.custom-table > :is(thead, tbody) > tr > th,
+.history-card .table.custom-table > :is(thead, tbody) > tr > td {
+    padding: 15px 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+.history-card .table.custom-table thead > tr > th {
+    padding-top: 18px;
+    padding-bottom: 18px;
+    font-weight: 600;
+}
+.history-card .table.custom-table tbody > tr > td {
+    background: white;
+    border-bottom: 1px solid #eee;
+}
 
 /* Trạng thái (Badge) */
 .badge {

@@ -51,9 +51,10 @@ body {
 }
 
 .feature-item.qr-demo-banner {
-    width: 100%;
+    width: fit-content;
     max-width: 100%;
     min-width: 0;
+    align-self: flex-start;
 }
 
 .qr-demo-img {
@@ -91,6 +92,9 @@ body {
 @media (max-width: 991px) {
     .feature-item {
         margin: 0 auto;
+    }
+    .feature-item.qr-demo-banner {
+        align-self: center;
     }
     .hero-section {
         padding: 50px 0;

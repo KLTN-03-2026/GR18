@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const authToken = getAccessToken();
             if (!authToken) {
-                alert("Vui lòng đăng nhập để xác nhận đặt bàn.");
+                alert("Vui lòng đăng nhập để đặt bàn.");
                 redirectToLogin();
                 return;
             }

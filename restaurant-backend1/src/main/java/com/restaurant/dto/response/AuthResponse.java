@@ -13,5 +13,7 @@ public class AuthResponse {
     private Long userId;
     private String fullName;
     private String email;
+    /** Số điện thoại (có thể null nếu chưa cập nhật) */
+    private String phone;
     private UserRole role;
 }

@@ -169,6 +169,31 @@ var cat = item.category;
             ? '<a href="' + (typeof appendQrToHref === 'function' ? appendQrToHref('giohang.html') : 'giohang.html') + '" class="btn btn-light border rounded-pill px-4 py-2">' +
               '<i class="fa-solid fa-cart-shopping me-2"></i>Xem giỏ hàng</a>'
             : '';
+        /* Web thường: chỉ xem món; sau khi quét QR: đủ số lượng, ghi chú, giỏ hàng */
+        var qtyGhiChuCartHtml = hasQr
+            ? (
+                '<div class="d-flex align-items-center gap-3 mb-3">' +
+                    '<span class="fw-bold">Số lượng:</span>' +
+                    '<button class="qty-btn" onclick="thayDoiSL(-1)" aria-label="Giảm">−</button>' +
+                    '<span id="sl-hien-tai" class="fw-bold fs-5" style="min-width:28px;text-align:center">1</span>' +
+                    '<button class="qty-btn" onclick="thayDoiSL(1)" aria-label="Tăng">+</button>' +
+                    '<span class="text-muted small ms-1 fw-semibold" id="detail-total">' + giaStr + ' đ</span>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<label class="text-muted small fw-semibold mb-1 d-block">' +
+                        '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú ' +
+                    '</label>' +
+                    '<textarea id="detail-ghichu" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"' +
+                        ' placeholder="VD: ít cay, không hành, thêm đá..."></textarea>' +
+                '</div>' +
+                '<div class="d-flex flex-wrap gap-3">' +
+                    '<button class="btn btn-orange rounded-pill px-5 py-2 fw-semibold" onclick="themVaoGio()">' +
+                        '<i class="fa-solid fa-cart-plus me-2"></i>Thêm vào giỏ hàng' +
+                    '</button>' +
+                    btnGioHtml +
+                '</div>'
+            )
+            : '';
 
         document.getElementById('detail-container').innerHTML =
             '<div class="row g-4 g-md-5 align-items-start">' +
@@ -183,26 +208,7 @@ var cat = item.category;
                     '</div>' +
                     '<h4 class="fw-bold mb-3" style="color:#FF6B35">' + giaStr + ' đ</h4>' +
                     '<p class="text-muted mb-4" style="line-height:1.7">' + p.moTa + '</p>' +
-                    '<div class="d-flex align-items-center gap-3 mb-3">' +
-                        '<span class="fw-bold">Số lượng:</span>' +
-                        '<button class="qty-btn" onclick="thayDoiSL(-1)" aria-label="Giảm">−</button>' +
-                        '<span id="sl-hien-tai" class="fw-bold fs-5" style="min-width:28px;text-align:center">1</span>' +
-                        '<button class="qty-btn" onclick="thayDoiSL(1)" aria-label="Tăng">+</button>' +
-                        '<span class="text-muted small ms-1 fw-semibold" id="detail-total">' + giaStr + ' đ</span>' +
-                    '</div>' +
-'<div class="mb-4">' +
-                        '<label class="text-muted small fw-semibold mb-1 d-block">' +
-                            '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú ' +
-                        '</label>' +
-                        '<textarea id="detail-ghichu" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"' +
-                            ' placeholder="VD: ít cay, không hành, thêm đá..."></textarea>' +
-                    '</div>' +
-                    '<div class="d-flex flex-wrap gap-3">' +
-                        '<button class="btn btn-orange rounded-pill px-5 py-2 fw-semibold" onclick="themVaoGio()">' +
-                            '<i class="fa-solid fa-cart-plus me-2"></i>Thêm vào giỏ hàng' +
-                        '</button>' +
-                        btnGioHtml +
-                    '</div>' +
+                    qtyGhiChuCartHtml +
                 '</div>' +
             '</div>';
 
