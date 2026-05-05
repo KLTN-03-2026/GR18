@@ -375,6 +375,25 @@ function tryApplyMenuCategoryFromUrl() {
     }
 }
 
+/** Giữ danh mục khi F5 / chia sẻ link — khớp tryApplyMenuCategoryFromUrl (?dm=). */
+function syncMenuCategoryToUrl(filterKey) {
+    try {
+        const url = new URL(window.location.href);
+        const key = filterKey == null || filterKey === "" ? "__all" : filterKey;
+        if (key === "__all") {
+            url.searchParams.delete("dm");
+        } else {
+            url.searchParams.set("dm", key);
+        }
+        const next = url.pathname + url.search + url.hash;
+        if (next !== window.location.pathname + window.location.search + window.location.hash) {
+            window.history.replaceState(null, "", next);
+        }
+    } catch (e) {
+        console.warn("syncMenuCategoryToUrl:", e);
+    }
+}
+
 async function loadMenu() {
     try {
         const json = await fetchMenuWithFallback("/menu");
@@ -703,6 +722,7 @@ function chonMenuCategoryTab(el) {
     }
     renderQrCategoryList(danhSachMon);
     renderMenu(getBaseItemsForView());
+    syncMenuCategoryToUrl(_qrCategoryKey);
 }
 
 function renderQrCategoryList(items) {
@@ -737,6 +757,7 @@ function chonDanhMucQr(key) {
     renderMenuCategoryTabs(danhSachMon);
     renderQrCategoryList(danhSachMon);
     renderMenu(danhSachMon);
+    syncMenuCategoryToUrl(_qrCategoryKey);
     closeQrCategoryDropdown();
 }
 

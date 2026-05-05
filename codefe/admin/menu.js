@@ -29,16 +29,50 @@ let editingMenuItemId = null;
 /** Món đang hiển thị theo API (đã lọc danh mục); ô tìm kiếm lọc cục bộ trên mảng này */
 let menuItemsSnapshot = [];
 
+/** Chuẩn hoá ô tìm kiếm: chỉ bỏ thanh (sắc/huyền/hỏi/ngã/nặng), giữ o / ô / ơ / ă / â… để «bò» không khớp «bơ». */
+function normalizeMenuSearchText(input) {
+    return String(input || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, "")
+        .replace(/\u0111/g, "d")
+        .normalize("NFC");
+}
+
+function tokenizeForMenuSearch(normalizedText) {
+    return String(normalizedText || "")
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(Boolean);
+}
+
+function menuWordMatchesQuery(word, qp) {
+    if (!qp) return true;
+    if (word === qp) return true;
+    if (word.startsWith(qp)) return true;
+    if (qp.length >= 3 && word.includes(qp)) return true;
+    return false;
+}
+
+/** So khớp theo từ — tránh «bò» → «bo» lọt vào «combo». */
+function menuSearchHaystackMatches(haystackNormalized, queryNormalized) {
+    if (!queryNormalized) return true;
+    if (!haystackNormalized) return false;
+    const qParts = queryNormalized.split(/\s+/).filter(Boolean);
+    const words = tokenizeForMenuSearch(haystackNormalized);
+    return qParts.every((qp) => words.some((w) => menuWordMatchesQuery(w, qp)));
+}
+
 function menuSearchQueryNormalized() {
-    return normalizeCategoryKey(document.getElementById("menuSearchInput")?.value || "");
+    return normalizeMenuSearchText(document.getElementById("menuSearchInput")?.value || "");
 }
 
 function filterItemsBySearchQuery(items, qNormalized) {
     if (!qNormalized) return items || [];
     return (items || []).filter((item) => {
-        const name = normalizeCategoryKey(item?.name);
-        const desc = normalizeCategoryKey(item?.description);
-        return name.includes(qNormalized) || desc.includes(qNormalized);
+        const name = normalizeMenuSearchText(item?.name);
+        const desc = normalizeMenuSearchText(item?.description);
+        return menuSearchHaystackMatches(name, qNormalized) || menuSearchHaystackMatches(desc, qNormalized);
     });
 }
 
@@ -82,7 +116,7 @@ async function api(url, options = {}) {
         headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + getToken()
-        },
+        },  
         ...options
     });
     const json = await res.json();
