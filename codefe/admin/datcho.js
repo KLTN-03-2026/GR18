@@ -23,6 +23,7 @@ let currentPage = 1;
 const PAGE_SIZE = 6;
 let staffTables = [];
 let selectedDate = formatInputDate(new Date());
+let statusFilter = "";
 
 function extractPreferredArea(note) {
     if (!note) return "";
@@ -75,6 +76,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadStaffTables();
     loadReservations();
     setupSearch();
+    setupStatusFilter();
+    document.getElementById("btnExport")?.addEventListener("click", exportCSV);
 });
 
 // ================= LOAD =================
@@ -97,10 +100,7 @@ async function loadReservations() {
         });
 
         reservations = Array.isArray(res.data?.data) ? res.data.data : [];
-        filteredRows = reservations.slice();
-        currentPage = 1;
-        redrawList();
-        updateStats(reservations);
+        applyFilters();
 
     } catch (err) {
         console.error("ERROR:", err);
@@ -289,19 +289,78 @@ function bindPagination() {
 function setupSearch() {
     const input = document.querySelector(".search-input");
     if (!input) return;
+    input.addEventListener("input", applyFilters);
+}
 
-    input.addEventListener("input", (e) => {
-        const val = String(e.target.value || "").toLowerCase();
-
-        filteredRows = reservations.filter(
-            (r) =>
-                (r.customerName || "").toLowerCase().includes(val) ||
-                String(r.customerPhone || "").includes(val)
-        );
-        currentPage = 1;
-        redrawList();
-        updateStats(reservations);
+function applyFilters() {
+    const input = document.querySelector(".search-input");
+    const val = String(input?.value || "").toLowerCase();
+    filteredRows = reservations.filter((r) => {
+        const matchSearch = !val ||
+            (r.customerName || "").toLowerCase().includes(val) ||
+            String(r.customerPhone || "").includes(val);
+        const matchStatus = !statusFilter ||
+            normalizeReservationStatus(r.status) === statusFilter;
+        return matchSearch && matchStatus;
     });
+    currentPage = 1;
+    redrawList();
+    updateStats(reservations);
+}
+
+function setupStatusFilter() {
+    document.getElementById("btnFilter")
+        ?.closest(".dropdown")
+        ?.querySelectorAll("[data-status]")
+        .forEach((item) => {
+            item.addEventListener("click", (e) => {
+                e.preventDefault();
+                statusFilter = item.dataset.status || "";
+                item.closest("ul")?.querySelectorAll(".dropdown-item").forEach(el => el.classList.remove("active"));
+                item.classList.add("active");
+                applyFilters();
+            });
+        });
+}
+
+function exportCSV() {
+    const statusLabel = {
+        CONFIRMED: "Đã xác nhận",
+        PENDING: "Chờ xử lý",
+        ARRIVED: "Đã đến",
+        COMPLETED: "Hoàn thành",
+        CANCELLED: "Đã hủy"
+    };
+    const headers = ["Tên khách", "Số điện thoại", "Số khách", "Thời gian", "Vị trí / Bàn", "Trạng thái"];
+    const rows = filteredRows.map((r) => {
+        const dt = parseReservationDate(r.reservationTime);
+        const time = dt ? dt.toLocaleString("vi-VN") : "";
+        const loc = r.tableNumber
+            ? `${r.tableNumber}${r.tableLocation ? " - " + r.tableLocation : ""}`
+            : "";
+        const st = normalizeReservationStatus(r.status);
+        return [
+            r.customerName || "",
+            r.customerPhone || "",
+            r.numberOfGuests || 0,
+            time,
+            loc,
+            statusLabel[st] || r.status || ""
+        ];
+    });
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `datcho_${selectedDate || formatInputDate(new Date())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function initDateFilter() {
@@ -438,8 +497,33 @@ function handleError(err) {
         return;
     }
 
-    alert(err.response?.data?.message || "Lỗi server");
+    const msg = err.response?.data?.message || "";
+    if (msg.toLowerCase().includes("future")) {
+        const today = new Date().toLocaleString("vi-VN", { dateStyle: "full", timeStyle: "short" });
+        alert(`Bạn có nhầm lẫn không ạ? Hôm nay là ${today} đó ạ. Vui lòng chọn ngày hôm nay hoặc trong tương lai, không chọn ngày trước đó.`);
+        return;
+    }
+
+    alert(msg || "Lỗi server");
 }
+function openAddNew() {
+    document.getElementById("editId").value = "";
+    document.getElementById("editName").value = "";
+    document.getElementById("editPhone").value = "";
+    document.getElementById("editGuests").value = "2";
+    // Mặc định thời gian = bây giờ + 1 giờ
+    const dt = new Date(Date.now() + 60 * 60 * 1000);
+    document.getElementById("editTime").value = toDatetimeLocal(dt);
+    refillEditTableSelect();
+    const sel = document.getElementById("editTableId");
+    if (sel) sel.value = "";
+    const badge = document.getElementById("editModalMode");
+    if (badge) { badge.textContent = "Thêm mới"; badge.classList.remove("d-none"); }
+    const btn = document.getElementById("btnSaveReservation");
+    if (btn) btn.textContent = "Tạo đặt bàn";
+    new bootstrap.Modal(document.getElementById("editModal")).show();
+}
+
 function openEdit(id) {
     const r = reservations.find(x => x.id === id);
     if (!r) return;
@@ -457,31 +541,63 @@ function openEdit(id) {
     const sel = document.getElementById("editTableId");
     if (sel) sel.value = tid;
 
+    const badge = document.getElementById("editModalMode");
+    if (badge) badge.classList.add("d-none");
+    const btn = document.getElementById("btnSaveReservation");
+    if (btn) btn.textContent = "Lưu thay đổi";
+
     new bootstrap.Modal(document.getElementById("editModal")).show();
 }
 async function updateReservation() {
-    const id = document.getElementById("editId").value;
+    const btn = document.getElementById("btnSaveReservation");
+    if (btn?.disabled) return;
 
-    if (!id) {
-        alert("Mở chỉnh sửa từ biểu tượng bút chì trên một dòng đặt chỗ.");
-        return;
-    }
+    const id = document.getElementById("editId").value;
+    const isNew = !id;
 
     const rawTable = document.getElementById("editTableId")?.value;
     const tableId = rawTable ? Number(rawTable) : null;
 
+    const customerName = document.getElementById("editName").value.trim();
+    const customerPhone = document.getElementById("editPhone").value.trim();
+    const numberOfGuests = parseInt(document.getElementById("editGuests").value, 10);
+    const reservationTime = document.getElementById("editTime").value;
+
+    if (!customerName) { alert("Vui lòng nhập tên khách hàng."); return; }
+    if (!/^[a-zA-ZÀ-ỹ\s]+$/u.test(customerName)) { alert("Tên khách hàng chỉ được chứa chữ cái và khoảng trắng."); return; }
+    if (!customerPhone) { alert("Vui lòng nhập số điện thoại."); return; }
+    if (!/^(0|\+84)[0-9]{8,10}$/.test(customerPhone)) {
+        alert(`Số điện thoại "${customerPhone}" không đúng định dạng.\nVui lòng nhập số điện thoại Việt Nam hợp lệ (VD: 0912345678 hoặc +84912345678).`);
+        return;
+    }
+    if (!numberOfGuests || numberOfGuests < 1) { alert("Vui lòng nhập số khách hợp lệ."); return; }
+    if (!reservationTime) { alert("Vui lòng chọn thời gian đặt bàn."); return; }
+
+    // Kiểm tra ngày quá khứ
+    const selectedDt = new Date(reservationTime);
+    if (selectedDt <= new Date()) {
+        const today = new Date().toLocaleString("vi-VN", { dateStyle: "full", timeStyle: "short" });
+        alert(`Bạn có nhầm lẫn không ạ? Hôm nay là ${today} đó ạ. Vui lòng chọn ngày hôm nay hoặc trong tương lai, không chọn ngày trước đó.`);
+        return;
+    }
+
     const data = {
-        customerName: document.getElementById("editName").value,
-        customerPhone: document.getElementById("editPhone").value,
-        numberOfGuests: parseInt(document.getElementById("editGuests").value, 10),
-        reservationTime: document.getElementById("editTime").value,
+        customerName,
+        customerPhone,
+        numberOfGuests,
+        reservationTime,
         tableId: rawTable !== "" && Number.isFinite(tableId) ? tableId : null
     };
 
+    if (btn) { btn.disabled = true; btn.textContent = "Đang lưu..."; }
     try {
-        await axiosInstance.put(`/reservations/${id}`, data);
-
-        alert("Cập nhật thành công");
+        if (isNew) {
+            await axiosInstance.post(`/reservations`, data);
+            alert("Đã tạo đặt bàn mới.");
+        } else {
+            await axiosInstance.put(`/reservations/${id}`, data);
+            alert("Cập nhật thành công.");
+        }
 
         loadReservations();
 
@@ -491,6 +607,8 @@ async function updateReservation() {
 
     } catch (err) {
         handleError(err);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = isNew ? "Tạo đặt bàn" : "Lưu thay đổi"; }
     }
 
 }
