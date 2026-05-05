@@ -101,6 +101,14 @@
 
     var _monHienTai = null;
 
+    /* ── Chuyển đổi URL Google Drive sang URL trực tiếp ── */
+    function toDirectImageUrl(url) {
+        if (!url) return null;
+        var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return 'https://lh3.googleusercontent.com/d/' + m[1];
+        return url;
+    }
+
     /* ── Init ── */
     window.onload = function () {
         if (typeof getActiveQrToken === 'function') getActiveQrToken();
@@ -139,7 +147,7 @@ var cat = item.category;
                     ten:      item.name        || item.ten      || 'Món ăn',
                     gia:      item.price       || item.gia      || 0,
                     category: catSlug,
-                    img:      item.imageUrl     || item.image    || '',
+                    img:      toDirectImageUrl(item.imageUrl || item.image_url || item.image || '') || '',
                     rating:   item.avgRating    || item.rating   || 0,
                     moTa:     item.description  || item.moTa     || 'Chưa có mô tả.'
                 });

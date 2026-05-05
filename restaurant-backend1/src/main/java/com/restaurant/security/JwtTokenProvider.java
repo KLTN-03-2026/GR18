@@ -3,11 +3,13 @@ package com.restaurant.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -25,9 +27,38 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
 
+    private SecretKey signingKey;
+
+    @PostConstruct
+    public void init() {
+        String secret = jwtSecret == null ? "" : jwtSecret.trim();
+        if (secret.isEmpty()) {
+            throw new IllegalStateException("JWT secret is empty. Set app.jwt.secret or JWT_SECRET with at least 32 bytes.");
+        }
+
+        byte[] keyBytes = resolveKeyBytes(secret);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("JWT secret is too short. Provide at least 32 bytes (256 bits) for HS256.");
+        }
+
+        signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private byte[] resolveKeyBytes(String secret) {
+        try {
+            byte[] decoded = Decoders.BASE64.decode(secret);
+            if (decoded.length >= 32) {
+                return decoded;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Not valid base64, fallback to raw text bytes for easier local setup.
+        }
+
+        return secret.getBytes(StandardCharsets.UTF_8);
+    }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 
     public String generateAccessToken(Long userId, String role) {

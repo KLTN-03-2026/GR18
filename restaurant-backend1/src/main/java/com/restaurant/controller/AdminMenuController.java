@@ -68,7 +68,11 @@ public class AdminMenuController {
         category.setName(request.getName());
         category.setDescription(request.getDescription());
         category.setImageUrl(request.getImageUrl());
-        if (request.getSortOrder() != null) category.setSortOrder(request.getSortOrder());
+        if (request.getSortOrder() != null) {
+            category.setSortOrder(request.getSortOrder());
+        } else if (category.getSortOrder() == null) {
+            category.setSortOrder(0);
+        }
         return ResponseEntity.ok(ApiResponse.success(categoryRepository.save(category), "Cập nhật thành công"));
     }
 
