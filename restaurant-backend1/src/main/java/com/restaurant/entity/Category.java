@@ -37,6 +37,17 @@ public class Category extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @PrePersist
+    @PreUpdate
+    private void applyDefaults() {
+        if (sortOrder == null) {
+            sortOrder = 0;
+        }
+        if (isActive == null) {
+            isActive = true;
+        }
+    }
+
     // ---- Relations ----
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
