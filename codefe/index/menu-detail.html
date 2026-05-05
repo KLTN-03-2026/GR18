@@ -6,24 +6,31 @@
     <title>Chi tiết món ăn - Restaurant AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/index/danhmuc.css">
+    <link rel="stylesheet" href="menu.css">
     <style>
         .detail-img-wrap {
             width: 100%;
-            max-width: 400px;
-            height: 300px;
-            background: #EAEAEA;
+            max-width: 560px;
+            background: linear-gradient(180deg, #f2f2f2 0%, #eaeaea 100%);
             border-radius: 16px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            min-height: 160px;
         }
         .detail-img-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 16px;
+            width: auto;
+            max-width: 100%;
+            height: auto;
+            max-height: min(85vh, 720px);
+            object-fit: contain;
+            object-position: center;
+            border-radius: 12px;
+            display: block;
+            vertical-align: middle;
         }
         .qty-btn {
             width: 38px;
@@ -53,42 +60,14 @@
 </head>
 <body>
 
-<!-- ===== NAVBAR ===== -->
-<header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-orange" href="/index/home.html">
-            <i class="fa-solid fa-robot me-2"></i>Restaurant AI
-        </a>
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-center" id="navMain">
-            <ul class="navbar-nav gap-3">
-                <li class="nav-item"><a class="nav-link" href="/index/home.html"><i class="fa-solid fa-house me-1"></i>Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/menu.html"><i class="fa-solid fa-utensils me-1"></i>Menu</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/datban.html"><i class="fa-solid fa-chair me-1"></i>Đặt bàn</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/index/danhmuc.html"><i class="fa-solid fa-bars me-1"></i>Danh mục</a></li>
-<li class="nav-item"><a class="nav-link" href="/index/lichsu.html"><i class="fa-solid fa-clock-rotate-left me-1"></i>Lịch sử</a></li>
-                <li class="nav-item"><a class="nav-link" href="/index/danhgia.html"><i class="fa-solid fa-star me-1"></i>Đánh giá</a></li>
-            </ul>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-orange px-3 d-none d-lg-inline-block" onclick="window.location.href='/index/datban.html'">Đặt bàn ngay</button>
-            <div class="user-avatar-small"></div>
-            <div class="position-relative" style="cursor:pointer" onclick="window.location.href='/index/giohang.html'">
-                <i class="fa-solid fa-cart-shopping fs-5 ms-2"></i>
-                <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                      style="display:none;font-size:10px">0</span>
-            </div>
-        </div>
-    </div>
-</header>
+<!-- Navbar: customer-header.html (inject bởi customer-header.js) -->
+<header class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 sticky-top shadow-sm"></header>
 
 <!-- ===== MAIN ===== -->
 <main class="container py-4" style="max-width:900px">
 
-    <a href="/index/danhmuc.html" class="btn btn-light border rounded-pill mb-4">
-        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh mục
+    <a href="menu.html" class="btn btn-light border rounded-pill mb-4" id="btn-back-menu">
+        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại menu
     </a>
 
     <!-- Loading state -->
@@ -101,16 +80,19 @@
 </main>
 
 <!-- ===== TOAST ===== -->
-<div id="cart-toast" role="alert" aria-live="polite"
-     style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;
-            background:#333;color:#fff;padding:12px 20px;border-radius:8px;
-            font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:300px">
-    <i class="fa-solid fa-check me-2 text-success"></i>
+<div id="cart-toast" class="cart-toast--success" role="alert" aria-live="polite">
+    <i class="fa-solid fa-check me-2 cart-toast-icon" aria-hidden="true"></i>
     <span id="cart-toast-msg"></span>
 </div>
 
+<!-- ===== CHATBOT ===== -->
+<link rel="stylesheet" href="chatbot.css">
+<div id="chatbot-container"></div>
+
 <!-- ===== SCRIPTS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="qr-session.js"></script>
+<script src="customer-header.js"></script>
 <script>
     var CAT_LABELS = {
         combo:'Combo ưu đãi', thit:'Thịt nướng',
@@ -121,6 +103,12 @@
 
     /* ── Init ── */
     window.onload = function () {
+        if (typeof getActiveQrToken === 'function') getActiveQrToken();
+        if (typeof syncHeaderCartVisibility === 'function') syncHeaderCartVisibility();
+        var backBtn = document.getElementById('btn-back-menu');
+        if (backBtn && typeof appendQrToHref === 'function') {
+            backBtn.href = appendQrToHref('menu.html');
+        }
         capNhatBadge();
         var id = new URLSearchParams(window.location.search).get('id');
         if (!id) { showError('Không có ID món ăn trong URL.'); return; }
@@ -129,7 +117,8 @@
 
     /* ── Fetch from API ── */
     function fetchFromAPI(id) {
-        fetch('http://localhost:8080/api/menu/' + encodeURIComponent(id))
+        var apiBase = window.RESTAURANT_API_BASE || ('http://' + (window.location.hostname || '127.0.0.1') + ':8080/api');
+        fetch(apiBase + '/menu/' + encodeURIComponent(id))
             .then(function (res) {
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 return res.json();
@@ -165,8 +154,13 @@ var cat = item.category;
         var stars  = renderStars(p.rating);
         var catLabel = CAT_LABELS[p.category] || p.category || '';
         var imgHtml = p.img
-            ? '<img src="' + p.img + '" alt="' + p.ten + '" onerror="this.src=\'/img/home.jpeg\'">'
+            ? '<img src="' + p.img + '" alt="' + p.ten + '" onerror="this.src=\'../img/home.jpeg\'">'
             : '<i class="fa-solid fa-bowl-food fa-4x text-muted"></i>';
+        var hasQr = typeof getActiveQrToken === 'function' && !!getActiveQrToken();
+        var btnGioHtml = hasQr
+            ? '<a href="' + (typeof appendQrToHref === 'function' ? appendQrToHref('giohang.html') : 'giohang.html') + '" class="btn btn-light border rounded-pill px-4 py-2">' +
+              '<i class="fa-solid fa-cart-shopping me-2"></i>Xem giỏ hàng</a>'
+            : '';
 
         document.getElementById('detail-container').innerHTML =
             '<div class="row g-4 g-md-5 align-items-start">' +
@@ -190,7 +184,7 @@ var cat = item.category;
                     '</div>' +
 '<div class="mb-4">' +
                         '<label class="text-muted small fw-semibold mb-1 d-block">' +
-                            '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú <span class="fw-normal">(tuỳ chọn)</span>' +
+                            '<i class="fa-solid fa-pen-to-square me-1"></i>Ghi chú ' +
                         '</label>' +
                         '<textarea id="detail-ghichu" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"' +
                             ' placeholder="VD: ít cay, không hành, thêm đá..."></textarea>' +
@@ -199,9 +193,7 @@ var cat = item.category;
                         '<button class="btn btn-orange rounded-pill px-5 py-2 fw-semibold" onclick="themVaoGio()">' +
                             '<i class="fa-solid fa-cart-plus me-2"></i>Thêm vào giỏ hàng' +
                         '</button>' +
-                        '<a href="/index/giohang.html" class="btn btn-light border rounded-pill px-4 py-2">' +
-                            '<i class="fa-solid fa-cart-shopping me-2"></i>Xem giỏ hàng' +
-                        '</a>' +
+                        btnGioHtml +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -217,8 +209,8 @@ var cat = item.category;
                 '<i class="fa-solid fa-circle-exclamation fa-3x text-muted mb-3 d-block"></i>' +
                 '<p class="text-muted">Không tìm thấy món ăn (ID: <code>' + id + '</code>).<br>' +
                 'Món có thể không tồn tại hoặc backend chưa chạy.</p>' +
-                '<a href="/index/danhmuc.html" class="btn btn-orange rounded-pill px-4">' +
-                    '<i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh mục' +
+                '<a href="menu.html" class="btn btn-orange rounded-pill px-4">' +
+                    '<i class="fa-solid fa-arrow-left me-2"></i>Quay lại menu' +
                 '</a>' +
             '</div>';
     }
@@ -237,6 +229,10 @@ var cat = item.category;
     /* ── Add to Cart ── */
     function themVaoGio() {
         if (!_monHienTai) return;
+        if (typeof getActiveQrToken === 'function' && !getActiveQrToken()) {
+            hienToast('Vui lòng quét mã QR tại bàn để thêm món vào giỏ.', 'warning');
+            return;
+        }
         var sl  = parseInt(document.getElementById('sl-hien-tai').textContent) || 1;
         var id  = _monHienTai.id;
         var ten = _monHienTai.ten  || _monHienTai.name  || 'Món ăn';
@@ -253,14 +249,16 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
             if (ghiChu) entry.ghiChu = ghiChu;
             cart.push(entry);
         }
-        localStorage.setItem('gioHang', JSON.stringify(cart));
+        if (typeof luuGioHangChung === 'function') luuGioHangChung(cart);
+        else localStorage.setItem('gioHang', JSON.stringify(cart));
         capNhatBadge();
         var ghiChuNote = ghiChu ? ' (' + ghiChu + ')' : '';
-        hienToast('Đã thêm ' + sl + ' "' + ten + '"' + ghiChuNote + ' vào giỏ hàng!');
+        hienToast('Đã thêm ' + sl + ' "' + ten + '"' + ghiChuNote + ' vào giỏ hàng!', 'success');
     }
 
     /* ── Helpers ── */
     function layGioHang() {
+        if (typeof layGioHangChung === 'function') return layGioHangChung();
         try { return JSON.parse(localStorage.getItem('gioHang')) || []; }
         catch (e) { return []; }
     }
@@ -268,16 +266,24 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
     function capNhatBadge() {
         var badge = document.getElementById('cart-badge');
         if (!badge) return;
+        if (typeof getActiveQrToken === 'function' && !getActiveQrToken()) {
+            badge.textContent = '0';
+            badge.style.display = 'none';
+            return;
+        }
         var tong = layGioHang().reduce(function (s, x) { return s + (x.soLuong || 1); }, 0);
         badge.textContent = tong > 99 ? '99+' : tong;
         badge.style.display = tong > 0 ? 'inline-block' : 'none';
     }
 
-    function hienToast(msg) {
+    function hienToast(msg, kind) {
         var t    = document.getElementById('cart-toast');
         var span = document.getElementById('cart-toast-msg');
         if (!t || !span) return;
         span.textContent = msg;
+        var k = kind || (String(msg).indexOf('Vui lòng quét') === 0 ? 'warning' : 'success');
+        t.classList.remove('cart-toast--success', 'cart-toast--warning');
+        t.classList.add(k === 'warning' ? 'cart-toast--warning' : 'cart-toast--success');
         t.style.display = 'block';
         clearTimeout(hienToast._t);
         hienToast._t = setTimeout(function () { t.style.display = 'none'; }, 2500);
@@ -293,6 +299,22 @@ var ghiChu = (document.getElementById('detail-ghichu')?.value || '').trim();
         for (var j = 0; j < empty; j++) s += '<i class="fa-regular fa-star"></i>';
         return s;
     }
+</script>
+<script>
+fetch("chatbot.html")
+    .then(function (res) { return res.text(); })
+    .then(function (data) {
+        var container = document.getElementById("chatbot-container");
+        if (!container) return;
+        container.innerHTML = data;
+
+        var script = document.createElement("script");
+        script.src = "chatbot.js";
+        document.body.appendChild(script);
+    })
+    .catch(function (err) {
+        console.error("Khong tai duoc chatbot:", err);
+    });
 </script>
 
 </body>

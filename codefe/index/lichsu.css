@@ -68,3 +68,7 @@ body { font-family: 'Segoe UI', sans-serif; }
 }
 .contact-circle.facebook { background: #1877F2; color: white; }
 .contact-circle.map { color: #EA4335; }
+
+#toast-container > .toast-success {
+    background-color: #198754 !important;
+}

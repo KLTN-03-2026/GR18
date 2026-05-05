@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quản lý Đánh giá | Restaurant AI</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="datcho.css"> 
+
+    <link rel="stylesheet" href="datcho.css">
     <link rel="stylesheet" href="siderbar.css">
     <link rel="stylesheet" href="qldanhgia.css">
 </head>
@@ -20,78 +20,37 @@
 
     <main class="main-content">
         <div class="container-fluid px-4 pt-4 pb-5">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4 mb-4">
-                <div class="filter-pills d-flex gap-2 flex-wrap">
-                    <button class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Tất cả</button>
-                    <button class="btn btn-surface-high btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1">
-                        5 <span class="material-symbols-outlined fs-6 filled text-warning">star</span>
-                    </button>
-                    <button class="btn btn-surface-high btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1">
-                        4 <span class="material-symbols-outlined fs-6 filled text-warning">star</span>
-                    </button>
-                    <button class="btn btn-surface-high btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1">
-                        Dưới 3 <span class="material-symbols-outlined fs-6 filled text-warning">star</span>
-                    </button>
+            <div class="mb-4">
+                <h1 class="h4 fw-bold mb-1">Quản lý đánh giá</h1>
+            </div>
+
+            <div class="d-flex flex-column flex-lg-row gap-3 align-items-stretch align-items-lg-center justify-content-between mb-4">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="smaller text-secondary text-uppercase fw-bold">Lọc:</span>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 qldg-filter" data-vis="">Tất cả</button>
+                    <button type="button" class="btn btn-surface-high btn-sm rounded-pill px-3 qldg-filter" data-vis="true">Đang hiển thị</button>
+                    <button type="button" class="btn btn-surface-high btn-sm rounded-pill px-3 qldg-filter" data-vis="false">Đã ẩn</button>
                 </div>
-                <div class="sort-box d-flex align-items-center gap-2">
-                    <span class="smaller text-secondary text-uppercase fw-bold">Sắp xếp:</span>
-                    <select class="form-select-minimal">
-                        <option>Mới nhất</option>
-                        <option>Cũ nhất</option>
-                        <option>Tệ nhất</option>
-                    </select>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <input type="search" id="qldg-search" class="form-control form-control-sm rounded-pill min-w-200" placeholder="Tìm theo tên, nội dung, món…" />
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" id="qldg-reload">
+                        <span class="material-symbols-outlined fs-6 align-middle">refresh</span> Tải lại
+                    </button>
                 </div>
             </div>
 
-            <div class="row g-4">
-                <div class="col-12 col-xl-6">
-                    <div class="review-card p-4 rounded-4 shadow-sm border border-outline-variant/10">
-                        <div class="d-flex justify-content-between align-items-start mb-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <img src="https://i.pravatar.cc/100?u=1" alt="User" class="avatar-md rounded-circle">
-                                <div>
-                                    <h6 class="fw-bold mb-0">Lê Minh Tuấn</h6>
-                                    <p class="smaller text-secondary mb-0">24/10/2023 • Gọi: <span class="text-primary-soft">Bít Tết Úc</span></p>
-                                </div>
-                            </div>
-                            <div class="stars d-flex text-warning">
-                                <span class="material-symbols-outlined fs-5 filled">star</span>
-                                <span class="material-symbols-outlined fs-5 filled">star</span>
-                                <span class="material-symbols-outlined fs-5 filled">star</span>
-                                <span class="material-symbols-outlined fs-5 filled">star</span>
-                                <span class="material-symbols-outlined fs-5 filled">star</span>
-                            </div>
-                        </div>
-                        <p class="small text-light-emphasis leading-relaxed mb-4">"Thịt bò mềm như tan trong miệng, sốt vang đỏ đi kèm thực sự xuất sắc. Không gian nhà hàng rất ấm cúng và sang trọng."</p>
-                        <div class="review-footer d-flex justify-content-between align-items-center pt-3 border-top border-outline-variant/10">
-                            <span class="badge-ai-tag bg-secondary-soft text-secondary">
-                                <span class="material-symbols-outlined fs-6 filled me-1">check_circle</span> PHÂN TÍCH AI: TÍCH CỰC
-                            </span>
-                            <button class="btn btn-link-primary p-0 fw-bold smaller text-decoration-none d-flex align-items-center gap-1">
-                                Phản hồi <span class="material-symbols-outlined fs-6">reply</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div id="qldg-alert" class="alert d-none mb-3" role="alert"></div>
 
-                
+            <div class="row g-4" id="qldg-list">
+                <div class="col-12 text-center text-secondary py-5" id="qldg-loading">Đang tải…</div>
             </div>
 
-            <nav class="mt-5">
-                <ul class="pagination justify-content-center gap-2 border-0">
-                    <li class="page-item"><a class="page-link-dark" href="#"><span class="material-symbols-outlined fs-5">chevron_left</span></a></li>
-                    <li class="page-item active"><a class="page-link-dark" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link-dark" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link-dark" href="#">3</a></li>
-                    <li class="page-item disabled"><span class="page-link-dark border-0">...</span></li>
-                    <li class="page-item"><a class="page-link-dark" href="#"><span class="material-symbols-outlined fs-5">chevron_right</span></a></li>
-                </ul>
-            </nav>
-
+            <nav class="mt-4" id="qldg-pagination" aria-label="Phân trang"></nav>
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="component-loader.js"></script>
+    <script src="qldanhgia.js"></script>
 </body>
 </html>

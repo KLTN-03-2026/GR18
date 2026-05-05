@@ -1,13 +1,29 @@
-/**
- * 1. ĐỊNH NGHĨA HÀM ĐĂNG XUẤT TOÀN CỤC (GLOBAL)
- */
+/** Cùng quy ước với khu vực khách (`RESTAURANT_API_BASE` trong `menu.js` / `giohang.js`). */
+const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+
+const STAFF_ALLOWED_PAGES = new Set([
+    "tongquan.html",
+    "datcho.html",
+    "donhang.html",
+    "qltrangthaiban.html",
+    "goinv.html",
+    "qlthanhtoan.html",
+]);
+
+/** `null` = mọi trang (ADMIN). Set rỗng = không trang nào. */
+function getAllowedPagesByRole(role) {
+    if (role === "ADMIN") return null;
+    if (role === "STAFF") return STAFF_ALLOWED_PAGES;
+    return new Set();
+}
+
 window.logout = async function () {
     const token = localStorage.getItem("token");
 
     if (!confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
 
     try {
-        await fetch("http://localhost:8080/api/auth/logout", {
+        await fetch(`${API_BASE}/auth/logout`, {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -27,9 +43,66 @@ window.logout = async function () {
     window.location.href = "../dangnhap.html"; 
 };
 
-/**
- * 2. HÀM NẠP CÁC THÀNH PHẦN (SIDEBAR/HEADER)
- */
+function getCurrentRole() {
+    try {
+        const raw = localStorage.getItem("userInfo");
+        if (!raw) return null;
+        const u = JSON.parse(raw);
+        return u && u.role ? String(u.role).toUpperCase() : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function enforcePageAccess() {
+    const role = getCurrentRole();
+    const allowed = getAllowedPagesByRole(role);
+
+    // Admin: không chặn
+    if (allowed === null) return;
+
+    const currentPage = window.location.pathname.split("/").pop() || "tongquan.html";
+
+    // Nếu không có quyền thì đá về trang login (kèm next)
+    if (!role) {
+        window.location.href = "../dangnhap.html?next=admin/" + encodeURIComponent(currentPage);
+        return;
+    }
+
+    // STAFF chỉ được vào các page trong allowlist
+    if (!allowed.has(currentPage)) {
+        window.location.href = "tongquan.html";
+    }
+}
+
+function filterSidebarByRole() {
+    const role = getCurrentRole();
+    const allowed = getAllowedPagesByRole(role);
+
+    // Admin: full menu
+    if (allowed === null) return;
+
+    const navLinks = document.querySelectorAll(".sidebar .nav-link");
+    navLinks.forEach((link) => {
+        const href = (link.getAttribute("href") || "").split("/").pop();
+        if (!href) return;
+        if (!allowed.has(href)) {
+            link.style.display = "none";
+        }
+    });
+}
+
+function updateHeaderByRole() {
+    const role = getCurrentRole();
+    const titleEl = document.querySelector(".top-nav h4");
+    if (!titleEl) return;
+    if (role === "STAFF") {
+        titleEl.textContent = "Bảng điều khiển nhân viên";
+    } else {
+        titleEl.textContent = "Bảng điều khiển quản trị";
+    }
+}
+
 async function loadComponent(containerId, fileName, callback = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -48,10 +121,39 @@ async function loadComponent(containerId, fileName, callback = null) {
     }
 }
 
-/**
- * 3. HÀM HIỂN THỊ THÔNG TIN NGƯỜI DÙNG LÊN HEADER
- * Khớp với cấu trúc dữ liệu từ dangnhap.js
- */
+function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+        if (document.querySelector(`script[data-src-key="${src}"]`)) {
+            resolve();
+            return;
+        }
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.dataset.srcKey = src;
+        s.onload = function () {
+            resolve();
+        };
+        s.onerror = function () {
+            reject(new Error("Không tải được: " + src));
+        };
+        document.head.appendChild(s);
+    });
+}
+
+async function initHeaderNotificationsChain() {
+    try {
+        await loadScriptOnce("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js");
+        await loadScriptOnce("https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js");
+        await loadScriptOnce("header-notifications.js");
+        if (typeof window.initAdminHeaderNotifications === "function") {
+            window.initAdminHeaderNotifications();
+        }
+    } catch (e) {
+        console.warn("Thông báo header (SockJS/STOMP):", e);
+    }
+}
+
 function updateUserInfo() {
     try {
         // Lấy string userInfo từ localStorage
@@ -73,15 +175,12 @@ function updateUserInfo() {
     }
 }
 
-/**
- * 4. HÀM TỰ ĐỘNG ĐÁNH DẤU MENU ĐANG HOẠT ĐỘNG (ACTIVE)
- */
 function highlightCurrentPage() {
     const currentPage = window.location.pathname.split("/").pop() || 'tongquan.html';
     const navLinks = document.querySelectorAll('.sidebar .nav-link');
     
-    navLinks.forEach(link => {
-        const href = link.getAttribute('href').split("/").pop();
+    navLinks.forEach((link) => {
+        const href = (link.getAttribute("href") || "").split("/").pop();
         if (href === currentPage) {
             link.classList.add('active');
         } else {
@@ -90,13 +189,20 @@ function highlightCurrentPage() {
     });
 }
 
-/**
- * 5. KHỞI CHẠY KHI TRANG WEB ĐÃ TẢI XONG DOM
- */
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
+    // Chặn truy cập sai quyền trước khi render
+    enforcePageAccess();
+
     // Nạp Sidebar: Sau khi xong thì highlight menu
-    loadComponent('sidebar-container', 'sidebar.html', highlightCurrentPage);
+    loadComponent('sidebar-container', 'sidebar.html', function () {
+        filterSidebarByRole();
+        highlightCurrentPage();
+    });
     
     // Nạp Header: Sau khi xong thì cập nhật tên Admin từ userInfo
-    loadComponent('header-container', 'header.html', updateUserInfo);
+    loadComponent("header-container", "header.html", function () {
+        updateHeaderByRole();
+        updateUserInfo();
+        initHeaderNotificationsChain();
+    });
 });

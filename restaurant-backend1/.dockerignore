@@ -1,0 +1,12 @@
+.gradle
+build
+**/build
+.idea
+.vscode
+*.iml
+.git
+.gitignore
+*.md
+Image
+tools
+nixpacks.toml

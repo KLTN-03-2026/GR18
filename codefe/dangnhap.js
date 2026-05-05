@@ -3,13 +3,15 @@
  * File: dangnhap.js
  */
 
-// Cấu hình Toastr mặc định
-toastr.options = {
-    "closeButton": true,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
-    "timeOut": "3000",
-};
+// [DN-1] Guard toastr để tránh ReferenceError nếu thư viện load thất bại
+if (typeof toastr !== 'undefined') {
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "3000",
+    };
+}
 
 // 1. LUỒNG ĐĂNG NHẬP GOOGLE
 async function handleGoogleLogin(response) {
@@ -23,6 +25,12 @@ async function handleGoogleLogin(response) {
 
         if (res.data.success) {
             saveUserAndRedirect(res.data.data);
+        } else {
+            if (typeof toastr !== 'undefined') {
+                toastr.error(res.data.message || 'Tài khoản Google không hợp lệ hoặc chưa được đăng ký.');
+            } else {
+                alert(res.data.message || 'Tài khoản Google không hợp lệ.');
+            }
         }
     } catch (error) {
         console.error('Lỗi Google Login:', error);
@@ -40,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Hiệu ứng Loading
             loginBtn.disabled = true;
             const originalText = loginBtn.innerHTML;
             loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xác thực...';
@@ -51,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                // Gọi API Login (có /api context path)
                 const response = await axios.post('http://localhost:8080/api/auth/login', payload);
 
                 if (response.data.success) {
@@ -71,24 +77,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 3. HÀM DÙNG CHUNG: LƯU TOKEN & ĐIỀU HƯỚNG
+/** Chỉ cho phép đường dẫn tương đối an toàn sau đăng nhập (chống open redirect). */
+function safeNextPath(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const next = raw.trim();
+    if (next.includes('..') || next.startsWith('/') || next.includes('://')) return null;
+    if (next.startsWith('index/') || next.startsWith('admin/')) return next;
+    return null;
+}
+
 function saveUserAndRedirect(userData) {
-    // Lưu các loại token
     localStorage.setItem('accessToken', userData.accessToken);
     localStorage.setItem('refreshToken', userData.refreshToken);
-    localStorage.setItem('token', userData.accessToken); // Dự phòng cho các script khác dùng key 'token'
-    
-    // Lưu thông tin người dùng
+    localStorage.setItem('token', userData.accessToken);
+
+    let oldUser = {};
+    try {
+        oldUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    } catch (e) {
+        oldUser = {};
+    }
+
     localStorage.setItem('userInfo', JSON.stringify({
         userId: userData.userId,
         fullName: userData.fullName,
-        role: userData.role
+        role: userData.role,
+        email: userData.email || oldUser.email || "",
+        phone: userData.phone || oldUser.phone || ""
     }));
 
     toastr.success(`Chào mừng ${userData.fullName} quay trở lại!`, 'Thành công');
 
-    // Chờ 1.2s để Toast hiển thị đẹp rồi chuyển hướng
     setTimeout(() => {
+        const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
+        if (next) {
+            window.location.href = next;
+            return;
+        }
         if (userData.role === 'ADMIN' || userData.role === 'STAFF') {
             window.location.href = 'admin/tongquan.html';
         } else {

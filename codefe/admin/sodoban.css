@@ -156,3 +156,264 @@
     .main-content { margin-left: 0; }
     .qr-manager { max-height: none; }
 }
+
+/* —— Đồng bộ màu với admin (datcho / trang AI): nền shell + bảng dark —— */
+
+body.sodoban-page {
+    background-color: var(--background);
+    color: var(--on-surface);
+}
+
+body.sodoban-page .main-content {
+    background-color: var(--background);
+}
+
+body.sodoban-page .page-title {
+    color: var(--on-surface);
+}
+
+/* Thẻ khối (trước đây trắng vì không load donhang/ai.css) */
+.qr-action-card {
+    background: var(--surface-container);
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--on-surface);
+}
+
+.qr-action-card h5 {
+    color: var(--on-surface);
+}
+
+.sodoban-page .stat-container {
+    background: var(--surface-container-low);
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--on-surface);
+}
+
+.sodoban-page .stat-container h6 {
+    color: var(--on-surface);
+}
+
+.table-container-modern {
+    background: var(--surface-container);
+    border-radius: 1rem;
+    overflow: hidden;
+    color: var(--on-surface);
+}
+
+.table-container-modern h5 {
+    color: var(--on-surface);
+}
+
+/* Giống ai.css — bảng Bootstrap không còn nền trắng */
+table.custom-dark-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--on-surface);
+    --bs-table-border-color: rgba(137, 206, 255, 0.08);
+    color: var(--on-surface);
+    margin-bottom: 0;
+}
+
+table.custom-dark-table > :not(caption) > * > * {
+    background-color: transparent;
+    border-bottom-color: rgba(137, 206, 255, 0.08);
+    color: inherit;
+}
+
+table.custom-dark-table thead th {
+    background: var(--surface-container-high) !important;
+    color: var(--text-slate) !important;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--outline-variant);
+    white-space: nowrap;
+}
+
+table.custom-dark-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+table.custom-dark-table tbody tr:nth-child(odd) td {
+    background: rgba(0, 0, 0, 0.14);
+}
+
+table.custom-dark-table tbody tr:nth-child(even) td {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+table.custom-dark-table tbody tr:hover td {
+    background: rgba(137, 206, 255, 0.09) !important;
+}
+
+table.custom-dark-table tbody td.small,
+table.custom-dark-table tbody td {
+    color: var(--on-surface);
+}
+
+table.custom-dark-table tbody td.text-secondary {
+    color: var(--text-slate) !important;
+}
+
+/* Form trong card QR + modal — khớp input admin */
+body.sodoban-page .form-control {
+    background-color: var(--surface-container-highest);
+    border-color: var(--outline-variant);
+    color: var(--on-surface);
+}
+
+body.sodoban-page .form-control::placeholder {
+    color: var(--text-slate);
+}
+
+body.sodoban-page .form-control:focus {
+    background-color: var(--surface-container-highest);
+    border-color: var(--primary);
+    color: var(--on-surface);
+    box-shadow: 0 0 0 0.2rem rgba(137, 206, 255, 0.2);
+}
+
+body.sodoban-page .qr-action-card code {
+    color: var(--secondary);
+    background: rgba(78, 222, 163, 0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* Nút icon bảng / danh sách QR — không load donhang.css nên cần style rõ contrast */
+body.sodoban-page .btn-icon-tool,
+body.sodoban-page .btn-icon-tool-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0.35rem;
+    border-radius: 10px;
+    border: 1px solid rgba(137, 206, 255, 0.24);
+    background: rgba(137, 206, 255, 0.08);
+    color: var(--primary);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+body.sodoban-page .btn-icon-tool-sm {
+    min-width: 2.125rem;
+    min-height: 2.125rem;
+}
+
+body.sodoban-page .btn-icon-tool:hover,
+body.sodoban-page .btn-icon-tool-sm:hover {
+    background: rgba(137, 206, 255, 0.2);
+    border-color: rgba(137, 206, 255, 0.5);
+    color: #c4ecff;
+}
+
+body.sodoban-page .btn-edit-table {
+    color: var(--secondary);
+    border-color: rgba(78, 222, 163, 0.35);
+    background: rgba(78, 222, 163, 0.1);
+}
+
+body.sodoban-page .btn-edit-table:hover {
+    background: rgba(78, 222, 163, 0.22);
+    border-color: rgba(78, 222, 163, 0.55);
+    color: #b8f5de;
+}
+
+body.sodoban-page .btn-del-table {
+    color: var(--error);
+    border-color: rgba(255, 180, 171, 0.35);
+    background: rgba(255, 180, 171, 0.1);
+}
+
+body.sodoban-page .btn-del-table:hover {
+    background: rgba(255, 180, 171, 0.24);
+    border-color: rgba(255, 180, 171, 0.55);
+    color: #ffe2de;
+}
+
+body.sodoban-page .btn-dl-row {
+    color: var(--primary);
+}
+
+body.sodoban-page .btn-primary-soft.btn-icon-tool {
+    border-color: rgba(137, 206, 255, 0.32);
+    background: rgba(137, 206, 255, 0.14);
+}
+
+body.sodoban-page .btn-primary-soft.btn-icon-tool:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+}
+
+body.sodoban-page .btn-copy-url {
+    color: #c8d4ed;
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+body.sodoban-page .btn-copy-url:hover {
+    color: var(--primary);
+    border-color: rgba(137, 206, 255, 0.45);
+    background: rgba(137, 206, 255, 0.12);
+}
+
+body.sodoban-page .table-container-modern > .d-flex.justify-content-between .small.text-secondary {
+    color: #b4c2e0 !important;
+}
+
+/* Modal thêm/sửa bàn: nền sáng + chữ đen (không dùng theme tối của trang) */
+body.sodoban-page #modal-table-form .modal-content {
+    background: #ffffff !important;
+    color: #111827 !important;
+}
+
+body.sodoban-page #modal-table-form .modal-title {
+    color: #111827 !important;
+}
+
+body.sodoban-page #modal-table-form .form-label {
+    color: #111827 !important;
+}
+
+body.sodoban-page #modal-table-form .modal-body .small,
+body.sodoban-page #modal-table-form .modal-body .text-secondary {
+    color: #374151 !important;
+}
+
+body.sodoban-page #modal-table-form .form-control {
+    background-color: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+body.sodoban-page #modal-table-form .form-control::placeholder {
+    color: #6b7280 !important;
+}
+
+body.sodoban-page #modal-table-form .form-control:focus {
+    background-color: #ffffff !important;
+    border-color: #2563eb !important;
+    color: #111827 !important;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.2);
+}
+
+body.sodoban-page #modal-table-form .modal-header,
+body.sodoban-page #modal-table-form .modal-footer {
+    border-color: #e5e7eb !important;
+}
+
+body.sodoban-page #modal-table-form .btn-close {
+    filter: none;
+    opacity: 0.55;
+}
+
+body.sodoban-page #modal-table-form .btn-close:hover {
+    opacity: 1;
+}
+
+body.sodoban-page #modal-table-form .modal-footer .btn-surface-container {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+}

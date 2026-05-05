@@ -50,6 +50,17 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.feature-item.qr-demo-banner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.qr-demo-img {
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
 /* Floating icons */
 .social-floating {
     position: absolute;
@@ -66,6 +77,14 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Thông báo thành công (toastr) — xanh */
+#toast-container > .toast-success {
+    background-color: #198754 !important;
+}
+#toast-container .toast {
+    border-radius: 12px !important;
 }
 
 /* Responsive fixes */

@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quản lý Thực đơn | Restaurant AI</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='0.9em' font-size='56'%3E%F0%9F%8D%BD%EF%B8%8F%3C/text%3E%3C/svg%3E">
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -21,31 +22,58 @@
 
     <main class="main-content">
         <div class="container-fluid">
-            
-            <div class="row align-items-center mb-5 mt-2">
-    <div class="col-md-6">
-        <h2 class="page-title mb-1">Quản lý Thực đơn</h2>
-        <p class="text-secondary mb-0">Thiết kế và tối ưu hóa danh mục món ăn với sự hỗ trợ của AI.</p>
-    </div>
-    <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
-        <button class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
-            <span class="material-symbols-outlined fs-5">edit_attributes</span> 
-            <span>Sửa danh mục</span>
-        </button>
 
-        <button onclick="openCreateModal()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
-            <span class="material-symbols-outlined">add</span> 
-            <span>Thêm món mới</span>
-        </button>
-    </div>
-</div>
+            <div class="row align-items-center mb-5 mt-2 gy-3">
+                <div class="col-12 col-xl-auto">
+                    <h2 class="page-title mb-1">Quản lý Thực đơn</h2>
+                </div>
+                <div class="col-12 col-xl">
+                    <div class="d-flex flex-wrap align-items-center justify-content-xl-end gap-2">
+                        <div class="menu-admin-toolbar-search search-container flex-grow-1 flex-md-grow-0">
+                            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+                            <input
+                                id="menuSearchInput"
+                                class="search-input"
+                                type="search"
+                                placeholder="Tìm kiếm món ăn..."
+                                autocomplete="off"
+                                aria-label="Tìm kiếm món ăn"
+                            />
+                        </div>
+                        <button type="button" onclick="openCategoryModal()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm flex-shrink-0">
+                            <span class="material-symbols-outlined fs-5">edit_attributes</span>
+                            <span>Sửa danh mục</span>
+                        </button>
+                        <button type="button" onclick="openCreateModal()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm flex-shrink-0">
+                            <span class="material-symbols-outlined">add</span>
+                            <span>Thêm món mới</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <div class="nav nav-pills bg-surface-container-low p-1 rounded-pill shadow-sm" id="categoryNav">
                 </div>
-                <div class="d-flex gap-3 text-secondary align-items-center">
+                <div class="d-flex gap-2 text-secondary align-items-center">
                     <span class="small fw-bold text-uppercase opacity-50 d-none d-sm-inline">Chế độ xem:</span>
-                    <span class="material-symbols-outlined text-primary cursor-pointer">grid_view</span>
-                    <span class="material-symbols-outlined cursor-pointer">format_list_bulleted</span>
+                    <button
+                        type="button"
+                        id="view-grid-btn"
+                        class="btn btn-link p-1 lh-1 border-0 text-decoration-none text-primary"
+                        onclick="changeViewMode('grid')"
+                        aria-label="Xem dạng lưới"
+                        title="Lưới">
+                        <span class="material-symbols-outlined fs-5">grid_view</span>
+                    </button>
+                    <button
+                        type="button"
+                        id="view-list-btn"
+                        class="btn btn-link p-1 lh-1 border-0 text-decoration-none opacity-50"
+                        onclick="changeViewMode('list')"
+                        aria-label="Xem dạng danh sách ngang"
+                        title="Danh sách ngang">
+                        <span class="material-symbols-outlined fs-5">format_list_bulleted</span>
+                    </button>
                 </div>
             </div>
 
@@ -62,22 +90,85 @@
     <script src="component-loader.js"></script>
     <script src="menu.js"></script>
 
-    <div class="modal fade" id="menuModal">
-  <div class="modal-dialog">
-    <div class="modal-content p-3">
-      <h5>Thêm món</h5>
+    <div class="modal fade" id="menuModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content p-4 menu-modal-content">
+                <button
+                    type="button"
+                    class="menu-modal-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng"
+                    title="Đóng"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
 
-      <input id="name" class="form-control mb-2" placeholder="Tên món">
-      <input id="price" class="form-control mb-2" placeholder="Giá">
-      <input id="img" class="form-control mb-2" placeholder="Link ảnh">
-      <textarea id="desc" class="form-control mb-2" placeholder="Mô tả"></textarea>
+                <h5 class="mb-3 fw-bold" id="menuModalTitle">Thêm món</h5>
 
-      <select id="category" class="form-control mb-3"></select>
+                <label class="form-label fw-semibold mb-1" for="name">Tên món</label>
+                <input id="name" class="form-control mb-3" placeholder="Tên món" autocomplete="off">
 
-      <button onclick="createItem()" class="btn btn-primary">Lưu</button>
+                <label class="form-label fw-semibold mb-1" for="price">Giá (VND)</label>
+                <input id="price" type="number" min="0" step="1" class="form-control mb-3" placeholder="Giá">
+
+                <label class="form-label fw-semibold mb-1" for="category">Danh mục</label>
+                <select id="category" class="form-select mb-3"></select>
+
+                <label class="form-label fw-semibold mb-1" for="desc">Mô tả</label>
+                <textarea id="desc" class="form-control mb-3" rows="3" placeholder="Mô tả món"></textarea>
+
+                <div class="mb-4">
+                    <label for="imgFile" class="form-label fw-semibold mb-1">Tải ảnh từ máy</label>
+                    <input id="imgFile" type="file" accept="image/*" class="form-control mb-2">
+                    <img id="imgPreview" class="menu-image-preview d-none" alt="Ảnh xem trước món ăn">
+                    <small id="imgUploadNote" class="menu-modal-helper d-block mt-1">Chua co anh duoc chon.</small>
+                </div>
+
+                <input type="hidden" id="img" value="">
+
+                <div class="text-end">
+                    <button type="button" onclick="submitMenuModal()" class="btn btn-primary px-4">Lưu</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content p-4 menu-modal-content bg-dark text-white border-secondary">
+                <button
+                    type="button"
+                    class="menu-modal-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng"
+                    title="Đóng"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h5 class="mb-3 fw-bold" id="categoryModalTitle">Sửa danh mục</h5>
+                <label class="form-label small text-secondary">Chọn danh mục</label>
+                <select id="categoryEditSelect" class="form-select mb-3 bg-dark text-white border-secondary"></select>
+                <label class="form-label small text-secondary">Tên</label>
+                <input id="categoryEditName" type="text" class="form-control mb-3 bg-dark text-white border-secondary" placeholder="Tên danh mục">
+                <label class="form-label small text-secondary">Mô tả</label>
+                <textarea id="categoryEditDescription" class="form-control mb-3 bg-dark text-white border-secondary" rows="2" placeholder="Mô tả"></textarea>
+                <label class="form-label small text-secondary">Ảnh danh mục</label>
+                <input id="categoryEditImageFile" type="file" class="form-control mb-2 bg-dark text-white border-secondary" accept="image/*">
+                <p id="categoryEditImageNote" class="small text-secondary mb-2 d-none"></p>
+                <input type="hidden" id="categoryEditImageUrl" value="">
+                <img id="categoryEditImagePreview" alt="Xem trước ảnh danh mục" class="rounded border border-secondary mb-3 d-none mx-auto" style="max-height:160px;max-width:100%;object-fit:contain;">
+                <label class="form-label small text-secondary">Thứ tự hiển thị</label>
+                <input id="categoryEditSortOrder" type="number" class="form-control mb-4 bg-dark text-white border-secondary" placeholder="0">
+                <div class="d-flex flex-wrap justify-content-between gap-2 pt-1">
+                    <button type="button" class="btn btn-outline-danger" id="category-delete-btn" onclick="deleteSelectedCategory()">Xóa danh mục</button>
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSelectedCategory()">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
