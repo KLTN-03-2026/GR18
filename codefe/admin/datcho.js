@@ -69,6 +69,50 @@ function refillEditTableSelect() {
     if (keep && staffTables.some((x) => String(x.id) === keep)) sel.value = keep;
 }
 
+function extractPreferredArea(note) {
+    if (!note) return "";
+    const m = String(note).match(/Khu vực mong muốn:\s*([^.]*)/);
+    return m ? m[1].trim() : "";
+}
+
+function extractPreferredTableNum(note) {
+    if (!note) return "";
+    const m = String(note).match(/Bàn mong muốn:\s*([^.]*)/);
+    return m ? m[1].trim() : "";
+}
+
+function formatLocationDesk(r) {
+    const loc = r.tableLocation && String(r.tableLocation).trim();
+    const tn = r.tableNumber && String(r.tableNumber).trim();
+    if (tn) {
+        return `<div><span class="fw-semibold">${escapeHtml(tn)}</span></div><div class="cust-sub">${escapeHtml(loc || "—")}</div>`;
+    }
+    const area = extractPreferredArea(r.note);
+    const wishBn = extractPreferredTableNum(r.note);
+    const parts = [];
+    if (area) parts.push(`<span class="small">Khu: ${escapeHtml(area)}</span>`);
+    if (wishBn) parts.push(`<span class="small">Bàn mong muốn: ${escapeHtml(wishBn)}</span>`);
+    if (!parts.length) return `<span class="cust-sub">—</span>`;
+    return `<div class="d-flex flex-column gap-1">${parts.join("")}</div>`;
+}
+
+function refillEditTableSelect() {
+    const sel = document.getElementById("editTableId");
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML =
+        '<option value="">— Chưa gán bàn —</option>' +
+        staffTables
+            .map(
+                (t) =>
+                    `<option value="${t.id}">${escapeHtml(String(t.tableNumber))} · ${escapeHtml(
+                        String(t.location || "—")
+                    )} (${t.capacity} chỗ)</option>`
+            )
+            .join("");
+    if (keep && staffTables.some((x) => String(x.id) === keep)) sel.value = keep;
+}
+
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", async () => {
     initDateFilter();
@@ -100,7 +144,14 @@ async function loadReservations() {
         });
 
         reservations = Array.isArray(res.data?.data) ? res.data.data : [];
+<<<<<<< HEAD
         applyFilters();
+=======
+        filteredRows = reservations.slice();
+        currentPage = 1;
+        redrawList();
+        updateStats(reservations);
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
 
     } catch (err) {
         console.error("ERROR:", err);
@@ -292,6 +343,7 @@ function setupSearch() {
     input.addEventListener("input", applyFilters);
 }
 
+<<<<<<< HEAD
 function applyFilters() {
     const input = document.querySelector(".search-input");
     const val = String(input?.value || "").toLowerCase();
@@ -302,6 +354,19 @@ function applyFilters() {
         const matchStatus = !statusFilter ||
             normalizeReservationStatus(r.status) === statusFilter;
         return matchSearch && matchStatus;
+=======
+    input.addEventListener("input", (e) => {
+        const val = String(e.target.value || "").toLowerCase();
+
+        filteredRows = reservations.filter(
+            (r) =>
+                (r.customerName || "").toLowerCase().includes(val) ||
+                String(r.customerPhone || "").includes(val)
+        );
+        currentPage = 1;
+        redrawList();
+        updateStats(reservations);
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
     });
     currentPage = 1;
     redrawList();
@@ -541,11 +606,14 @@ function openEdit(id) {
     const sel = document.getElementById("editTableId");
     if (sel) sel.value = tid;
 
+<<<<<<< HEAD
     const badge = document.getElementById("editModalMode");
     if (badge) badge.classList.add("d-none");
     const btn = document.getElementById("btnSaveReservation");
     if (btn) btn.textContent = "Lưu thay đổi";
 
+=======
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
     new bootstrap.Modal(document.getElementById("editModal")).show();
 }
 async function updateReservation() {
@@ -581,11 +649,26 @@ async function updateReservation() {
         return;
     }
 
+    if (!id) {
+        alert("Mở chỉnh sửa từ biểu tượng bút chì trên một dòng đặt chỗ.");
+        return;
+    }
+
+    const rawTable = document.getElementById("editTableId")?.value;
+    const tableId = rawTable ? Number(rawTable) : null;
+
     const data = {
+<<<<<<< HEAD
         customerName,
         customerPhone,
         numberOfGuests,
         reservationTime,
+=======
+        customerName: document.getElementById("editName").value,
+        customerPhone: document.getElementById("editPhone").value,
+        numberOfGuests: parseInt(document.getElementById("editGuests").value, 10),
+        reservationTime: document.getElementById("editTime").value,
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
         tableId: rawTable !== "" && Number.isFinite(tableId) ? tableId : null
     };
 

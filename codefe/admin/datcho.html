@@ -67,6 +67,7 @@
                         <div class="table-header">
                             <h3 class="table-title mb-0">Đặt chỗ sắp tới</h3>
                             <div class="table-actions d-flex gap-2">
+<<<<<<< HEAD
                                 <div class="dropdown">
                                     <button type="button" class="tool-btn" id="btnFilter" data-bs-toggle="dropdown" aria-expanded="false" title="Lọc theo trạng thái"><span class="material-symbols-outlined">filter_list</span></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
@@ -79,6 +80,10 @@
                                     </ul>
                                 </div>
                                 <button type="button" class="tool-btn" id="btnExport" aria-label="Xuất" title="Xuất dữ liệu CSV"><span class="material-symbols-outlined">download</span></button>
+=======
+                                <button type="button" class="tool-btn" aria-label="Lọc" title="Lọc (xem trong bộ lọc ngày)"><span class="material-symbols-outlined">filter_list</span></button>
+                                <button type="button" class="tool-btn" aria-label="Xuất" title="Xuất dữ liệu"><span class="material-symbols-outlined">download</span></button>
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -106,7 +111,11 @@
         </div>
     </main>
 
+<<<<<<< HEAD
     <button type="button" class="fab-add shadow-lg" onclick="openAddNew()" title="Thêm đặt bàn mới">
+=======
+    <button type="button" class="fab-add shadow-lg" data-bs-toggle="modal" data-bs-target="#editModal" title="Thêm / chỉnh sửa nhanh">
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
         <span class="material-symbols-outlined filled">add</span>
     </button>
 
@@ -115,7 +124,10 @@
             <div class="modal-content border-0 shadow-lg datcho-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold" id="editModalLabel">Thông tin đặt bàn</h5>
+<<<<<<< HEAD
                     <span id="editModalMode" class="badge bg-primary ms-2 d-none">Thêm mới</span>
+=======
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body pt-3">
@@ -147,7 +159,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Đóng</button>
+<<<<<<< HEAD
                     <button type="button" class="btn btn-primary rounded-3 px-4 fw-semibold" id="btnSaveReservation" onclick="updateReservation()">Lưu thay đổi</button>
+=======
+                    <button type="button" class="btn btn-primary rounded-3 px-4 fw-semibold" onclick="updateReservation()">Lưu thay đổi</button>
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
                 </div>
             </div>
         </div>

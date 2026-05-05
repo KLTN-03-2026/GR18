@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /**
+=======
+﻿/**
+>>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
  * Quản lý bàn & QR: danh sách, thêm / sửa / xóa (API admin), QR menu theo token.
  * GET/POST/PUT/DELETE /tables/admin/* — JWT ADMIN. API: window.RESTAURANT_API_BASE || http://localhost:8080/api
  */
