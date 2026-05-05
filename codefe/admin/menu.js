@@ -43,15 +43,7 @@ function filterItemsBySearchQuery(items, qNormalized) {
 }
 
 function refreshMenuGrid() {
-<<<<<<< HEAD
-    const raw = (document.getElementById("menuSearchInput")?.value || "").trim();
-    const qNorm = menuSearchQueryNormalized();
-    // Nếu raw có nội dung nhưng normalize về rỗng (toàn ký tự đặc biệt như @@@@) → không có kết quả
-    const filtered = (raw && !qNorm) ? [] : filterItemsBySearchQuery(menuItemsSnapshot, qNorm);
-    renderMenu(filtered);
-=======
     renderMenu(filterItemsBySearchQuery(menuItemsSnapshot, menuSearchQueryNormalized()));
->>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
 }
 
 function normalizeCategoryKey(input) {
@@ -201,9 +193,6 @@ function resolveImageUrl(rawUrl) {
         return MENU_IMAGE_FALLBACK;
     }
     if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:image")) {
-        // Chuyển Google Drive /file/d/ID sang URL nhúng trực tiếp
-        const m = value.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
         return value;
     }
     if (value.startsWith("/")) {
@@ -459,15 +448,6 @@ function bindMenuSearchInput() {
         clearTimeout(bindMenuSearchInput._timer);
         bindMenuSearchInput._timer = setTimeout(() => refreshMenuGrid(), 180);
     });
-<<<<<<< HEAD
-    el.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            clearTimeout(bindMenuSearchInput._timer);
-            refreshMenuGrid();
-        }
-    });
-=======
->>>>>>> ea1acb804b75f908f1de5defe1192b6142d13662
 }
 
 function openCategoryModal() {
