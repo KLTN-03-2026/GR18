@@ -58,7 +58,10 @@ function menuWordMatchesQuery(word, qp) {
 function menuSearchHaystackMatches(haystackNormalized, queryNormalized) {
     if (!queryNormalized) return true;
     if (!haystackNormalized) return false;
-    const qParts = queryNormalized.split(/\s+/).filter(Boolean);
+    const qParts = tokenizeForMenuSearch(queryNormalized);
+    if (qParts.length === 0) {
+        return false;
+    }
     const words = tokenizeForMenuSearch(haystackNormalized);
     return qParts.every((qp) => words.some((w) => menuWordMatchesQuery(w, qp)));
 }
@@ -325,21 +328,39 @@ async function toggleAvailable(id, isAvailable) {
 async function submitMenuModal() {
     const name = document.getElementById("name")?.value.trim() || "";
     const priceRaw = document.getElementById("price")?.value;
+    const priceTrim = priceRaw != null ? String(priceRaw).trim() : "";
     const categoryIdVal = document.getElementById("category")?.value;
     const description = document.getElementById("desc")?.value.trim() || "";
     const imageUrl = document.getElementById("img")?.value.trim() || "";
 
-    const price = Number(priceRaw);
-    if (!name) {
-        showActionToast("Vui lòng nhập tên món.", "error");
+    const missName = !name;
+    const missPrice = !priceTrim;
+    const missCat = !categoryIdVal;
+    const nMiss = (missName ? 1 : 0) + (missPrice ? 1 : 0) + (missCat ? 1 : 0);
+    if (nMiss === 1) {
+        if (missName) {
+            showActionToast("Vui lòng nhập tên món.", "error");
+            return;
+        }
+        if (missPrice) {
+            showActionToast("Vui lòng nhập giá.", "error");
+            return;
+        }
+        showActionToast("Vui lòng chọn danh mục.", "error");
         return;
     }
+    if (nMiss > 1) {
+        const missing = [];
+        if (missName) missing.push("tên món");
+        if (missPrice) missing.push("giá");
+        if (missCat) missing.push("danh mục");
+        showActionToast("Vui lòng nhập hoặc chọn: " + missing.join(", ") + ".", "error");
+        return;
+    }
+
+    const price = Number(priceTrim.replace(/\s/g, ""));
     if (!Number.isFinite(price) || price < 0) {
         showActionToast("Giá không hợp lệ.", "error");
-        return;
-    }
-    if (!categoryIdVal) {
-        showActionToast("Vui lòng chọn danh mục.", "error");
         return;
     }
 
@@ -415,7 +436,7 @@ function fillCategorySelect(categories) {
         return;
     }
 
-    select.innerHTML = "";
+    select.innerHTML = '<option value="">-- Chọn danh mục --</option>';
 
     categories.forEach(c => {
         select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
@@ -493,6 +514,12 @@ function bindMenuSearchInput() {
     el.addEventListener("input", () => {
         clearTimeout(bindMenuSearchInput._timer);
         bindMenuSearchInput._timer = setTimeout(() => refreshMenuGrid(), 180);
+    });
+    el.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        clearTimeout(bindMenuSearchInput._timer);
+        refreshMenuGrid();
     });
 }
 
@@ -754,7 +781,7 @@ function resetCreateForm() {
         uploadNote.classList.remove("d-none");
     }
     if (categorySelect && categorySelect.options.length > 0) {
-        categorySelect.selectedIndex = 0;
+        categorySelect.value = "";
     }
 }
 

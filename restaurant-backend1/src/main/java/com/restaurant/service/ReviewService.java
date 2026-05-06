@@ -138,7 +138,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public Review submitReview(Long userId, SubmitReviewRequest request) {
+    public ReviewListItemDto submitReview(Long userId, SubmitReviewRequest request) {
         Order order = orderRepository.findDetailById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
         if (order.getUser() == null || !order.getUser().getId().equals(userId)) {
@@ -174,11 +174,11 @@ public class ReviewService {
                 .build();
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(menuItem.getId());
-        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
+        return toDtoAfterWrite(saved.getId(), saved);
     }
 
     @Transactional
-    public Review submitGuestReview(GuestSubmitReviewRequest request) {
+    public ReviewListItemDto submitGuestReview(GuestSubmitReviewRequest request) {
         Order order = orderRepository.findDetailById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
         if (order.getUser() != null) {
@@ -213,7 +213,7 @@ public class ReviewService {
                 .build();
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(menuItem.getId());
-        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
+        return toDtoAfterWrite(saved.getId(), saved);
     }
 
     private void assertOrderMatchesGuestQr(Order order, String qrCodeToken) {
@@ -226,7 +226,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public Review updateGuestReview(Long reviewId, String qrCodeToken, UpdateReviewRequest request) {
+    public ReviewListItemDto updateGuestReview(Long reviewId, String qrCodeToken, UpdateReviewRequest request) {
         if (!StringUtils.hasText(qrCodeToken)) {
             throw new IllegalArgumentException("Thiếu mã QR bàn");
         }
@@ -240,7 +240,7 @@ public class ReviewService {
         review.setComment(request.getComment().trim());
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(saved.getMenuItem().getId());
-        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
+        return toDtoAfterWrite(saved.getId(), saved);
     }
 
     @Transactional
@@ -265,14 +265,14 @@ public class ReviewService {
     }
 
     @Transactional
-    public Review updateMyReview(Long userId, Long reviewId, UpdateReviewRequest request) {
+    public ReviewListItemDto updateMyReview(Long userId, Long reviewId, UpdateReviewRequest request) {
         Review review = reviewRepository.findByIdAndUser_Id(reviewId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đánh giá hoặc bạn không có quyền"));
         review.setRating(request.getRating());
         review.setComment(request.getComment().trim());
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(saved.getMenuItem().getId());
-        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
+        return toDtoAfterWrite(saved.getId(), saved);
     }
 
     @Transactional
@@ -292,6 +292,13 @@ public class ReviewService {
         }
         menuItem.setAvgRating(avg != null ? BigDecimal.valueOf(avg) : BigDecimal.ZERO);
         menuItemRepository.save(menuItem);
+    }
+
+    /** Trả DTO trong transaction để không serialize entity (MenuItem.category lazy sau đóng session). */
+    private ReviewListItemDto toDtoAfterWrite(Long reviewId, Review fallback) {
+        return reviewRepository.findByIdWithAssociationsForApi(reviewId)
+                .map(ReviewService::toListItemDto)
+                .orElseGet(() -> toListItemDto(fallback));
     }
 
     private static ReviewListItemDto toListItemDto(Review r) {

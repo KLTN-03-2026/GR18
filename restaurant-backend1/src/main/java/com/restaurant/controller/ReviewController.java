@@ -6,7 +6,6 @@ import com.restaurant.dto.request.UpdateReviewRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.review.EligibleOrderForReviewDto;
 import com.restaurant.dto.response.review.ReviewListItemDto;
-import com.restaurant.entity.Review;
 import com.restaurant.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -77,14 +76,14 @@ public class ReviewController {
 
     @PostMapping("/reviews/guest")
     @Operation(summary = "Gửi đánh giá khách vãng lai (kèm mã QR bàn; đơn đã thanh toán, một lần/đơn)")
-    public ResponseEntity<ApiResponse<Review>> guestSubmit(@Valid @RequestBody GuestSubmitReviewRequest request) {
-        Review saved = reviewService.submitGuestReview(request);
+    public ResponseEntity<ApiResponse<ReviewListItemDto>> guestSubmit(@Valid @RequestBody GuestSubmitReviewRequest request) {
+        ReviewListItemDto saved = reviewService.submitGuestReview(request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Đánh giá thành công"));
     }
 
     @PutMapping("/reviews/guest/{id}")
     @Operation(summary = "Cập nhật đánh giá khách (cùng mã QR bàn với đơn)")
-    public ResponseEntity<ApiResponse<Review>> guestUpdate(
+    public ResponseEntity<ApiResponse<ReviewListItemDto>> guestUpdate(
             @PathVariable Long id,
             @RequestParam("qrCodeToken") String qrCodeToken,
             @Valid @RequestBody UpdateReviewRequest request) {
@@ -104,23 +103,23 @@ public class ReviewController {
     @PostMapping("/reviews")
     @Operation(summary = "Gửi đánh giá món ăn (sau khi đơn hoàn thành & thanh toán)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Review>> submitReview(
+    public ResponseEntity<ApiResponse<ReviewListItemDto>> submitReview(
             Authentication authentication,
             @Valid @RequestBody SubmitReviewRequest request) {
         Long userId = Long.parseLong(authentication.getName());
-        Review saved = reviewService.submitReview(userId, request);
+        ReviewListItemDto saved = reviewService.submitReview(userId, request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Đánh giá thành công"));
     }
 
     @PutMapping("/reviews/{id}")
     @Operation(summary = "Cập nhật đánh giá của chính mình", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Review>> updateMyReview(
+    public ResponseEntity<ApiResponse<ReviewListItemDto>> updateMyReview(
             Authentication authentication,
             @PathVariable Long id,
             @Valid @RequestBody UpdateReviewRequest request) {
         Long userId = Long.parseLong(authentication.getName());
-        Review saved = reviewService.updateMyReview(userId, id, request);
+        ReviewListItemDto saved = reviewService.updateMyReview(userId, id, request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Đã cập nhật đánh giá"));
     }
 

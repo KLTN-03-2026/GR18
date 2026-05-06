@@ -2,7 +2,9 @@
  * Restaurant AI — Lịch sử: đặt bàn + đơn món (đã đăng nhập)
  */
 
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = String(
+    (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "http://127.0.0.1:8080/api"
+).replace(/\/+$/, "");
 
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof toastr !== "undefined") {
@@ -122,6 +124,45 @@ document.addEventListener("DOMContentLoaded", () => {
         return m[pm] || pm;
     }
 
+    /** Đồng bộ với ReservationStatus backend */
+    function bookingStatusLabel(st) {
+        const key = String(st || "").toUpperCase();
+        const m = {
+            PENDING: "Chờ",
+            CONFIRMED: "Đã xác nhận",
+            ARRIVED: "Đã đến",
+            CANCELLED: "Đã hủy",
+            COMPLETED: "Hoàn thành",
+        };
+        return m[key] || st || "—";
+    }
+
+    function bookingStatusBadgeClass(st) {
+        const key = String(st || "").toUpperCase();
+        if (key === "PENDING") return "badge bg-warning text-dark";
+        if (key === "CONFIRMED") return "badge bg-primary";
+        if (key === "ARRIVED") return "badge bg-success";
+        if (key === "CANCELLED") return "badge bg-danger";
+        if (key === "COMPLETED") return "badge bg-secondary";
+        return "badge bg-light text-dark";
+    }
+
+    function bookingStatusDescription(st) {
+        const key = String(st || "").toUpperCase();
+        const m = {
+            PENDING:
+                "Trạng thái mặc định sau khi bạn gửi yêu cầu đặt bàn trực tuyến. Lúc này yêu cầu đang chờ hệ thống xử lý và giữ chỗ.",
+            CONFIRMED:
+                "Đơn đặt bàn đã được kiểm tra tình trạng bàn trống và xác nhận thành công. Trạng thái bàn tại nhà hàng được cập nhật thành Đã đặt (Reserved).",
+            ARRIVED:
+                "Khách đã có mặt tại nhà hàng đúng giờ hẹn (nhân viên đã tiếp nhận qua chức năng Tiếp nhận khách đặt bàn). Bàn chuyển sang Đang sử dụng để phục vụ và gọi món.",
+            CANCELLED:
+                "Đơn đã hủy trước giờ hẹn. Hệ thống giải phóng bàn và cập nhật trạng thái bàn về Còn trống.",
+            COMPLETED: "Buổi đặt bàn đã được kết thúc trong hệ thống.",
+        };
+        return m[key] || "";
+    }
+
     function setFilterActive(which) {
         [btnAll, btnOrder, btnBooking].forEach((b) => {
             if (!b) return;
@@ -186,15 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
         tableBody.innerHTML = bookings
             .map((item) => {
                 const date = formatDate(item.reservationTime);
-                let badgeClass = "badge bg-warning text-dark";
-                let statusVN = "Chờ duyệt";
-                if (item.status === "CONFIRMED" || item.status === "COMPLETED") {
-                    badgeClass = "badge bg-success";
-                    statusVN = "Hoàn thành";
-                } else if (item.status === "CANCELLED") {
-                    badgeClass = "badge bg-danger";
-                    statusVN = "Đã hủy";
-                }
+                const statusKey = String(item.status || "").toUpperCase();
+                const badgeClass = bookingStatusBadgeClass(statusKey);
+                const statusVN = bookingStatusLabel(statusKey);
                 return `
                 <tr>
                     <td>${date}</td>
@@ -273,15 +308,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (r.kind === "booking") {
                     const item = r.booking;
                     const date = formatDate(item.reservationTime);
-                    let badgeClass = "badge bg-warning text-dark";
-                    let statusVN = "Chờ duyệt";
-                    if (item.status === "CONFIRMED" || item.status === "COMPLETED") {
-                        badgeClass = "badge bg-success";
-                        statusVN = "Hoàn thành";
-                    } else if (item.status === "CANCELLED") {
-                        badgeClass = "badge bg-danger";
-                        statusVN = "Đã hủy";
-                    }
+                    const statusKey = String(item.status || "").toUpperCase();
+                    const badgeClass = bookingStatusBadgeClass(statusKey);
+                    const statusVN = bookingStatusLabel(statusKey);
                     return `
                     <tr>
                         <td>${date}</td>
@@ -377,6 +406,16 @@ document.addEventListener("DOMContentLoaded", () => {
             modalBody.innerHTML = `
                 <div>
                     <p><b>Mã đặt:</b> #${item.id}</p>
+                    <p><b>Trạng thái:</b> <span class="${bookingStatusBadgeClass(item.status)}">${escapeHtml(
+                bookingStatusLabel(item.status)
+            )}</span></p>
+                    ${
+                        bookingStatusDescription(item.status)
+                            ? `<p class="small text-muted border-start border-3 ps-3 mb-3">${escapeHtml(
+                                  bookingStatusDescription(item.status)
+                              )}</p>`
+                            : ""
+                    }
                     <p><b>Khách:</b> ${escapeHtml(item.customerName)}</p>
                     <p><b>SĐT:</b> ${escapeHtml(item.customerPhone)}</p>
                     <p><b>Thời gian:</b> ${formatDateTime(item.reservationTime)}</p>
@@ -385,7 +424,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p><b>Ghi chú:</b><br>${escapeHtml(item.note || "Không có")}</p>
                 </div>`;
 
-            if (item.status === "CONFIRMED" || item.status === "PENDING") {
+            const st = String(item.status || "").toUpperCase();
+            if (st === "CONFIRMED" || st === "PENDING") {
                 cancelBtn.classList.remove("d-none");
                 cancelBtn.onclick = () => handleCancel(item.id);
             } else cancelBtn.classList.add("d-none");
