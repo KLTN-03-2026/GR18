@@ -50,6 +50,13 @@ public class ChatService {
         }
 
         if (!msg.contains("đặt bàn")) {
+            Optional<ChatResponse> tastyCategory = chatMenuAssistant.tryAnswerTastyCategoryPicks(safeSessionId, user,
+                    rawMessage, msg);
+            if (tastyCategory.isPresent()) {
+                BookingSessionManager.clear(safeSessionId);
+                return tastyCategory.get();
+            }
+
             Optional<ChatResponse> nl = chatMenuAssistant.tryAnswerMenuQuestion(safeSessionId, user,
                     rawMessage, msg);
             if (nl.isPresent()) {

@@ -35,13 +35,44 @@
         };
     }
 
-    function fmtTime(iso) {
-        if (!iso) return "—";
+    /** ISO string, timestamp, hoặc mảng LocalDateTime từ Jackson [y,m,d,h,mi,s]. */
+    function fmtTime(v) {
+        if (v == null || v === "") return "—";
         try {
-            return new Date(iso).toLocaleString("vi-VN");
+            if (typeof v === "string") {
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? v : d.toLocaleString("vi-VN");
+            }
+            if (typeof v === "number") {
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? "—" : d.toLocaleString("vi-VN");
+            }
+            if (Array.isArray(v) && v.length >= 3) {
+                var y = v[0];
+                var mo = (v[1] || 1) - 1;
+                var day = v[2] || 1;
+                var h = v[3] != null ? v[3] : 0;
+                var mi = v[4] != null ? v[4] : 0;
+                var s = v[5] != null ? v[5] : 0;
+                var d = new Date(y, mo, day, h, mi, s);
+                return isNaN(d.getTime()) ? "—" : d.toLocaleString("vi-VN");
+            }
+            if (typeof v === "object" && v.year != null) {
+                var month = v.monthValue != null ? v.monthValue : typeof v.month === "number" ? v.month : 1;
+                var d = new Date(
+                    v.year,
+                    month - 1,
+                    v.dayOfMonth || v.day || 1,
+                    v.hour || 0,
+                    v.minute || 0,
+                    v.second || 0
+                );
+                return isNaN(d.getTime()) ? "—" : d.toLocaleString("vi-VN");
+            }
         } catch (e) {
-            return String(iso);
+            /* fallthrough */
         }
+        return "—";
     }
 
     function esc(s) {
@@ -136,8 +167,8 @@
                     "<h6 class=\"fw-bold mb-0 text-truncate\">" +
                     esc(displayName) +
                     "</h6>" +
-                    '<p class="smaller text-secondary mb-0 text-truncate">' +
-                    esc(fmtTime(r.createdAt)) +
+                    '<p class="smaller review-meta mb-0 text-truncate">' +
+                    esc(fmtTime(r.createdAt || r.created_at)) +
                     " · " +
                     esc(dish) +
                     "</p>" +
@@ -150,7 +181,7 @@
                         : '<span class="badge rounded-pill bg-secondary-subtle text-secondary smaller">Đã ẩn</span>') +
                     "</div>" +
                     "</div>" +
-                    "<p class=\"small text-body mb-3\" style=\"white-space:pre-wrap;word-break:break-word\">" +
+                    "<p class=\"small review-comment mb-3\" style=\"white-space:pre-wrap;word-break:break-word\">" +
                     esc(r.comment || "") +
                     "</p>" +
                     '<div class="d-flex flex-wrap gap-2 border-top border-outline-variant/10 pt-3">' +

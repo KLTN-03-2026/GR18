@@ -2,6 +2,7 @@ package com.restaurant.ai;
 
 import com.restaurant.entity.AiSystemConfig;
 import com.restaurant.entity.MenuItem;
+import com.restaurant.menu.MenuCategoryRules;
 import com.restaurant.repository.AiSystemConfigRepository;
 import com.restaurant.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +24,15 @@ public class AiMenuRecommendationService {
     private final AiJsonIds aiJsonIds;
 
     public List<MenuItem> recommendTop(int limit) {
+        return recommendTop(limit, false);
+    }
+
+    /**
+     * @param excludeBeverages true: bỏ danh mục đồ uống — dùng khi chat / gợi ý «món ăn».
+     */
+    public List<MenuItem> recommendTop(int limit, boolean excludeBeverages) {
         AiSystemConfig cfg = loadConfig();
-        List<MenuItem> pool = loadPool(cfg);
+        List<MenuItem> pool = loadPool(cfg, excludeBeverages);
         if (pool.isEmpty()) {
             return List.of();
         }
@@ -58,11 +66,19 @@ public class AiMenuRecommendationService {
             Map<Long, MenuItem> byId = pinnedItems.stream().collect(Collectors.toMap(MenuItem::getId, x -> x));
             for (Long pid : pinned) {
                 MenuItem mi = byId.get(pid);
-                if (mi != null && seen.add(mi.getId())) {
-                    out.add(mi);
-                    if (out.size() >= limit) {
-                        return out;
-                    }
+                if (mi == null) {
+                    continue;
+                }
+                if (excludeBeverages && mi.getCategory() != null
+                        && MenuCategoryRules.isBeverageCategory(mi.getCategory())) {
+                    continue;
+                }
+                if (!seen.add(mi.getId())) {
+                    continue;
+                }
+                out.add(mi);
+                if (out.size() >= limit) {
+                    return out;
                 }
             }
         }
@@ -78,12 +94,21 @@ public class AiMenuRecommendationService {
         return out;
     }
 
-    private List<MenuItem> loadPool(AiSystemConfig cfg) {
+    private List<MenuItem> loadPool(AiSystemConfig cfg, boolean excludeBeverages) {
         List<Long> catIds = aiJsonIds.parseLongIds(cfg.getRestrictCategoryIdsJson());
         if (catIds.isEmpty()) {
+            if (excludeBeverages) {
+                return menuItemRepository.findAllActiveAvailableFoodOnly();
+            }
             return menuItemRepository.findByIsActiveTrueAndIsAvailableTrue();
         }
-        return menuItemRepository.findByCategoryIdInAndIsActiveTrueAndIsAvailableTrue(catIds);
+        List<MenuItem> raw = menuItemRepository.findByCategoryIdInAndIsActiveTrueAndIsAvailableTrue(catIds);
+        if (excludeBeverages) {
+            return raw.stream()
+                    .filter(m -> m.getCategory() == null || !MenuCategoryRules.isBeverageCategory(m.getCategory()))
+                    .collect(Collectors.toList());
+        }
+        return raw;
     }
 
     @Transactional(readOnly = true)

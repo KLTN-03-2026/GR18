@@ -1,5 +1,6 @@
 package com.restaurant.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,7 @@ public class Review extends BaseEntity {
     /** Null khi đánh giá vãng lai (quét QR, không tài khoản). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @Column(name = "guest_name", length = 100)
@@ -32,10 +34,12 @@ public class Review extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "menu_item_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "orderItems", "reviews"})
     private MenuItem menuItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "orderItems", "reservation"})
     private Order order;
 
     @Column(name = "rating", nullable = false)

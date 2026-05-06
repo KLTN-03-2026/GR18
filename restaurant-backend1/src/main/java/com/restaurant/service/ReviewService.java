@@ -5,6 +5,7 @@ import com.restaurant.dto.request.SubmitReviewRequest;
 import com.restaurant.dto.request.UpdateReviewRequest;
 import com.restaurant.dto.response.review.EligibleOrderForReviewDto;
 import com.restaurant.dto.response.review.EligibleOrderLineForReviewDto;
+import com.restaurant.dto.response.review.ReviewListItemDto;
 import com.restaurant.entity.MenuItem;
 import com.restaurant.entity.Order;
 import com.restaurant.entity.RestaurantTable;
@@ -42,22 +43,28 @@ public class ReviewService {
     private final RestaurantTableRepository tableRepository;
 
     @Transactional(readOnly = true)
-    public List<Review> listVisibleByMenuItem(Long menuItemId, int page, int size) {
+    public List<ReviewListItemDto> listVisibleByMenuItem(Long menuItemId, int page, int size) {
         return reviewRepository
-                .findByMenuItemIdAndIsVisibleTrue(menuItemId, PageRequest.of(page, size))
-                .getContent();
+                .findVisibleByMenuItemWithAssociations(menuItemId, PageRequest.of(page, size))
+                .stream()
+                .map(ReviewService::toListItemDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Review> listAllVisible(int page, int size) {
+    public List<ReviewListItemDto> listAllVisible(int page, int size) {
         return reviewRepository
-                .findByIsVisibleTrueOrderByCreatedAtDesc(PageRequest.of(page, size))
-                .getContent();
+                .findAllVisibleWithAssociations(PageRequest.of(page, size))
+                .stream()
+                .map(ReviewService::toListItemDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Review> listMyReviews(Long userId) {
-        return reviewRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+    public List<ReviewListItemDto> listMyReviews(Long userId) {
+        return reviewRepository.findByUserIdWithAssociations(userId).stream()
+                .map(ReviewService::toListItemDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -119,13 +126,15 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<Review> listGuestReviewsForTable(String qrCodeToken) {
+    public List<ReviewListItemDto> listGuestReviewsForTable(String qrCodeToken) {
         if (!StringUtils.hasText(qrCodeToken)) {
             throw new IllegalArgumentException("Thiếu mã QR bàn");
         }
         RestaurantTable table = tableRepository.findByQrCodeToken(qrCodeToken.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ"));
-        return reviewRepository.findGuestReviewsByTableId(table.getId());
+        return reviewRepository.findGuestReviewsByTableId(table.getId()).stream()
+                .map(ReviewService::toListItemDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -165,7 +174,7 @@ public class ReviewService {
                 .build();
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(menuItem.getId());
-        return saved;
+        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
     }
 
     @Transactional
@@ -204,7 +213,7 @@ public class ReviewService {
                 .build();
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(menuItem.getId());
-        return saved;
+        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
     }
 
     private void assertOrderMatchesGuestQr(Order order, String qrCodeToken) {
@@ -231,7 +240,7 @@ public class ReviewService {
         review.setComment(request.getComment().trim());
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(saved.getMenuItem().getId());
-        return saved;
+        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
     }
 
     @Transactional
@@ -263,7 +272,7 @@ public class ReviewService {
         review.setComment(request.getComment().trim());
         Review saved = reviewRepository.save(review);
         refreshMenuItemAverageRating(saved.getMenuItem().getId());
-        return saved;
+        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
     }
 
     @Transactional
@@ -283,5 +292,32 @@ public class ReviewService {
         }
         menuItem.setAvgRating(avg != null ? BigDecimal.valueOf(avg) : BigDecimal.ZERO);
         menuItemRepository.save(menuItem);
+    }
+
+    private static ReviewListItemDto toListItemDto(Review r) {
+        ReviewListItemDto.UserBrief u = null;
+        if (r.getUser() != null) {
+            u = ReviewListItemDto.UserBrief.builder()
+                    .id(r.getUser().getId())
+                    .fullName(r.getUser().getFullName())
+                    .avatarUrl(r.getUser().getAvatarUrl())
+                    .build();
+        }
+        MenuItem m = r.getMenuItem();
+        ReviewListItemDto.MenuItemBrief mb = m == null
+                ? null
+                : ReviewListItemDto.MenuItemBrief.builder()
+                        .id(m.getId())
+                        .name(m.getName())
+                        .build();
+        return ReviewListItemDto.builder()
+                .id(r.getId())
+                .guestName(r.getGuestName())
+                .rating(r.getRating())
+                .comment(r.getComment())
+                .createdAt(r.getCreatedAt())
+                .user(u)
+                .menuItem(mb)
+                .build();
     }
 }

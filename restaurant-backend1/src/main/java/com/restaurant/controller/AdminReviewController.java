@@ -1,6 +1,7 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.response.ApiResponse;
+import com.restaurant.dto.response.review.AdminReviewRowDto;
 import com.restaurant.entity.Review;
 import com.restaurant.service.AdminReviewService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +30,7 @@ public class AdminReviewController {
 
     @GetMapping("/admin/reviews")
     @Operation(summary = "Admin: Xem tất cả đánh giá")
-    public ResponseEntity<ApiResponse<Page<Review>>> getAllReviews(
+    public ResponseEntity<ApiResponse<Page<AdminReviewRowDto>>> getAllReviews(
             @RequestParam(required = false) Long menuItemId,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) @Min(1) @Max(5) Integer minRating,
@@ -39,7 +40,7 @@ public class AdminReviewController {
             @RequestParam(defaultValue = "20") int size) {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Review> reviews = adminReviewService.findReviewsForAdmin(
+        Page<AdminReviewRowDto> reviews = adminReviewService.findReviewsForAdmin(
                 menuItemId, userId, minRating, maxRating, isVisible, pageable);
         return ResponseEntity.ok(ApiResponse.success(reviews));
     }

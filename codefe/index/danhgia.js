@@ -178,7 +178,8 @@ async function dgLoadEligibleOrders() {
         _dgEligible.forEach(function (o) {
             var opt = document.createElement("option");
             opt.value = o.orderId;
-            var paid = o.paidAt ? new Date(o.paidAt).toLocaleString("vi-VN") : "";
+            var paidD = dgParseApiDateTime(o.paidAt);
+            var paid = paidD ? paidD.toLocaleString("vi-VN") : "";
             opt.textContent = "Đơn #" + o.orderId + (o.tableInfo ? " · " + o.tableInfo : "") + (paid ? " · " + paid : "");
             sel.appendChild(opt);
         });
@@ -212,7 +213,8 @@ async function dgLoadEligibleGuestOrders() {
         _dgEligible.forEach(function (o) {
             var opt = document.createElement("option");
             opt.value = o.orderId;
-            var paid = o.paidAt ? new Date(o.paidAt).toLocaleString("vi-VN") : "";
+            var paidD = dgParseApiDateTime(o.paidAt);
+            var paid = paidD ? paidD.toLocaleString("vi-VN") : "";
             opt.textContent = "Đơn #" + o.orderId + (o.tableInfo ? " · " + o.tableInfo : "") + (paid ? " · " + paid : "");
             sel.appendChild(opt);
         });
@@ -589,20 +591,63 @@ function dgFetchReviews() {
         });
 }
 
+// ─── Parse API date (ISO, Jackson LocalDateTime array [y,m,d,h,mi,s], v.v.) ──
+function dgParseApiDateTime(v) {
+    if (v == null || v === "") return null;
+    try {
+        if (typeof v === "string") {
+            var s = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, "$1T$2");
+            var d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        if (typeof v === "number") {
+            var dn = new Date(v);
+            return isNaN(dn.getTime()) ? null : dn;
+        }
+        if (Array.isArray(v) && v.length >= 3) {
+            var y = v[0];
+            var mo = (v[1] || 1) - 1;
+            var day = v[2] || 1;
+            var h = v[3] != null ? v[3] : 0;
+            var mi = v[4] != null ? v[4] : 0;
+            var sec = v[5] != null ? v[5] : 0;
+            var ms = 0;
+            if (v.length > 6 && v[6] != null) {
+                ms = Math.floor(Number(v[6]) / 1000000);
+            }
+            var da = new Date(y, mo, day, h, mi, sec, ms);
+            return isNaN(da.getTime()) ? null : da;
+        }
+        if (typeof v === "object" && v.year != null) {
+            var month = v.monthValue != null ? v.monthValue : typeof v.month === "number" ? v.month : 1;
+            var dob = new Date(
+                v.year,
+                month - 1,
+                v.dayOfMonth || v.day || 1,
+                v.hour || 0,
+                v.minute || 0,
+                v.second || 0
+            );
+            return isNaN(dob.getTime()) ? null : dob;
+        }
+    } catch (e) {
+        /* ignore */
+    }
+    return null;
+}
+
 // ─── Format time helper ──────────────────────────────────────────
 function dgFormatTime(dateStr) {
-    if (!dateStr) return "";
-    try {
-        var d = new Date(dateStr);
-        var now = new Date();
-        var diff = Math.floor((now - d) / 1000);
-        if (diff < 3600) return Math.floor(diff / 60) + " phút trước";
-        if (diff < 86400) return Math.floor(diff / 3600) + " giờ trước";
-        if (diff < 604800) return Math.floor(diff / 86400) + " ngày trước";
-        return d.toLocaleDateString("vi-VN");
-    } catch (e) {
-        return dateStr;
-    }
+    var d = dgParseApiDateTime(dateStr);
+    if (!d) return "";
+    var now = new Date();
+    var diff = Math.floor((now - d) / 1000);
+    if (diff < 0) return d.toLocaleString("vi-VN");
+    if (diff < 60) return "Vừa xong";
+    if (diff < 3600) return Math.floor(diff / 60) + " phút trước";
+    if (diff < 86400) return Math.floor(diff / 3600) + " giờ trước";
+    if (diff < 604800) return Math.floor(diff / 86400) + " ngày trước";
+    return d.toLocaleDateString("vi-VN");
 }
 
 // ─── Summary Stats ───────────────────────────────────────────────

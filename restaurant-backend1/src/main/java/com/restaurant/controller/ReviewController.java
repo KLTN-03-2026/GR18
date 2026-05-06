@@ -5,6 +5,7 @@ import com.restaurant.dto.request.SubmitReviewRequest;
 import com.restaurant.dto.request.UpdateReviewRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.review.EligibleOrderForReviewDto;
+import com.restaurant.dto.response.review.ReviewListItemDto;
 import com.restaurant.entity.Review;
 import com.restaurant.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,7 +29,7 @@ public class ReviewController {
 
     @GetMapping("/menu/{menuItemId}/reviews")
     @Operation(summary = "Xem đánh giá của một món ăn (Public)")
-    public ResponseEntity<ApiResponse<List<Review>>> getReviews(
+    public ResponseEntity<ApiResponse<List<ReviewListItemDto>>> getReviews(
             @PathVariable Long menuItemId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -38,7 +39,7 @@ public class ReviewController {
 
     @GetMapping("/reviews")
     @Operation(summary = "Danh sách tất cả đánh giá hiển thị (Public)")
-    public ResponseEntity<ApiResponse<List<Review>>> listReviews(
+    public ResponseEntity<ApiResponse<List<ReviewListItemDto>>> listReviews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.success(reviewService.listAllVisible(page, size)));
@@ -47,7 +48,7 @@ public class ReviewController {
     @GetMapping("/reviews/me")
     @Operation(summary = "Đánh giá của tôi (chỉnh sửa / xóa)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<Review>>> myReviews(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<ReviewListItemDto>>> myReviews(Authentication authentication) {
         Long userId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success(reviewService.listMyReviews(userId)));
     }
@@ -69,7 +70,7 @@ public class ReviewController {
 
     @GetMapping("/reviews/guest/mine")
     @Operation(summary = "Khách vãng lai: đánh giá đã gửi từ bàn này (cùng mã QR) — sửa/xóa cũng cần mã")
-    public ResponseEntity<ApiResponse<List<Review>>> guestMyReviews(
+    public ResponseEntity<ApiResponse<List<ReviewListItemDto>>> guestMyReviews(
             @RequestParam("qrCodeToken") String qrCodeToken) {
         return ResponseEntity.ok(ApiResponse.success(reviewService.listGuestReviewsForTable(qrCodeToken)));
     }

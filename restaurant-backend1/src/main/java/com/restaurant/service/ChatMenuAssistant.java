@@ -44,6 +44,59 @@ public class ChatMenuAssistant {
     @Value("${google.gemini.api.key:}")
     private String geminiApiKey;
 
+    /**
+     * Gợi ý món theo nhóm “thịt / sushi / hải sản” + ý định hỏi ngon, gọi gì (vd: có thịt nào ngon).
+     * Gọi từ ChatService trước tryAnswerMenuQuestion để ưu tiên câu hỏi kiểu này.
+     */
+    public Optional<ChatResponse> tryAnswerTastyCategoryPicks(String sessionId, User user, String raw, String msg) {
+        if (!StringUtils.hasText(msg)) {
+            return Optional.empty();
+        }
+        List<MenuItem> pool = menuItemRepository.findAllActiveAvailableWithCategory();
+
+        if (wantsGoodMeatPick(msg)) {
+            List<MenuItem> meat = filterMeatFocusDishes(pool);
+            meat = meat.stream().sorted(bySoldThenRating()).collect(Collectors.toList());
+            int n = menuListingIntent(msg) ? 12 : 6;
+            List<MenuItem> top = takeFirst(meat, n);
+            if (!top.isEmpty()) {
+                String title = menuListingIntent(msg)
+                        ? "Các món có thịt đang có:"
+                        : "Món có thịt được nhiều khách khen / gọi nhiều:";
+                return Optional.of(ruleEngineOrDisabled(sessionId, user, title, top));
+            }
+        }
+
+        if (wantsGoodSushiPick(msg)) {
+            List<MenuItem> s = filterAnyKeyword(pool, "sushi", "sashimi", "maki", "nigiri");
+            s = s.stream().sorted(bySoldThenRating()).collect(Collectors.toList());
+            int n = menuListingIntent(msg) ? 12 : 6;
+            List<MenuItem> top = takeFirst(s, n);
+            if (!top.isEmpty()) {
+                String title = menuListingIntent(msg)
+                        ? "Các món sushi / sashimi đang có:"
+                        : "Sushi / sashimi gợi ý:";
+                return Optional.of(ruleEngineOrDisabled(sessionId, user, title, top));
+            }
+        }
+
+        if (wantsGoodSeafoodPick(msg)) {
+            List<MenuItem> sea = filterAnyKeyword(pool,
+                    "hải sản", "tôm", " cua ", " mực ", " sò ", "ghẹ", " ngao", "cá hồi");
+            sea = sea.stream().sorted(bySoldThenRating()).collect(Collectors.toList());
+            int n = menuListingIntent(msg) ? 12 : 6;
+            List<MenuItem> top = takeFirst(sea, n);
+            if (!top.isEmpty()) {
+                String title = menuListingIntent(msg)
+                        ? "Các món hải sản đang có:"
+                        : "Món hải sản được nhiều khách khen / gọi nhiều:";
+                return Optional.of(ruleEngineOrDisabled(sessionId, user, title, top));
+            }
+        }
+
+        return Optional.empty();
+    }
+
     public Optional<ChatResponse> tryAnswerMenuQuestion(String sessionId, User user, String raw, String msg) {
         if (!StringUtils.hasText(msg)) {
             return Optional.empty();
@@ -72,17 +125,23 @@ public class ChatMenuAssistant {
             }
         }
 
+        if (wantsCustomerFavoriteFood(msg)) {
+            return Optional.of(ruleEngineOrDisabled(sessionId, user,
+                    "Các món ăn được khách hay gọi:",
+                    menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
+        }
+
         if (msg.contains("bán chạy")
                 || (msg.contains("nhiều người") && msg.contains("gọi"))
                 || (msg.contains("hôm nay") && msg.contains("gọi") && msg.contains("món"))) {
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Món bán chạy / được gọi nhiều:",
-                    menuItemRepository.findTopSellingItems(PageRequest.of(0, 5))));
+                    menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
         }
         if (msg.contains("đánh giá cao") || msg.contains("rating") || msg.contains("review hay")) {
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Món được khách đánh giá cao:",
-                    menuItemRepository.findTopRatedItems(PageRequest.of(0, 5))));
+                    menuItemRepository.findTopRatedFoodItems(PageRequest.of(0, 5))));
         }
         if (msg.contains("rẻ") || msg.contains("tiết kiệm") || msg.contains("sinh viên")
                 || msg.contains("túi tiền")) {
@@ -204,7 +263,7 @@ public class ChatMenuAssistant {
 
         if (msg.contains("signature") || msg.contains("đặc trưng") || msg.contains("nổi bật")
                 || msg.contains("hot trend") || msg.matches("(?s).*món.*chuẩn quán.*")) {
-            List<MenuItem> sig = aiMenuRecommendationService.recommendTop(5);
+            List<MenuItem> sig = aiMenuRecommendationService.recommendTop(5, true);
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Món nổi bật / signature của quán:", sig));
         }
@@ -226,7 +285,7 @@ public class ChatMenuAssistant {
                     + ".";
             ChatResponse cx = ruleEngineOrDisabled(sessionId, user,
                     groups + " Một vài món được nhiều khách thích:",
-                    aiMenuRecommendationService.recommendTop(5));
+                    aiMenuRecommendationService.recommendTop(5, true));
             return Optional.of(cx);
         }
 
@@ -267,7 +326,7 @@ public class ChatMenuAssistant {
                 || msg.contains(" chay ") || msg.contains("bán chạy"))) {
             if (msg.contains("bán chạy")) {
                 return Optional.of(ruleEngineOrDisabled(sessionId, user, "Lọc món bán chạy:",
-                        menuItemRepository.findTopSellingItems(PageRequest.of(0, 5))));
+                        menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
             }
         }
 
@@ -287,7 +346,7 @@ public class ChatMenuAssistant {
 
         AiSystemConfig cfg = cfgOpt.orElse(null);
 
-        List<MenuItem> base = aiMenuRecommendationService.recommendTop(12);
+        List<MenuItem> base = aiMenuRecommendationService.recommendTop(12, true);
         if (restrictToIds != null && !restrictToIds.isEmpty()) {
             Set<Long> allow = restrictToIds;
             base = base.stream().filter(m -> allow.contains(m.getId())).collect(Collectors.toList());
@@ -437,6 +496,27 @@ public class ChatMenuAssistant {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Gợi ý «món thịt» — bỏ sủi cảo / gyoza / bánh xếp… (vẫn có từ thịt trong nhân nhưng không phải món thịt chính).
+     */
+    private static List<MenuItem> filterMeatFocusDishes(List<MenuItem> pool) {
+        List<MenuItem> raw = filterAnyKeyword(pool,
+                "thịt", "bò", "heo", "cừu", "steak", "sườn", "ba chỉ", "ba rọi", "thăn");
+        return raw.stream()
+                .filter(m -> !isDumplingOrStuffedPastrySnack(menuSearchBlob(m)))
+                .collect(Collectors.toList());
+    }
+
+    private static boolean isDumplingOrStuffedPastrySnack(String blob) {
+        return blob.contains("gyoza") || blob.contains("bánh xếp") || blob.contains("banh xep")
+                || blob.contains("há cảo") || blob.contains("ha cao")
+                || blob.contains("hoành thánh") || blob.contains("hoanh thanh")
+                || blob.contains("dumpling") || blob.contains("dim sum") || blob.contains("dimsum")
+                || blob.contains("xiao long") || blob.contains("xiaolong") || blob.contains("mandu")
+                || blob.contains("potsticker") || blob.contains("wonton") || blob.contains("sủi cảo")
+                || blob.contains("sui cao");
+    }
+
     private static Comparator<MenuItem> bySoldThenRating() {
         return Comparator
                 .comparing((MenuItem m) -> m.getTotalSold() == null ? 0 : m.getTotalSold()).reversed()
@@ -560,5 +640,50 @@ public class ChatMenuAssistant {
         return msg.contains("rẻ nhất") || msg.matches("(?s).*rẻ[^.!?]{0,10}nhất.*")
                 || msg.contains("rẽ nhất")
                 || msg.contains("giá thấp nhất");
+    }
+
+    private static boolean tastyPickIntent(String msg) {
+        return msg.contains("ngon") || msg.contains("nào") || msg.contains("gợi ý")
+                || msg.contains("nên gọi") || msg.contains("nên thử") || msg.contains("recommend");
+    }
+
+    /** Hỏi liệt kê menu theo chủ đề (vd: sushi có những món gì). */
+    private static boolean menuListingIntent(String msg) {
+        return msg.contains("có gì") || msg.contains("có những") || msg.contains("những món")
+                || msg.contains("món gì") || msg.contains("mon gi")
+                || msg.contains("gồm những") || msg.contains("gồm món") || msg.contains("bao gồm")
+                || msg.contains("liệt kê") || msg.contains("liet ke") || msg.contains("danh sách")
+                || msg.contains("đang có") || msg.contains("dang co")
+                || (msg.contains("món nào") && !msg.contains("ngon")) || msg.contains("loại gì");
+    }
+
+    private static boolean wantsGoodMeatPick(String msg) {
+        if (msg.contains("ăn chay") || msg.contains("món chay") || msg.contains("đồ chay")) {
+            return false;
+        }
+        boolean topic = msg.contains("thịt") || msg.contains("steak")
+                || msg.contains("sườn heo") || msg.contains("ba chỉ") || msg.contains("ba rọi");
+        return topic && (tastyPickIntent(msg) || menuListingIntent(msg));
+    }
+
+    private static boolean wantsGoodSushiPick(String msg) {
+        boolean topic = msg.contains("sushi") || msg.contains("sashimi");
+        return topic && (tastyPickIntent(msg) || menuListingIntent(msg));
+    }
+
+    private static boolean wantsGoodSeafoodPick(String msg) {
+        boolean topic = msg.contains("hải sản") || msg.contains("hai san") || msg.contains("hải san");
+        return topic && (tastyPickIntent(msg) || menuListingIntent(msg));
+    }
+
+    /** Hỏi kiểu «món ăn khách hay gọi» — ưu tiên caption cố định + top bán (chỉ món ăn). */
+    private static boolean wantsCustomerFavoriteFood(String msg) {
+        boolean foodScope = msg.contains("món ăn") || msg.contains("món ") || msg.contains(" món")
+                || msg.strip().startsWith("món") || msg.contains("ăn gì") || msg.contains("thực đơn");
+        boolean popular = msg.contains("hay gọi") || msg.contains("thường gọi")
+                || msg.contains("được gọi nhiều") || msg.contains("order nhiều")
+                || msg.contains("đặt nhiều")
+                || (msg.contains("khách") && msg.contains("gọi"));
+        return foodScope && popular;
     }
 }

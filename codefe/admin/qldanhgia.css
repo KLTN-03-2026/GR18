@@ -1,5 +1,9 @@
 /* qldanhgia.css - Restaurant AI */
 
+.bg-surface-dim {
+    background: var(--surface-container-high);
+}
+
 .main-content {
     margin-left: 260px;
     padding-top: 64px;
@@ -30,12 +34,31 @@
 /* Review Cards */
 .review-card {
     background: var(--surface-container);
+    color: var(--on-surface);
+    border-color: rgba(218, 226, 253, 0.12) !important;
     transition: transform 0.2s, background-color 0.2s;
 }
 
 .review-card:hover {
     background: var(--surface-container-high);
     transform: translateY(-4px);
+}
+
+.review-card h6.fw-bold {
+    color: var(--on-surface);
+}
+
+.review-card .review-meta {
+    color: var(--text-slate);
+}
+
+.review-card .review-comment {
+    color: var(--on-surface);
+    opacity: 0.95;
+}
+
+.review-card .border-top {
+    border-color: rgba(218, 226, 253, 0.1) !important;
 }
 
 .review-card-special {

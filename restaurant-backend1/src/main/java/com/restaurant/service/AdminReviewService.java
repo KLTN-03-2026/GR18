@@ -1,5 +1,6 @@
 package com.restaurant.service;
 
+import com.restaurant.dto.response.review.AdminReviewRowDto;
 import com.restaurant.entity.Review;
 import com.restaurant.repository.ReviewRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -21,7 +22,7 @@ public class AdminReviewService {
     private final ReviewService reviewService;
 
     @Transactional(readOnly = true)
-    public Page<Review> findReviewsForAdmin(
+    public Page<AdminReviewRowDto> findReviewsForAdmin(
             Long menuItemId,
             Long userId,
             Integer minRating,
@@ -29,7 +30,36 @@ public class AdminReviewService {
             Boolean isVisible,
             Pageable pageable) {
         Specification<Review> spec = withAdminFilters(menuItemId, userId, minRating, maxRating, isVisible);
-        return reviewRepository.findAll(spec, pageable);
+        Page<Review> page = reviewRepository.findAll(spec, pageable);
+        return page.map(AdminReviewService::toAdminRow);
+    }
+
+    private static AdminReviewRowDto toAdminRow(Review r) {
+        AdminReviewRowDto.UserBrief ub = null;
+        if (r.getUser() != null) {
+            ub = AdminReviewRowDto.UserBrief.builder()
+                    .id(r.getUser().getId())
+                    .fullName(r.getUser().getFullName())
+                    .build();
+        }
+        AdminReviewRowDto.MenuItemBrief mb = null;
+        if (r.getMenuItem() != null) {
+            mb = AdminReviewRowDto.MenuItemBrief.builder()
+                    .id(r.getMenuItem().getId())
+                    .name(r.getMenuItem().getName())
+                    .build();
+        }
+        return AdminReviewRowDto.builder()
+                .id(r.getId())
+                .guestName(r.getGuestName())
+                .rating(r.getRating())
+                .comment(r.getComment())
+                .isVisible(r.getIsVisible())
+                .createdAt(r.getCreatedAt())
+                .updatedAt(r.getUpdatedAt())
+                .user(ub)
+                .menuItem(mb)
+                .build();
     }
 
     private static Specification<Review> withAdminFilters(
@@ -58,7 +88,7 @@ public class AdminReviewService {
 
     @Transactional(readOnly = true)
     public Review getByIdOrThrow(Long id) {
-        return reviewRepository.findById(id)
+        return reviewRepository.findByIdWithAssociationsForApi(id)
                 .orElseThrow(() -> new IllegalArgumentException("Đánh giá không tồn tại"));
     }
 
@@ -69,7 +99,7 @@ public class AdminReviewService {
         review.setIsVisible(visible);
         Review saved = reviewRepository.save(review);
         reviewService.refreshMenuItemAverageRating(menuItemId);
-        return saved;
+        return reviewRepository.findByIdWithAssociationsForApi(saved.getId()).orElse(saved);
     }
 
     @Transactional

@@ -32,6 +32,19 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
             """)
     List<MenuItem> findByIsActiveTrueAndIsAvailableTrue();
 
+    /** Món đang bán, loại trừ danh mục đồ uống (dùng pool gợi ý «món ăn»). */
+    @Query("""
+            SELECT DISTINCT m FROM MenuItem m
+            JOIN FETCH m.category c
+            WHERE m.isActive = true AND m.isAvailable = true
+            AND LOWER(c.name) NOT LIKE '%đồ uống%'
+            AND LOWER(c.name) NOT LIKE '%nước uống%'
+            AND LOWER(c.name) NOT LIKE '%cà phê%'
+            AND LOWER(c.name) NOT LIKE '%coffee%'
+            AND LOWER(c.name) NOT IN ('drinks', 'beverages', 'beverage', 'cafe')
+            """)
+    List<MenuItem> findAllActiveAvailableFoodOnly();
+
     @Query("""
         SELECT m FROM MenuItem m
         WHERE m.isActive = true AND m.isAvailable = true
@@ -41,10 +54,29 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     @Query("""
             SELECT m FROM MenuItem m
+            JOIN FETCH m.category c
             WHERE m.isActive = true AND m.isAvailable = true
+            AND LOWER(c.name) NOT LIKE '%đồ uống%'
+            AND LOWER(c.name) NOT LIKE '%nước uống%'
+            AND LOWER(c.name) NOT LIKE '%cà phê%'
+            AND LOWER(c.name) NOT LIKE '%coffee%'
+            AND LOWER(c.name) NOT IN ('drinks', 'beverages', 'beverage', 'cafe')
             ORDER BY m.totalSold DESC
             """)
-    List<MenuItem> findTopSellingItems(Pageable pageable);
+    List<MenuItem> findTopSellingFoodItems(Pageable pageable);
+
+    @Query("""
+            SELECT m FROM MenuItem m
+            JOIN FETCH m.category c
+            WHERE m.isActive = true AND m.isAvailable = true
+            AND LOWER(c.name) NOT LIKE '%đồ uống%'
+            AND LOWER(c.name) NOT LIKE '%nước uống%'
+            AND LOWER(c.name) NOT LIKE '%cà phê%'
+            AND LOWER(c.name) NOT LIKE '%coffee%'
+            AND LOWER(c.name) NOT IN ('drinks', 'beverages', 'beverage', 'cafe')
+            ORDER BY m.avgRating DESC
+            """)
+    List<MenuItem> findTopRatedFoodItems(Pageable pageable);
 
     @Query("""
             SELECT m FROM MenuItem m
