@@ -366,3 +366,84 @@ body.datcho-page .datcho-modal .btn-primary:hover {
         width: 100%;
     }
 }
+
+/* ===== VIEW TABS (FUNC_BOOKING_05/06) ===== */
+body.datcho-page .view-tab-bar {
+    display: flex;
+    gap: 6px;
+}
+body.datcho-page .view-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+body.datcho-page .view-tab .material-symbols-outlined {
+    font-size: 16px;
+}
+body.datcho-page .view-tab.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+body.datcho-page .view-tab:not(.active):hover {
+    background: rgba(255,255,255,0.06);
+    color: #e5e7eb;
+}
+
+/* ===== CALENDAR GRID ===== */
+body.datcho-page .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+body.datcho-page .cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    position: relative;
+    color: #d1d5db;
+    transition: background 0.12s;
+}
+body.datcho-page .cal-hdr {
+    font-weight: 700;
+    cursor: default;
+    color: #6b7280;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+body.datcho-page .cal-day:hover {
+    background: rgba(59,130,246,0.15);
+}
+body.datcho-page .cal-today {
+    border: 2px solid #3b82f6;
+    color: #93c5fd;
+}
+body.datcho-page .cal-selected {
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+}
+body.datcho-page .cal-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: #34d399;
+    border-radius: 50%;
+    margin-top: 2px;
+}
+body.datcho-page .cal-selected .cal-dot {
+    background: rgba(255,255,255,0.7);
+}

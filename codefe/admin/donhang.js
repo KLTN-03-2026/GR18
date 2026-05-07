@@ -338,6 +338,14 @@ document.addEventListener("DOMContentLoaded", () => {
     bindFilterButtons();
     bindOrderTableRowOpens();
     initStaffWalkInModal();
+
+    // FUNC_ORDER_14/26: Export CSV
+    const exportBtn = document.querySelector('button[title="Xu\u1ea5t file (s\u1eafp t\u1edbi)"]') ||
+        document.querySelector('.btn-icon-tool[title*="Xu\u1ea5t"]');
+    if (exportBtn) {
+        exportBtn.title = "Xu\u1ea5t CSV";
+        exportBtn.addEventListener("click", exportOrdersCSV);
+    }
     const modalEl = document.getElementById("order-detail-modal");
     if (modalEl && typeof bootstrap !== "undefined") {
         orderDetailModalInstance = new bootstrap.Modal(modalEl);
@@ -583,11 +591,39 @@ function cashierHref(orderId) {
 }
 
 function renderGoToCashier(orderId) {
-    const href = escapeHtml(cashierHref(orderId));
+    const id = escapeHtml(String(orderId));
     return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end align-items-center">
-            <span class="small text-secondary d-none d-xl-inline me-1">Chờ thu · chuyển quầy</span>
-            <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán (US20)</a>
+            <button type="button" class="btn btn-settle btn-pay-cash" data-order-id="${id}" title="Thanh toán tiền mặt" onclick="payOrder(${id},'CASH')">Tiền mặt</button>
+            <button type="button" class="btn btn-table-action btn-pay-qr" data-order-id="${id}" title="Thanh toán QR / chuyển khoản" onclick="payOrder(${id},'QR_CODE')">QR/CK</button>
         </div>`;
+}
+
+/** Set trạng thái đang xử lý cho các nút thanh toán của 1 đơn (FUNC_ORDER_10/22/23) */
+function setPayBtnsLoading(orderId, loading) {
+    document.querySelectorAll(`button[data-order-id="${orderId}"]`).forEach(btn => {
+        btn.disabled = loading;
+    });
+}
+
+/** FUNC_ORDER_08/09/10/21/22/23/24: Thanh toán trực tiếp */
+async function payOrder(orderId, method) {
+    // FUNC_ORDER_24: Chỉ cho thanh toán đơn ở trạng thái hợp lệ
+    const order = allOrders.find(o => o.id === orderId);
+    if (order && !needsStaffPayment(order)) {
+        showAlert("Đơn này chưa đến bước thu tiền.", "error");
+        return;
+    }
+    setPayBtnsLoading(orderId, true);
+    try {
+        await api(`/staff/orders/${orderId}/payment?method=${encodeURIComponent(method)}`, { method: "PATCH" });
+        const methodLabel = method === "CASH" ? "Tiền mặt" : "QR / Chuyển khoản";
+        showAlert(`Thanh toán thành công (${methodLabel}).`, "success");
+        await reloadCurrentOrderLists();
+    } catch (err) {
+        // FUNC_ORDER_21: Hiển thị lỗi, không chuyển trạng thái
+        showAlert(err.message || "Thanh toán thất bại.", "error");
+        setPayBtnsLoading(orderId, false);
+    }
 }
 
 function renderActionButtons(order) {
@@ -675,6 +711,47 @@ function escapeHtml(s) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
+}
+
+// FUNC_ORDER_14/26: Export CSV
+function exportOrdersCSV() {
+    const statusLabel = {
+        PENDING: "\u0110\u01a1n m\u1edbi",
+        PREPARING: "\u0110ang chu\u1ea9n b\u1ecb",
+        SERVING: "\u0110ang ph\u1ee5c v\u1ee5",
+        COMPLETED: "Ho\u00e0n th\u00e0nh",
+        CANCELLED: "\u0110\u00e3 h\u1ee7y"
+    };
+    const methodLabel = { CASH: "Ti\u1ec1n m\u1eb7t", QR_CODE: "QR/CK", CARD: "Th\u1ebb", TRANSFER: "Chuy\u1ec3n kho\u1ea3n" };
+    const payLabel = { UNPAID: "Ch\u01b0a thanh to\u00e1n", PAID: "\u0110\u00e3 thanh to\u00e1n", FAILED: "Th\u1ea5t b\u1ea1i" };
+    const headers = ["M\u00e3 \u0111\u01a1n", "B\u00e0n", "Kh\u00e1ch", "Tr\u1ea1ng th\u00e1i \u0111\u01a1n", "T\u1ed5ng ti\u1ec1n", "Thanh to\u00e1n", "Ph\u01b0\u01a1ng th\u1ee9c", "Th\u1eddi gian"];
+    const rows = getFilteredOrders().map(o => {
+        const timeRaw = viewMode === "HISTORY" ? o.paidAt : o.createdAt;
+        return [
+            String(o.id || ""),
+            o.tableNumber || (o.tableId != null ? `B\u00e0n ${o.tableId}` : ""),
+            o.guestName || "Kh\u00e1ch v\u00e3ng lai",
+            o.status === "COMPLETED" && o.paymentStatus === "UNPAID" ? "Ch\u1edd thanh to\u00e1n" : (statusLabel[o.status] || o.status || ""),
+            Number(o.totalAmount || 0).toLocaleString("vi-VN"),
+            payLabel[o.paymentStatus] || o.paymentStatus || "",
+            methodLabel[o.paymentMethod] || o.paymentMethod || "",
+            formatDateTime(timeRaw)
+        ];
+    });
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 10);
+    a.download = `donhang_${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 async function openOrderDetail(orderId) {
