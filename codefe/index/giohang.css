@@ -25,19 +25,117 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
-#cart-body .table {
+/* ——— Giỏ hàng: card (mobile-first), tránh bảng nhiều cột ——— */
+.gh-cart-list {
+    margin: 0 -2px;
+}
+
+.gh-cart-item {
+    padding: 14px 4px;
+    border-bottom: 1px solid #eef0f6;
+}
+
+.gh-cart-item:last-child {
+    border-bottom: none;
+}
+
+.gh-cart-title {
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.gh-cart-head {
     margin-bottom: 0;
 }
 
-#cart-body .table thead th {
-    color: #6c757d;
-    font-size: 0.8rem;
-    border-bottom: 1px solid #edf0f5;
+/* Nút đóng từng dòng — dấu ×, không viền đỏ (khác nút «Xóa toàn bộ») */
+.gh-remove-x {
+    border: none;
+    background: transparent;
+    color: #8b929e;
+    padding: 2px;
+    margin: -2px -4px -2px 0;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
 }
 
-#cart-body .table tbody td {
-    vertical-align: middle;
-    border-bottom: 1px solid #f1f3f8;
+.gh-remove-x:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #484d56;
+}
+
+.gh-remove-x:active {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.gh-remove-x-symbol {
+    font-size: 1.75rem;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.gh-qty-inline {
+    border: 1px solid #e8eaef;
+    border-radius: 999px;
+    padding: 2px 6px;
+    background: #fafbfc;
+}
+
+.gh-qty-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    line-height: 1;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.gh-qty-num {
+    min-width: 1.5rem;
+}
+
+.gh-line-total {
+    font-variant-numeric: tabular-nums;
+    color: #1a1a1a;
+}
+
+.gh-cart-controls {
+    flex-wrap: nowrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f4f6fa;
+}
+
+.gh-cart-unit {
+    flex: 1 1 0;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.gh-cart-controls .gh-line-total {
+    flex: 0 0 auto;
+    margin-left: auto;
+    text-align: right;
+}
+
+.gh-cart-total-row {
+    gap: 0.75rem;
+}
+
+.gh-cart-total-row .fs-5 {
+    font-variant-numeric: tabular-nums;
 }
 
 #order-status-box .list-group-item {
@@ -48,5 +146,45 @@
     .gh-summary-box {
         width: 100%;
         min-width: unset;
+        padding: 8px 12px;
+    }
+
+    .gh-line-total {
+        font-size: 0.95rem;
+    }
+
+    .gh-cart-controls {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 380px) {
+    .gh-cart-unit {
+        font-size: 0.78rem;
+    }
+
+    .gh-line-total {
+        font-size: 0.88rem;
+    }
+
+    .gh-qty-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+    }
+
+    .gh-qty-num {
+        min-width: 1.75rem;
+    }
+}
+
+@media (min-width: 576px) {
+    .gh-cart-item {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .gh-cart-title {
+        font-size: 1.02rem;
     }
 }

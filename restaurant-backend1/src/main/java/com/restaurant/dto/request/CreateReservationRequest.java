@@ -26,5 +26,10 @@ public class CreateReservationRequest {
     private Long tableId;
 
     private String note;
+
+    /** Email nhận thông báo xác nhận; nếu trống dùng email tài khoản. */
+    @jakarta.validation.constraints.Email(message = "Email không hợp lệ")
+    @jakarta.validation.constraints.Size(max = 150)
+    private String customerEmail;
 }
 

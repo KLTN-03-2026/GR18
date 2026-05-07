@@ -1,124 +1,200 @@
-:root { 
-    --orange-main: #FF6B35; 
+:root {
+    --orange-main: #ff6b35;
     --glass-bg: rgba(255, 255, 255, 0.85);
+    /* Fallback trước khi JS gán từ visualViewport (pixel) */
+    --vh: 100dvh;
+    --vv-top: 0px;
+    --vv-left: 0px;
+    --vv-width: 100%;
 }
 
-/* Nút nổi - Đảm bảo luôn nằm trên cùng */
+/*
+ * Khóa scroll layout khi cửa sổ chat mở (iOS không đẩy cả page theo ô nhập).
+ * Top/body được gán inline từ chatbot.js (position:fixed + offset scroll).
+ */
+html.chatbot-scroll-locked {
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+}
+
+html.chatbot-scroll-locked body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
+/* Tránh parent cắt fixed/absolute (index): không overflow hidden */
+#chatbot-container {
+    overflow: visible !important;
+    contain: none;
+}
+
+/*
+ * Lớp neo theo visualViewport (iOS): top/left/width/height (--vh + --vv-*) và overscroll không kéo nền.
+ */
+.chat-container {
+    position: fixed;
+    top: var(--vv-top, 0px);
+    left: var(--vv-left, 0px);
+    width: var(--vv-width, 100%);
+    height: var(--vh, 100dvh);
+    max-width: none;
+    pointer-events: none;
+    z-index: 9999;
+    overscroll-behavior: none;
+    /* Không neo bottom — bám khung nhìn thấy sau khi bàn phím (visualViewport). */
+}
+
+.chat-container > * {
+    pointer-events: auto;
+}
+
+/* Nút nổi — absolute trong .chat-container để cùng di chuyển khi --vh thu hẹp */
 .chat-launcher {
-    position: fixed; 
-    bottom: 30px; 
-    right: 30px;
-    width: 60px; 
-    height: 60px; 
+    position: absolute;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
+    width: 60px;
+    height: 60px;
     background: var(--orange-main);
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    cursor: pointer; 
-    z-index: 9999; /* Tăng lên để không bị đè */
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+    z-index: 2;
 }
 
-.chat-launcher:hover { 
-    transform: scale(1.1) rotate(5deg); 
+.chat-launcher:hover {
+    transform: scale(1.08);
 }
 
-.badge-notify { 
-    position: absolute; 
-    top: -5px; 
-    right: -5px; 
-    background: #ff4757; 
-    color: white; 
-    font-size: 10px; 
-    padding: 3px 7px; 
-    border-radius: 10px; 
+.chat-launcher:active {
+    transform: scale(0.98);
+}
+
+.badge-notify {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff4757;
+    color: white;
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 10px;
     font-weight: bold;
     border: 2px solid white;
 }
 
-/* Khung Chat Glassmorphism */
-.chat-window {
-    position: fixed; 
-    bottom: 100px; 
-    right: 30px;
-    width: 350px; 
-    height: 550px; 
+/*
+ * Popup: absolute trong .chat-container — neo góc phải dưới (giống nút nổi), không căn giữa desktop.
+ */
+.chat-window.chat-popup {
+    position: absolute;
+    left: auto;
+    right: calc(20px + env(safe-area-inset-right, 0px));
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    transform: none;
+    width: min(350px, calc(100% - 24px));
+    /* Chiều cao cố định theo viewport — chỉ khối tin nhắn co giãn (flex); không nhảy layout. */
+    --chat-popup-h: min(520px, max(220px, calc(var(--vh) - 148px)));
+    height: var(--chat-popup-h);
+    max-height: var(--chat-popup-h);
+    min-height: 220px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     background: var(--glass-bg);
-    backdrop-filter: blur(20px); 
+    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 20px;
-    display: flex; 
-    flex-direction: column; 
-    z-index: 9999; 
-    overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    animation: slideUp 0.4s ease-out; /* Hiệu ứng mở khung chat */
+    z-index: 1;
+    animation: chatPopupSlide 0.38s ease-out;
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+@keyframes chatPopupSlide {
+    from {
+        transform: translateY(16px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.chat-header { 
-    background: white; 
-    padding: 15px; 
-    border-bottom: 1px solid rgba(0,0,0,0.05); 
+.chat-header {
+    background: white;
+    flex: 0 0 auto;
+    padding: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     font-weight: bold;
 }
 
-.chat-body { 
-    flex: 1; 
-    padding: 15px; 
-    overflow-y: auto; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 12px; 
+.chat-body.chat-messages,
+.chat-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 15px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     background: rgba(248, 249, 250, 0.5);
 }
 
-/* Tùy chỉnh thanh cuộn (Scrollbar) cho đẹp */
-.chat-body::-webkit-scrollbar { width: 5px; }
-.chat-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+.chat-body::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar {
+    width: 5px;
+}
+.chat-body::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
 
-/* Tin nhắn */
-.msg-item { 
-    max-width: 85%; 
-    padding: 10px 14px; 
-    border-radius: 18px; 
-    font-size: 14.5px; 
+.msg-item {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14.5px;
     line-height: 1.5;
     word-wrap: break-word;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 }
 
-.msg-item.bot { 
-    background: white; 
+.msg-item.bot {
+    background: white;
     color: #333;
-    align-self: flex-start; 
-    border-bottom-left-radius: 4px; 
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
 }
 
-.msg-item.user { 
-    background: var(--orange-main); 
-    color: white; 
-    align-self: flex-end; 
-    border-bottom-right-radius: 4px; 
+.msg-item.user {
+    background: var(--orange-main);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
 }
 
 .chat-footer {
+    flex: 0 0 auto;
     padding: 12px;
     background: white;
 }
 
-.btn-orange-send { 
-    background: var(--orange-main); 
-    color: white; 
-    border: none; 
-    border-radius: 10px; 
+.btn-orange-send {
+    background: var(--orange-main);
+    color: white;
+    border: none;
+    border-radius: 10px;
     width: 45px;
     height: 40px;
     display: flex;
@@ -127,12 +203,14 @@
     transition: 0.2s;
 }
 
-.btn-orange-send:hover { background: #e65a2a; }
+.btn-orange-send:hover {
+    background: #e65a2a;
+}
 
-.typing { 
-    font-style: italic; 
-    font-size: 12px; 
-    color: #888; 
+.typing {
+    font-style: italic;
+    font-size: 12px;
+    color: #888;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -153,7 +231,7 @@
     font-size: 12px;
     padding: 6px 10px;
     cursor: pointer;
-    transition: all .2s ease;
+    transition: all 0.2s ease;
 }
 
 .quick-btn:hover {
@@ -176,7 +254,7 @@
     gap: 10px;
     align-items: center;
     text-align: left;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     cursor: pointer;
 }
 

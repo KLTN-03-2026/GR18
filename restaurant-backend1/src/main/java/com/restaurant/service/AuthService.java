@@ -65,7 +65,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        User user = userRepository.findByEmailOrPhone(request.getUsername(), request.getUsername())
+        User user = userRepository.findByEmailOrPhone(request.getUsername())
                 .orElseThrow(() -> new BadCredentialsException("Thông tin đăng nhập không hợp lệ"));
 
         return buildAuthResponse(user);

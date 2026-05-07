@@ -62,11 +62,12 @@ body {
     object-fit: contain;
 }
 
-/* Floating icons */
+/* Floating icons — desktop: neo trong hero */
 .social-floating {
     position: absolute;
     bottom: 20px;
     left: 20px;
+    z-index: 2;
 }
 
 .social-floating a {
@@ -88,15 +89,57 @@ body {
     border-radius: 12px !important;
 }
 
-/* Responsive fixes */
-@media (max-width: 991px) {
+/* Responsive: điện thoại — nút neo viewport, không đè form; spacing form gọn hơn */
+@media (max-width: 991.98px) {
     .feature-item {
         margin: 0 auto;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
     }
+
     .feature-item.qr-demo-banner {
-        align-self: center;
+        align-self: stretch;
+        width: 100%;
     }
+
     .hero-section {
-        padding: 50px 0;
+        min-height: 0;
+        padding: 72px 0 32px;
+    }
+
+    .hero-section .form-card {
+        padding: 1.25rem !important;
+        border-width: 6px;
+        margin-bottom: 0;
+    }
+
+    .hero-section h1.display-4 {
+        font-size: clamp(1.65rem, 5.5vw, 2rem);
+        line-height: 1.2;
+    }
+
+    .hero-section .lead {
+        font-size: 0.98rem;
+    }
+
+    /* Tránh FAB đè footer nội dung khi cuộn: neo góc phải + safe-area (giống thói quen app) */
+    .social-floating {
+        position: fixed;
+        left: auto;
+        right: max(12px, env(safe-area-inset-right, 0px));
+        bottom: max(16px, env(safe-area-inset-bottom, 0px));
+        top: auto;
+        padding: 0;
+        gap: 10px !important;
+        z-index: 1040;
+        pointer-events: none;
+    }
+
+    .social-floating a {
+        pointer-events: auto;
+        width: 44px;
+        height: 44px;
+        font-size: 1.15rem !important;
     }
 }

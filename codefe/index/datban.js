@@ -138,6 +138,12 @@ document.addEventListener("DOMContentLoaded", () => {
         toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-right", timeOut: 4000 };
     }
 
+    const userInfoEarly = JSON.parse(localStorage.getItem("userInfo") || "{}");
+    const emailInput = document.getElementById("customerEmail");
+    if (emailInput && userInfoEarly.email) {
+        emailInput.value = String(userInfoEarly.email);
+    }
+
     loadBookingOptions();
 
     const guestsEl = document.getElementById("guests");
@@ -189,6 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (noteTxt && noteTxt.trim()) noteParts.push(`Ghi chú: ${noteTxt.trim()}`);
 
             const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+            const customerEmail = (document.getElementById("customerEmail")?.value || "").trim();
 
             const payload = {
                 reservationTime,
@@ -198,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 tableId: tableId && Number.isFinite(tableId) ? tableId : null,
                 note: noteParts.length ? noteParts.join(". ") : null
             };
+            if (customerEmail) payload.customerEmail = customerEmail;
 
             try {
                 submitBtn.disabled = true;
@@ -208,10 +216,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 if (response.data.success) {
-                    toastOk("Hẹn gặp bạn vào " + new Date(reservationTime).toLocaleString("vi-VN"), "Đặt bàn thành công");
-                    setTimeout(function () {
-                        window.location.href = "lichsu.html";
-                    }, 1500);
+                    const d = response.data.data;
+                    const serverMsg = response.data.message || "Đặt bàn thành công.";
+                    toastOk(serverMsg, "Đặt bàn");
+                    const idEl = document.getElementById("bookingSuccessId");
+                    const detEl = document.getElementById("bookingSuccessDetail");
+                    const hintEl = document.getElementById("bookingSuccessEmailHint");
+                    if (idEl) idEl.textContent = d && d.id != null ? "#" + d.id : "—";
+                    if (detEl && d) {
+                        const segments = [];
+                        if (d.reservationTime)
+                            segments.push("Thời gian: " + new Date(d.reservationTime).toLocaleString("vi-VN"));
+                        if (d.numberOfGuests != null) segments.push(d.numberOfGuests + " khách");
+                        if (d.tableNumber)
+                            segments.push(
+                                "Bàn " +
+                                    d.tableNumber +
+                                    (d.tableLocation ? " (" + d.tableLocation + ")" : "")
+                            );
+                        detEl.textContent = segments.join(" · ") || "";
+                    }
+                    if (hintEl)
+                        hintEl.textContent =
+                            "Hệ thống đã gửi email xác nhận tới địa chỉ bạn nhập hoặc email tài khoản (nếu máy chủ đã cấu hình SMTP).";
+
+                    var modalEl = document.getElementById("bookingSuccessModal");
+                    if (modalEl && typeof bootstrap !== "undefined") {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    }
                 }
             } catch (error) {
                 console.error("Booking Error:", error);

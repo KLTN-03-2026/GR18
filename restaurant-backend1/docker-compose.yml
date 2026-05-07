@@ -1,0 +1,44 @@
+# MySQL + restaurant-backend. Sao chép env.example → .env và đặt MYSQL_ROOT_PASSWORD, JWT_SECRET (Base64 >= 32 byte).
+# Chạy: docker compose up -d --build
+# Dừng: docker compose down  (thêm -v nếu muốn xóa volume MySQL)
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: restaurant-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      MYSQL_DATABASE: restaurant_db
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    # Mặc định 3307: tránh trùng MySQL đã cài trên Windows (3306). Ghi đè bằng MYSQL_PORT trong .env.
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-changeme}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build: .
+    image: restaurant-backend:local
+    container_name: restaurant-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/restaurant_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      # Ghi đè bằng JWT_SECRET trong .env cho môi trường thật (Base64 >= 32 byte).
+      JWT_SECRET: ${JWT_SECRET:-ZGV2LWp3dC1zZWNyZXQtbWluaW11bS0zMi1ieXRlcy1wbGVhc2UtY2hhbmdlLW1l}
+
+volumes:
+  mysql_data:

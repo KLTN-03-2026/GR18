@@ -1,40 +1,50 @@
-<div id="chat-launcher" class="chat-launcher shadow-lg">
-    <i class="fa-solid fa-robot text-white fs-4"></i>
-    <span class="badge-notify">AI</span>
-</div>
-
-<div id="chat-window" class="chat-window shadow-lg d-none">
-    <div class="chat-header d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center">
-            <div class="bot-avatar-circle me-2">
-                <i class="fa-solid fa-robot text-orange fs-4"></i> 
-            </div>
-            <div>
-                <h6 class="mb-0 fw-bold" style="font-size: 14px;">Restaurant AI Assistant</h6>
-                <small class="text-success" style="font-size: 11px;">
-                    <i class="fa-solid fa-circle me-1" style="font-size: 8px;"></i>Trực tuyến
-                </small>
-            </div>
-        </div>
-        <i class="fa-solid fa-minus cursor-pointer p-2 text-secondary" id="chat-close"></i>
+<div id="chatbot-root" class="chat-container" aria-label="Trợ lý chat">
+    <div id="chat-launcher" class="chat-launcher shadow-lg">
+        <i class="fa-solid fa-robot text-white fs-4"></i>
+        <span class="badge-notify">AI</span>
     </div>
 
-    <div id="chat-body" class="chat-body">
-        <div class="msg-item bot">
-            <div class="d-flex align-items-start">
-                <i class="fa-solid fa-robot text-orange me-2 mt-1" style="font-size: 12px;"></i>
-                <span>Chào bạn! Mình là trợ lý thông minh của Nhóm 18. Mình có thể giúp bạn xem Menu, gợi ý món ăn và đặt bàn tự động ngay tại đây!</span>
+    <div id="chat-window" class="chat-window chat-popup shadow-lg d-none">
+        <div class="chat-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="bot-avatar-circle me-2">
+                    <i class="fa-solid fa-robot text-orange fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-bold" style="font-size: 14px;">Restaurant AI Assistant</h6>
+                    <small class="text-success" style="font-size: 11px;">
+                        <i class="fa-solid fa-circle me-1" style="font-size: 8px;"></i>Trực tuyến
+                    </small>
+                </div>
+            </div>
+            <i class="fa-solid fa-minus cursor-pointer p-2 text-secondary" id="chat-close"></i>
+        </div>
+
+        <div id="chat-body" class="chat-body chat-messages">
+            <div class="msg-item bot">
+                <div class="d-flex align-items-start">
+                    <i class="fa-solid fa-robot text-orange me-2 mt-1" style="font-size: 12px;"></i>
+                    <span
+                        >Chào bạn! Mình là trợ lý thông minh của Nhóm 18. Mình có thể giúp bạn xem Menu, gợi ý món ăn
+                        và đặt bàn tự động ngay tại đây!</span
+                    >
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="chat-footer p-3 border-top bg-white">
-        <div class="input-group">
-            <input type="text" id="chat-input" class="form-control border-0 bg-light" 
-                   style="font-size: 14px shadow-none;" placeholder="Nhập tin nhắn..." autocomplete="off">
-            <button class="btn btn-orange-send" id="chat-send">
-                <i class="fa-solid fa-paper-plane text-white"></i>
-            </button>
+        <div class="chat-footer p-3 border-top bg-white">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="chat-input"
+                    class="form-control border-0 bg-light shadow-none"
+                    style="font-size: 14px;"
+                    placeholder="Nhập tin nhắn..."
+                    autocomplete="off" />
+                <button class="btn btn-orange-send" id="chat-send" type="button">
+                    <i class="fa-solid fa-paper-plane text-white"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>

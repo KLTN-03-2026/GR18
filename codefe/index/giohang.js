@@ -13,7 +13,7 @@
     }
 
     function formatVND(n) {
-        return Number(n).toLocaleString("vi-VN") + " đ";
+        return Number(n).toLocaleString("vi-VN") + "\u00a0đ";
     }
 
     function renderCart() {
@@ -53,40 +53,63 @@
                 var sl = Number(item.soLuong) || 1;
                 var gia = Number(item.gia) || 0;
                 total += gia * sl;
-                var gc = item.ghiChu ? '<div class="small text-muted">' + escapeHtml(item.ghiChu) + "</div>" : "";
+                var gc = item.ghiChu
+                    ? '<div class="small text-muted mt-1 text-break">' + escapeHtml(item.ghiChu) + "</div>"
+                    : "";
+                var unitHtml = '<span class="text-nowrap">' + formatVND(gia) + "</span>";
+                var lineHtml = '<span class="text-nowrap">' + formatVND(gia * sl) + "</span>";
                 return (
-                    '<tr data-idx="' +
+                    '<div class="gh-cart-item" data-idx="' +
                     idx +
-                    '"><td><div class="fw-semibold">' +
+                    '">' +
+                    '<div class="gh-cart-head d-flex align-items-start justify-content-between gap-2">' +
+                    '<div class="gh-cart-name min-w-0 flex-grow-1">' +
+                    '<div class="fw-semibold gh-cart-title text-break">' +
                     escapeHtml(item.ten || "Món") +
                     "</div>" +
                     gc +
-                    '</td><td class="text-end">' +
-                    formatVND(gia) +
-                    '</td><td class="text-center"><button type="button" class="btn btn-sm btn-outline-secondary btn-qty" data-d="-1">−</button> ' +
-                    '<span class="mx-1 fw-bold">' +
+                    "</div>" +
+                    '<button type="button" class="btn-remove gh-remove-x" title="Xóa món" aria-label="Xóa món">' +
+                    '<span class="gh-remove-x-symbol" aria-hidden="true">\u00d7</span>' +
+                    "</button>" +
+                    "</div>" +
+                    '<div class="gh-cart-controls d-flex align-items-center justify-content-between gap-2">' +
+                    '<span class="gh-cart-unit small text-muted">' +
+                    "Đơn giá · " +
+                    unitHtml +
+                    "</span>" +
+                    '<div class="d-flex align-items-center gap-2 gh-qty-inline flex-shrink-0">' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary gh-qty-btn btn-qty" data-d="-1" aria-label="Giảm số lượng">\u2212</button>' +
+                    '<span class="fw-bold gh-qty-num text-center">' +
                     sl +
-                    '</span> <button type="button" class="btn btn-sm btn-outline-secondary btn-qty" data-d="1">+</button></td><td class="text-end fw-bold">' +
-                    formatVND(gia * sl) +
-                    '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove" title="Xóa"><i class="fa-solid fa-trash"></i></button></td></tr>'
+                    "</span>" +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary gh-qty-btn btn-qty" data-d="1" aria-label="Tăng số lượng">+</button>' +
+                    "</div>" +
+                    '<span class="fw-semibold gh-line-total text-nowrap">' +
+                    lineHtml +
+                    "</span>" +
+                    "</div>" +
+                    "</div>"
                 );
             })
             .join("");
 
         body.innerHTML =
-            '<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Món</th><th class="text-end">Đơn giá</th><th class="text-center">SL</th><th class="text-end">Tạm tính</th><th></th></tr></thead><tbody>' +
+            '<div class="gh-cart-list">' +
             rows +
-            "</tbody></table></div>" +
-            '<p class="text-end fs-5 fw-bold">Tổng: ' +
+            "</div>" +
+            '<div class="gh-cart-total-row d-flex justify-content-between align-items-baseline mt-3 pt-3 border-top">' +
+            '<span class="text-muted">Tạm tính</span>' +
+            '<span class="fs-5 fw-bold text-nowrap">' +
             formatVND(total) +
-            "</p>";
+            "</span></div>";
         if (summaryEl) summaryEl.textContent = cart.length + " món • Tổng " + formatVND(total);
         if (clearBtn) clearBtn.classList.remove("d-none");
 
         body.querySelectorAll(".btn-qty").forEach(function (btn) {
             btn.addEventListener("click", function () {
-                var tr = btn.closest("tr");
-                var idx = tr ? parseInt(tr.getAttribute("data-idx"), 10) : -1;
+                var itemEl = btn.closest(".gh-cart-item");
+                var idx = itemEl ? parseInt(itemEl.getAttribute("data-idx"), 10) : -1;
                 var d = parseInt(btn.getAttribute("data-d"), 10);
                 if (idx < 0 || !cart[idx]) return;
                 cart[idx].soLuong = Math.max(1, Math.min(99, (Number(cart[idx].soLuong) || 1) + d));
@@ -96,8 +119,8 @@
         });
         body.querySelectorAll(".btn-remove").forEach(function (btn) {
             btn.addEventListener("click", function () {
-                var tr = btn.closest("tr");
-                var idx = tr ? parseInt(tr.getAttribute("data-idx"), 10) : -1;
+                var itemEl = btn.closest(".gh-cart-item");
+                var idx = itemEl ? parseInt(itemEl.getAttribute("data-idx"), 10) : -1;
                 if (idx < 0) return;
                 cart.splice(idx, 1);
                 if (typeof luuGioHangChung === "function") luuGioHangChung(cart);
@@ -172,6 +195,15 @@
         return m[st] || st || "—";
     }
 
+    function paymentLabel(ps) {
+        var m = {
+            PAID: "Đã thanh toán",
+            UNPAID: "Chưa thanh toán",
+            REFUNDED: "Đã hoàn tiền"
+        };
+        return m[ps] || (ps ? String(ps) : "");
+    }
+
     async function loadOrderStatus() {
         var box = $("order-status-box");
         if (!box) return;
@@ -193,12 +225,33 @@
                 '<h6 class="fw-bold mb-2">Đơn đang xử lý</h6><ul class="list-group list-group-flush">' +
                 list
                     .map(function (o) {
+                        var id = o.id != null ? o.id : "?";
+                        var pay = o.paymentStatus ? paymentLabel(o.paymentStatus) : "";
+                        var payHtml = pay
+                            ? '<span class="small text-muted d-block mt-1">' + escapeHtml(pay) + "</span>"
+                            : "";
+                        var canRate =
+                            o.status === "COMPLETED" &&
+                            o.paymentStatus === "PAID" &&
+                            typeof appendQrToHref === "function";
+                        var rateHtml = canRate
+                            ? '<a class="btn btn-sm btn-warning text-white rounded-pill mt-2" href="' +
+                              escapeHtml(appendQrToHref("danhgia.html")) +
+                              '"><i class="fa-solid fa-star me-1"></i>Đánh giá món</a>'
+                            : "";
                         return (
-                            '<li class="list-group-item px-0 d-flex justify-content-between align-items-center"><span>Đơn #' +
-                            (o.id != null ? o.id : "?") +
-                            '</span><span class="badge bg-secondary">' +
+                            '<li class="list-group-item px-0">' +
+                            '<div class="d-flex justify-content-between align-items-start gap-2">' +
+                            "<div><span class=\"fw-semibold\">Đơn #" +
+                            id +
+                            "</span>" +
+                            payHtml +
+                            "</div>" +
+                            '<span class="badge bg-secondary flex-shrink-0">' +
                             statusLabel(o.status) +
-                            "</span></li>"
+                            "</span></div>" +
+                            rateHtml +
+                            "</li>"
                         );
                     })
                     .join("") +

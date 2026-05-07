@@ -34,6 +34,9 @@ public class ReservationController {
             @Valid @RequestBody CreateReservationRequest req,
             Principal principal
     ) {
+        if (req.getCustomerEmail() != null && req.getCustomerEmail().isBlank()) {
+            req.setCustomerEmail(null);
+        }
         ReservationHistoryItemResponse data = reservationService.createReservation(req, principal);
         if (data == null) {
             return ResponseEntity.status(401).body(ApiResponse.error("Không xác định được người dùng."));

@@ -12,10 +12,12 @@
 .nav-link.active { color: var(--orange-main) !important; }
 .user-avatar-small { width: 32px; height: 32px; background: #9b59b6; border-radius: 50%; }
 
-/* Nền toàn trang có ảnh */
+/* Nền: ảnh có trong repo hoặc URL ổn định (tránh 404 restaurant-bg.jpg) */
 .booking-wrapper {
     min-height: 100vh;
-    background: url('../img/restaurant-bg.jpg') center/cover no-repeat; /* Thay bằng ảnh nhà hàng thực tế */
+    background:
+        linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)),
+        url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80") center/cover no-repeat fixed;
     position: relative;
     padding: 20px;
 }
@@ -99,8 +101,6 @@
 .social-item.facebook { background: #1877F2; font-size: 20px; }
 .social-item.maps { background: #fff; color: #EA4335; font-size: 20px; }
 .social-item:hover { transform: scale(1.1); }
-
-/* Toastr thành công: xanh */
 #toast-container > .toast-success {
     background-color: #198754 !important;
 }

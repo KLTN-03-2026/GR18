@@ -59,6 +59,21 @@
                 </div>
 
                 <div class="mb-3">
+                  <label class="form-label small fw-bold">Email nhận xác nhận</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-envelope text-primary"></i></span>
+                    <input
+                      type="email"
+                      id="customerEmail"
+                      class="form-control border-start-0 ps-0"
+                      placeholder="email@example.com"
+                      autocomplete="email"
+                    />
+                  </div>
+                  <p class="form-text small text-muted mb-0">Dùng để nhận email mã đặt bàn và chi tiết (mặc định theo tài khoản).</p>
+                </div>
+
+                <div class="mb-3">
                   <label class="form-label small fw-bold">Khu vực / vị trí</label>
                   <p class="text-muted small mb-2">Theo vị trí bàn đã cấu hình trong hệ thống nhà hàng.</p>
                   <div id="locationOptions" class="d-flex flex-wrap gap-2">
@@ -86,6 +101,28 @@
           </div>
           <div class="col-lg-6 col-md-6 d-none d-md-block">
             <div class="booking-visual-box shadow-lg h-100" style="background: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop') center/cover;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold text-success" id="bookingSuccessModalLabel">
+              <i class="fa-solid fa-circle-check me-2"></i>Đặt bàn thành công
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+          </div>
+          <div class="modal-body pt-2">
+            <p class="mb-2">Mã đặt bàn: <strong id="bookingSuccessId">—</strong></p>
+            <p class="mb-2 small text-muted" id="bookingSuccessDetail"></p>
+            <p class="small mb-0" id="bookingSuccessEmailHint"></p>
+          </div>
+          <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+            <a href="lichsu.html" class="btn btn-orange text-white px-4">Xem lịch sử đặt bàn</a>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
           </div>
         </div>
       </div>

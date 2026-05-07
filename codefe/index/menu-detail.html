@@ -72,6 +72,46 @@
             overflow: hidden;
             min-height: 2.5em;
         }
+        /* Hai nút đặt món: cùng một hàng, chia đều trên mobile */
+        .detail-cart-actions {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .detail-cart-actions .detail-cart-actions-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.8rem;
+            line-height: 1.25;
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        .detail-cart-actions .detail-cart-actions-btn i {
+            flex-shrink: 0;
+        }
+        @media (min-width: 420px) {
+            .detail-cart-actions .detail-cart-actions-btn {
+                font-size: 0.9rem;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+        }
+        @media (min-width: 576px) {
+            .detail-cart-actions .detail-cart-actions-btn {
+                font-size: 1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -349,8 +389,8 @@ var cat = item.category;
             : '<i class="fa-solid fa-bowl-food fa-4x text-muted"></i>';
         var hasQr = typeof getActiveQrToken === 'function' && !!getActiveQrToken();
         var btnGioHtml = hasQr
-            ? '<a href="' + (typeof appendQrToHref === 'function' ? appendQrToHref('giohang.html') : 'giohang.html') + '" class="btn btn-light border rounded-pill px-4 py-2">' +
-              '<i class="fa-solid fa-cart-shopping me-2"></i>Xem giỏ hàng</a>'
+            ? '<a href="' + (typeof appendQrToHref === 'function' ? appendQrToHref('giohang.html') : 'giohang.html') + '" class="btn btn-light border rounded-pill py-2 fw-semibold text-decoration-none text-dark detail-cart-actions-btn">' +
+              '<i class="fa-solid fa-cart-shopping me-1"></i>Xem giỏ hàng</a>'
             : '';
         /* Web thường: chỉ xem món; sau khi quét QR: đủ số lượng, ghi chú, giỏ hàng */
         var qtyGhiChuCartHtml = hasQr
@@ -369,9 +409,9 @@ var cat = item.category;
                     '<textarea id="detail-ghichu" class="form-control form-control-sm rounded-3" rows="2" maxlength="200"' +
                         ' placeholder="VD: ít cay, không hành, thêm đá..."></textarea>' +
                 '</div>' +
-                '<div class="d-flex flex-wrap gap-3">' +
-                    '<button class="btn btn-orange rounded-pill px-5 py-2 fw-semibold" onclick="themVaoGio()">' +
-                        '<i class="fa-solid fa-cart-plus me-2"></i>Thêm vào giỏ hàng' +
+                '<div class="detail-cart-actions">' +
+                    '<button type="button" class="btn btn-orange rounded-pill py-2 fw-semibold detail-cart-actions-btn" onclick="themVaoGio()">' +
+                        '<i class="fa-solid fa-cart-plus me-1"></i>Thêm vào giỏ hàng' +
                     '</button>' +
                     btnGioHtml +
                 '</div>'

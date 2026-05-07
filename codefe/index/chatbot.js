@@ -1,3 +1,77 @@
+/**
+ * Neo .chat-container theo VisualViewport (offset + kích thước) và --vh khi bàn phím mở iOS.
+ */
+function syncChatViewportLayers() {
+    var root = document.documentElement;
+    var vv = window.visualViewport;
+    if (vv) {
+        if (vv.height > 0) {
+            root.style.setProperty("--vh", Math.round(vv.height) + "px");
+        }
+        root.style.setProperty("--vv-top", Math.round(vv.offsetTop) + "px");
+        root.style.setProperty("--vv-left", Math.round(vv.offsetLeft) + "px");
+        root.style.setProperty("--vv-width", Math.round(vv.width) + "px");
+        return;
+    }
+    var ih = window.innerHeight;
+    if (ih > 0) {
+        root.style.setProperty("--vh", Math.round(ih) + "px");
+    }
+    root.style.setProperty("--vv-top", "0px");
+    root.style.setProperty("--vv-left", "0px");
+    root.style.setProperty("--vv-width", "100%");
+}
+
+var chatbotScrollLockDepth = 0;
+var chatbotSavedScrollY = 0;
+
+/** Khóa scroll layout (body fixed) — tránh cả trang bị đẩy khi focus ô nhập trên iPhone. */
+function lockChatbotPageScroll() {
+    if (chatbotScrollLockDepth++ === 0) {
+        chatbotSavedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add("chatbot-scroll-locked");
+        document.body.classList.add("chatbot-scroll-locked");
+        document.body.style.position = "fixed";
+        document.body.style.top = "-" + chatbotSavedScrollY + "px";
+        document.body.style.left = "0";
+        document.body.style.right = "0";
+        document.body.style.width = "100%";
+    }
+    syncChatViewportLayers();
+}
+
+function unlockChatbotPageScroll() {
+    if (--chatbotScrollLockDepth < 0) {
+        chatbotScrollLockDepth = 0;
+    }
+    if (chatbotScrollLockDepth > 0) {
+        return;
+    }
+    document.documentElement.classList.remove("chatbot-scroll-locked");
+    document.body.classList.remove("chatbot-scroll-locked");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, chatbotSavedScrollY);
+}
+
+(function initChatVisualViewport() {
+    syncChatViewportLayers();
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", syncChatViewportLayers);
+        window.visualViewport.addEventListener("scroll", syncChatViewportLayers);
+    }
+
+    window.addEventListener("resize", syncChatViewportLayers);
+    window.addEventListener("orientationchange", function () {
+        setTimeout(syncChatViewportLayers, 250);
+    });
+    window.addEventListener("pageshow", syncChatViewportLayers);
+})();
+
 const CHATBOT_API_BASE = window.RESTAURANT_API_BASE || "http://localhost:8080/api";
 const CHAT_ENDPOINTS = [`${CHATBOT_API_BASE}/chat`, `${CHATBOT_API_BASE}/chatbot`];
 const MENU_FALLBACK_IMAGE =
@@ -22,15 +96,21 @@ if (launcher && windowChat) {
     launcher.onclick = () => {
         windowChat.classList.toggle("d-none");
         if (!windowChat.classList.contains("d-none")) {
+            lockChatbotPageScroll();
             input?.focus();
             scrollToBottom();
             renderQuickActions();
+        } else {
+            unlockChatbotPageScroll();
         }
     };
 }
 
 if (closeBtn && windowChat) {
-    closeBtn.onclick = () => windowChat.classList.add("d-none");
+    closeBtn.onclick = () => {
+        windowChat.classList.add("d-none");
+        unlockChatbotPageScroll();
+    };
 }
 
 async function handleSend(presetText) {

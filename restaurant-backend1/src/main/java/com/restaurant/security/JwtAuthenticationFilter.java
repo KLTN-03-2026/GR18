@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -69,6 +70,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
+        } catch (UsernameNotFoundException e) {
+            // Token ký đúng nhưng user đã xóa / DB khác môi trường (vd. đổi MySQL Docker). Client nên xóa token và đăng nhập lại.
+            log.warn("JWT còn hiệu lực nhưng không tìm thấy tài khoản: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Cannot set user authentication", e);
         }

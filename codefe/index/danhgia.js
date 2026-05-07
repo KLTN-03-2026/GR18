@@ -495,13 +495,33 @@ function dgOnSubmit(e) {
     }
     var btn = document.getElementById("dg-btn-send");
     if (btn) btn.disabled = true;
-    fetch(dgApiBase() + "/reviews", {
+
+    var guest = _dgGuestMode === true;
+    var url = guest ? dgApiBase() + "/reviews/guest" : dgApiBase() + "/reviews";
+    var headers = { "Content-Type": "application/json" };
+    if (!guest) {
+        headers["Authorization"] = "Bearer " + dgToken();
+    }
+    var body = {
+        orderId: payload.orderId,
+        menuItemId: payload.menuItemId,
+        rating: payload.rating,
+        comment: payload.comment
+    };
+    if (guest) {
+        var qt = dgQr();
+        if (!qt) {
+            toastr.error("Thiếu mã bàn (QR). Mở lại trang từ mã QR tại bàn.");
+            if (btn) btn.disabled = false;
+            return false;
+        }
+        body.qrCodeToken = qt;
+    }
+
+    fetch(url, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + dgToken()
-        },
-        body: JSON.stringify(payload)
+        headers: headers,
+        body: JSON.stringify(body)
     })
         .then(function (res) {
             return res.json().then(function (j) {
@@ -516,7 +536,7 @@ function dgOnSubmit(e) {
             }
             toastr.success(json.message || "Đánh giá thành công");
             c.value = "";
-            if (isGuest) {
+            if (guest) {
                 dgLoadEligibleGuestOrders();
                 dgLoadMyGuestReviews();
             } else {

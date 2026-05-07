@@ -63,10 +63,10 @@
                     </button>
                 </div>
                 <div class="col-4">
-                    <a class="qr-action-tile" id="qr-act-rate" href="danhgia.html">
+                    <button type="button" class="qr-action-tile border-0 w-100 h-100 bg-white" id="btn-qr-rate" aria-label="Đánh giá món tại bàn">
                         <div class="qr-action-illu qr-illu-star" aria-hidden="true"></div>
                         <span class="qr-action-label">Đánh giá</span>
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -147,7 +147,66 @@
         </div>
     </div>
 
-    <!-- Gọi nhân viên: nhập nội dung rồi gửi (giống trải nghiệm O2O) -->
+    <!-- Đánh giá tại chỗ (bottom sheet giống gọi nhân viên) -->
+    <div class="modal fade qr-call-staff-modal" id="qr-review-modal" tabindex="-1"
+        aria-labelledby="qrReviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog qr-call-staff-dialog modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg qr-call-staff-sheet">
+                <div class="qr-call-staff-handle" aria-hidden="true"></div>
+                <div class="modal-header border-0 pb-0 px-4 pt-2 pt-md-4 align-items-start">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="qrReviewModalLabel">Đánh giá món</h5>
+                        <p class="small text-muted mb-0 mt-1">Sau khi thanh toán · Mỗi đơn chỉ đánh giá một lần</p>
+                    </div>
+                    <button type="button" class="btn-close mt-1" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body px-4 pt-2 pb-4">
+                    <form id="qr-review-form">
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold" for="qr-rev-sel-order">Đơn hàng</label>
+                            <select class="form-select form-select-sm rounded-3" id="qr-rev-sel-order" required>
+                                <option value="">-- Đang tải --</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold" for="qr-rev-sel-dish">Món đánh giá</label>
+                            <select class="form-select form-select-sm rounded-3" id="qr-rev-sel-dish" required>
+                                <option value="">-- Chọn món trong đơn --</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <span class="form-label small fw-semibold d-block">Số sao (1–5)</span>
+                            <div class="d-flex align-items-center gap-1" id="qr-rev-star-pick" role="group" aria-label="Chọn số sao">
+                                <button type="button" class="btn btn-link p-0 qr-rev-star" data-r="1" title="1 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                                <button type="button" class="btn btn-link p-0 qr-rev-star" data-r="2" title="2 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                                <button type="button" class="btn btn-link p-0 qr-rev-star" data-r="3" title="3 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                                <button type="button" class="btn btn-link p-0 qr-rev-star" data-r="4" title="4 sao"><i class="fa-regular fa-star fa-lg text-warning"></i></button>
+                                <button type="button" class="btn btn-link p-0 qr-rev-star" data-r="5" title="5 sao"><i class="fa-solid fa-star fa-lg text-warning"></i></button>
+                            </div>
+                            <input type="hidden" id="qr-rev-rating" value="5" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold" for="qr-rev-comment">Nhận xét</label>
+                            <textarea class="form-control form-control-sm rounded-3" id="qr-rev-comment" rows="3" maxlength="2000" required placeholder="Chia sẻ về món hoặc chất lượng phục vụ…"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning text-white w-100 py-3 rounded-3 fw-semibold shadow-sm" id="qr-rev-send">
+                            Gửi đánh giá
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:1095">
+        <div id="qr-review-toast" class="toast align-items-center border-0 shadow" role="alert" aria-live="assertive">
+            <div class="d-flex rounded-3 overflow-hidden w-100">
+                <div class="toast-body text-white small mb-0" id="qr-review-toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade qr-call-staff-modal" id="qr-call-staff-modal" tabindex="-1"
         aria-labelledby="qrCallStaffModalLabel" aria-hidden="true">
         <div class="modal-dialog qr-call-staff-dialog">
@@ -192,14 +251,13 @@
     <script src="qr-session.js"></script>
     <script src="customer-header.js"></script>
     <script src="menu.js"></script>
+    <script src="qr-review.js"></script>
     <script>
         (function () {
             var pay = document.getElementById("qr-act-pay");
-            var rate = document.getElementById("qr-act-rate");
             var loy = document.getElementById("link-qr-loyalty");
             if (window.appendQrToHref) {
                 if (pay) pay.href = window.appendQrToHref("giohang.html");
-                if (rate) rate.href = window.appendQrToHref("danhgia.html");
                 if (loy) loy.href = window.appendQrToHref("../dangky.html");
             }
             var btn = document.getElementById("btn-scroll-menu");

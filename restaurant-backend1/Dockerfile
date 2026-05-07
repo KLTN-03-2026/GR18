@@ -17,7 +17,8 @@ COPY gradle ./gradle
 COPY build.gradle settings.gradle ./
 COPY src ./src
 
-RUN chmod +x gradlew && ./gradlew bootJar --no-daemon \
+# Windows checkouts often use CRLF on gradlew; Linux then treats shebang as /bin/sh\r and fails with "not found".
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew bootJar --no-daemon \
     && for f in build/libs/restaurant-backend-*.jar; do \
          case "$f" in (*-plain.jar) ;; (*) cp "$f" /app/app.jar; break ;; esac; \
        done

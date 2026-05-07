@@ -15,6 +15,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReservationService {
     private static final Set<String> ALLOWED_STATUSES =
             Set.of("PENDING", "CONFIRMED", "ARRIVED", "COMPLETED", "CANCELLED");
@@ -37,11 +40,16 @@ public class ReservationService {
     private final ReservationHistoryItemMapper mapper;
     private final ZaloNotificationService zaloNotificationService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ReservationConfirmationMailService reservationConfirmationMailService;
+
+    @Value("${app.reservation.slot-duration-minutes:120}")
+    private int reservationSlotDurationMinutes;
 
     @Transactional
     public ReservationHistoryItemResponse createReservation(CreateReservationRequest req, Principal principal) {
         Long userId = extractUserId(principal);
         if (userId == null) return null;
+        assertTablePreferenceValid(req);
         assertBookingNotSpam(userId, req.getReservationTime());
         jdbcTemplate.update(
                 "INSERT INTO reservations(user_id, table_id, reservation_time, number_of_guests, customer_name, customer_phone, note, status, created_at, updated_at) " +
@@ -57,27 +65,41 @@ public class ReservationService {
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         if (id == null) return null;
 
-        messagingTemplate.convertAndSend(
-                "/topic/staff/notifications",
-                Map.of(
-                        "type", "RESERVATION_NEW",
-                        "reservationId", id,
-                        "customerName", req.getCustomerName() != null ? req.getCustomerName() : "",
-                        "reservationTime",
-                                req.getReservationTime() != null ? req.getReservationTime().toString() : "",
-                        "numberOfGuests", req.getNumberOfGuests() != null ? req.getNumberOfGuests() : 0));
+        ReservationHistoryItemResponse detail = loadReservationDetailById(id);
+        if (detail == null) {
+            detail = ReservationHistoryItemResponse.builder()
+                    .id(id)
+                    .tableId(req.getTableId())
+                    .reservationTime(req.getReservationTime())
+                    .numberOfGuests(req.getNumberOfGuests())
+                    .customerName(req.getCustomerName())
+                    .customerPhone(req.getCustomerPhone())
+                    .status("PENDING")
+                    .tableNumber(null)
+                    .tableLocation(null)
+                    .note(req.getNote())
+                    .build();
+        }
 
-        return ReservationHistoryItemResponse.builder()
-                .id(id)
-                .reservationTime(req.getReservationTime())
-                .numberOfGuests(req.getNumberOfGuests())
-                .customerName(req.getCustomerName())
-                .customerPhone(req.getCustomerPhone())
-                .status("PENDING")
-                .tableNumber(null)
-                .tableLocation(null)
-                .note(req.getNote())
-                .build();
+        String confirmTo = resolveConfirmationEmail(req, userId);
+        log.info("Calling ReservationConfirmationMailService for reservationId={}, to={}", id, confirmTo);
+        reservationConfirmationMailService.sendBookingReceivedEmail(confirmTo, detail);
+
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/staff/notifications",
+                    Map.of(
+                            "type", "RESERVATION_NEW",
+                            "reservationId", id,
+                            "customerName", req.getCustomerName() != null ? req.getCustomerName() : "",
+                            "reservationTime",
+                                    req.getReservationTime() != null ? req.getReservationTime().toString() : "",
+                            "numberOfGuests", req.getNumberOfGuests() != null ? req.getNumberOfGuests() : 0));
+        } catch (Exception e) {
+            log.warn("Bỏ qua push WebSocket đặt bàn {}: {}", id, e.getMessage());
+        }
+
+        return detail;
     }
 
     /**
@@ -383,6 +405,67 @@ public class ReservationService {
                 ts == null ? null : ts.toLocalDateTime(),
                 (Integer) info[3]
         );
+    }
+
+    private void assertTablePreferenceValid(CreateReservationRequest req) {
+        Long tid = req.getTableId();
+        if (tid == null || tid <= 0) {
+            return;
+        }
+        assertRestaurantTableExistsAndActive(tid);
+        Integer cap = jdbcTemplate.query(
+                "SELECT capacity FROM restaurant_tables WHERE id = ? LIMIT 1",
+                rs -> {
+                    if (!rs.next()) {
+                        return null;
+                    }
+                    return rs.getInt("capacity");
+                },
+                tid);
+        if (cap != null && req.getNumberOfGuests() != null && req.getNumberOfGuests() > cap) {
+            throw new IllegalArgumentException("Số khách vượt sức chứa bàn đã chọn (tối đa " + cap + " người).");
+        }
+        LocalDateTime start = req.getReservationTime();
+        LocalDateTime end = start.plusMinutes(reservationSlotDurationMinutes);
+        Long conflicts = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*) FROM reservations r
+                        WHERE r.table_id = ?
+                          AND r.status IN ('PENDING', 'CONFIRMED', 'ARRIVED')
+                          AND r.reservation_time < ?
+                          AND DATE_ADD(r.reservation_time, INTERVAL ? MINUTE) > ?
+                        """,
+                Long.class,
+                tid,
+                Timestamp.valueOf(end),
+                reservationSlotDurationMinutes,
+                Timestamp.valueOf(start));
+        if (conflicts != null && conflicts > 0) {
+            throw new IllegalArgumentException(
+                    "Bàn này đã có lịch đặt trùng hoặc chồng khung giờ. Vui lòng chọn bàn khác hoặc đổi thời gian.");
+        }
+    }
+
+    private ReservationHistoryItemResponse loadReservationDetailById(long id) {
+        List<ReservationHistoryItemResponse> list = jdbcTemplate.query(
+                "SELECT r.id, r.table_id, r.reservation_time, r.number_of_guests, r.customer_name, r.customer_phone, r.status, "
+                        + "rt.table_number, rt.location AS table_location, r.note "
+                        + "FROM reservations r "
+                        + "LEFT JOIN restaurant_tables rt ON rt.id = r.table_id "
+                        + "WHERE r.id = ? LIMIT 1",
+                (rs, i) -> mapper.fromResultSet(rs),
+                id);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    private String resolveConfirmationEmail(CreateReservationRequest req, Long userId) {
+        if (req.getCustomerEmail() != null && !req.getCustomerEmail().isBlank()) {
+            return req.getCustomerEmail().trim();
+        }
+        return jdbcTemplate.query(
+                "SELECT email FROM users WHERE id = ? LIMIT 1",
+                rs -> rs.next() ? rs.getString("email") : null,
+                userId);
     }
 
     private Long extractUserId(Principal principal) {
