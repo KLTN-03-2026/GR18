@@ -65,5 +65,7 @@ temp/
 # ========================
 .env
 .env.local
+# Tên sai thường gặp; dùng .env (xem env.example).
+.evn
 application-local.properties
 
