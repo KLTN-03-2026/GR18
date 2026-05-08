@@ -1,6 +1,8 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.request.LoginRequest;
+import com.restaurant.dto.request.ForgotPasswordRequest;
+import com.restaurant.dto.request.ResetPasswordRequest;
 import com.restaurant.dto.request.RegisterRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.AuthResponse;
@@ -51,6 +53,20 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> refresh(@RequestParam String refreshToken) {
         AuthResponse response = authService.refreshToken(refreshToken);
         return ResponseEntity.ok(ApiResponse.success(response, "Làm mới token thành công"));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Yêu cầu mã OTP để đặt lại mật khẩu qua email")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordResetOtp(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(null, "Nếu email tồn tại, mã OTP đã được gửi."));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Đặt lại mật khẩu bằng email + OTP")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPasswordByOtp(request.getEmail(), request.getOtpCode(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Đặt lại mật khẩu thành công."));
     }
 
     @PostMapping("/logout")

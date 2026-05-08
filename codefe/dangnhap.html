@@ -42,7 +42,7 @@
                             </div>
 
                             <div class="text-end mb-4">
-                                <a href="#" class="text-orange text-decoration-none small fw-bold">Quên mật khẩu?</a>
+                                <a href="#" id="forgotPasswordLink" class="text-orange text-decoration-none small fw-bold" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Quên mật khẩu?</a>
                             </div>
 
                             <button type="submit" id="loginBtn" class="btn btn-orange w-100 text-white fw-bold py-2 mb-4 shadow-sm">
@@ -78,6 +78,43 @@
             </div>
         </div>
     </section>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="forgotPasswordModalLabel">Khôi phục mật khẩu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="small text-muted mb-3">
+                        Bước 1: nhập email để nhận OTP. Bước 2: nhập OTP và mật khẩu mới.
+                    </div>
+                    <form id="forgotPasswordForm">
+                        <div class="mb-3">
+                            <label for="forgotEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="forgotEmail" placeholder="example@email.com" required />
+                        </div>
+                        <button type="button" class="btn btn-outline-warning w-100 mb-3" id="sendOtpBtn">Gửi mã OTP</button>
+
+                        <div class="mb-3">
+                            <label for="resetOtpCode" class="form-label">Mã OTP (6 số)</label>
+                            <input type="text" class="form-control" id="resetOtpCode" maxlength="6" pattern="\d{6}" placeholder="Nhập mã OTP" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">Mật khẩu mới</label>
+                            <input type="password" class="form-control" id="newPassword" minlength="6" placeholder="Tối thiểu 6 ký tự" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmNewPassword" class="form-label">Nhập lại mật khẩu mới</label>
+                            <input type="password" class="form-control" id="confirmNewPassword" minlength="6" placeholder="Nhập lại mật khẩu mới" required />
+                        </div>
+                        <button type="submit" class="btn btn-orange text-white w-100 fw-bold" id="resetPasswordBtn">Đặt lại mật khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>

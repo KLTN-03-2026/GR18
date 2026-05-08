@@ -1,8 +1,3 @@
-/**
- * US18 / PB18 — Điều phối đơn: chỉ PATCH trạng thái tiến độ phục vụ (Order.status:
- * PENDING, PREPARING, SERVING, COMPLETED …). Không gọi API thanh toán tại đây — payment_status / PAID là US20 / PB20 (qlthanhtoan.js).
- */
-
 const BASE_URL = "http://localhost:8080/api";
 const token = localStorage.getItem("accessToken");
 
@@ -586,7 +581,7 @@ function renderGoToCashier(orderId) {
     const href = escapeHtml(cashierHref(orderId));
     return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end align-items-center">
             <span class="small text-secondary d-none d-xl-inline me-1">Chờ thu · chuyển quầy</span>
-            <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán (US20)</a>
+            <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán</a>
         </div>`;
 }
 
@@ -864,7 +859,7 @@ function fillOrderDetailModal(d, fallbackOrderId) {
     let payHtml = translatePayment(d.paymentStatus, d.paymentMethod, d.paidAt);
     if (needsStaffPayment(summaryPay) && d.id != null) {
         payHtml += `<div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
-            <a class="btn btn-outline-secondary btn-sm rounded-3" href="${escapeHtml(cashierHref(d.id))}">Xử lý thanh toán tại màn Thu ngân (US20)</a>
+            <a class="btn btn-outline-secondary btn-sm rounded-3" href="${escapeHtml(cashierHref(d.id))}">Xử lý thanh toán tại màn Thu ngân</a>
         </div>`;
     }
     if (payEl) payEl.innerHTML = payHtml;

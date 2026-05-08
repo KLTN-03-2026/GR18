@@ -18,7 +18,6 @@ import com.restaurant.repository.ChatbotMessageRepository;
 import com.restaurant.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -125,23 +124,26 @@ public class ChatMenuAssistant {
             }
         }
 
-        if (wantsCustomerFavoriteFood(msg)) {
+        if (wantsCustomerFavoriteFood(msg) || isTopSellingIntent(msg)) {
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Các món ăn được khách hay gọi:",
-                    menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
+                    aiMenuRecommendationService.recommendTopSellingFood(5)));
         }
 
-        if (msg.contains("bán chạy")
-                || (msg.contains("nhiều người") && msg.contains("gọi"))
-                || (msg.contains("hôm nay") && msg.contains("gọi") && msg.contains("món"))) {
+        if (isTopSellingIntent(msg)) {
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Món bán chạy / được gọi nhiều:",
-                    menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
+                    aiMenuRecommendationService.recommendTopSellingFood(5)));
         }
-        if (msg.contains("đánh giá cao") || msg.contains("rating") || msg.contains("review hay")) {
+        if (isTopRatedIntent(msg)) {
             return Optional.of(ruleEngineOrDisabled(sessionId, user,
                     "Món được khách đánh giá cao:",
-                    menuItemRepository.findTopRatedFoodItems(PageRequest.of(0, 5))));
+                    aiMenuRecommendationService.recommendTopRatedFood(5)));
+        }
+        if (isLowRatedIntent(msg)) {
+            return Optional.of(ruleEngineOrDisabled(sessionId, user,
+                    "Món có đánh giá thấp (để bạn cân nhắc):",
+                    aiMenuRecommendationService.recommendLowRatedFood(5)));
         }
         if (msg.contains("rẻ") || msg.contains("tiết kiệm") || msg.contains("sinh viên")
                 || msg.contains("túi tiền")) {
@@ -326,7 +328,7 @@ public class ChatMenuAssistant {
                 || msg.contains(" chay ") || msg.contains("bán chạy"))) {
             if (msg.contains("bán chạy")) {
                 return Optional.of(ruleEngineOrDisabled(sessionId, user, "Lọc món bán chạy:",
-                        menuItemRepository.findTopSellingFoodItems(PageRequest.of(0, 5))));
+                        aiMenuRecommendationService.recommendTopSellingFood(5)));
             }
         }
 
@@ -685,5 +687,48 @@ public class ChatMenuAssistant {
                 || msg.contains("đặt nhiều")
                 || (msg.contains("khách") && msg.contains("gọi"));
         return foodScope && popular;
+    }
+
+    /** Intent: hỏi món bán chạy / nhiều người gọi. */
+    private static boolean isTopSellingIntent(String msg) {
+        return msg.contains("bán chạy")
+                || msg.contains("best seller")
+                || msg.contains("bestseller")
+                || msg.contains("top bán")
+                || msg.contains("top gọi")
+                || msg.contains("gọi nhiều nhất")
+                || msg.contains("đặt nhiều nhất")
+                || msg.contains("được gọi nhiều nhất")
+                || (msg.contains("nhiều người") && msg.contains("gọi"))
+                || (msg.contains("hôm nay") && msg.contains("gọi") && msg.contains("món"));
+    }
+
+    /** Intent: hỏi món điểm đánh giá tốt. */
+    private static boolean isTopRatedIntent(String msg) {
+        return msg.contains("đánh giá cao")
+                || msg.contains("được khen")
+                || msg.contains("khen nhiều")
+                || msg.contains("review hay")
+                || msg.contains("review tốt")
+                || msg.contains("rating cao")
+                || msg.contains("điểm cao")
+                || msg.contains("5 sao")
+                || (msg.contains("rating") && !msg.contains("thấp"));
+    }
+
+    /** Intent: hỏi món bị đánh giá thấp / bị chê. */
+    private static boolean isLowRatedIntent(String msg) {
+        if (msg.contains("không thấp") || msg.contains("không bị chê")) {
+            return false;
+        }
+        return msg.contains("đánh giá thấp")
+                || msg.contains("rating thấp")
+                || msg.contains("review thấp")
+                || msg.contains("điểm thấp")
+                || msg.contains("bị chê")
+                || msg.contains("chê nhiều")
+                || msg.contains("chê nhất")
+                || msg.contains("tệ nhất")
+                || msg.contains("nên tránh");
     }
 }

@@ -27,6 +27,53 @@ public class AiMenuRecommendationService {
         return recommendTop(limit, false);
     }
 
+    /** Top món ăn bán chạy (loại trừ đồ uống). */
+    public List<MenuItem> recommendTopSellingFood(int limit) {
+        List<MenuItem> pool = loadPool(loadConfig(), true);
+        if (pool.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        return pool.stream()
+                .sorted(Comparator
+                        .comparing((MenuItem m) -> m.getTotalSold() == null ? 0 : m.getTotalSold())
+                        .reversed()
+                        .thenComparing((MenuItem m) -> m.getAvgRating() != null ? m.getAvgRating().doubleValue() : 0.0,
+                                Comparator.reverseOrder()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    /** Top món ăn được đánh giá cao (loại trừ đồ uống). */
+    public List<MenuItem> recommendTopRatedFood(int limit) {
+        List<MenuItem> pool = loadPool(loadConfig(), true);
+        if (pool.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        return pool.stream()
+                .sorted(Comparator
+                        .comparing((MenuItem m) -> m.getAvgRating() != null ? m.getAvgRating().doubleValue() : 0.0,
+                                Comparator.reverseOrder())
+                        .thenComparing((MenuItem m) -> m.getTotalSold() == null ? 0 : m.getTotalSold(),
+                                Comparator.reverseOrder()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    /** Món ăn có đánh giá thấp (loại trừ đồ uống). */
+    public List<MenuItem> recommendLowRatedFood(int limit) {
+        List<MenuItem> pool = loadPool(loadConfig(), true);
+        if (pool.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        return pool.stream()
+                .sorted(Comparator
+                        .comparing((MenuItem m) -> m.getAvgRating() != null ? m.getAvgRating().doubleValue() : 0.0)
+                        .thenComparing((MenuItem m) -> m.getTotalSold() == null ? 0 : m.getTotalSold(),
+                                Comparator.reverseOrder()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
     /**
      * @param excludeBeverages true: bỏ danh mục đồ uống — dùng khi chat / gợi ý «món ăn».
      */

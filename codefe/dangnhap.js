@@ -43,6 +43,11 @@ async function handleGoogleLogin(response) {
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+    let otpCooldownTimer = null;
+    let otpCooldownRemain = 0;
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -74,6 +79,114 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginBtn.innerHTML = originalText;
             }
         });
+    }
+
+    if (sendOtpBtn) {
+        sendOtpBtn.addEventListener('click', async () => {
+            if (otpCooldownRemain > 0) {
+                notify('warning', `Vui lòng chờ ${otpCooldownRemain}s trước khi gửi lại OTP`);
+                return;
+            }
+            const forgotEmail = document.getElementById('forgotEmail');
+            const email = forgotEmail?.value?.trim() || '';
+            if (!email) {
+                notify('warning', 'Vui lòng nhập email để nhận OTP');
+                forgotEmail?.focus();
+                return;
+            }
+
+            sendOtpBtn.disabled = true;
+            const oldText = sendOtpBtn.innerHTML;
+            sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang gửi...';
+            try {
+                const res = await axios.post('http://localhost:8080/api/auth/forgot-password', { email });
+                notify('success', res.data?.message || 'Nếu email tồn tại, OTP đã được gửi');
+                startOtpCooldown(sendOtpBtn, 60);
+            } catch (error) {
+                const msg = error.response?.data?.message || 'Không gửi được mã OTP';
+                notify('error', msg, 'Lỗi');
+            } finally {
+                if (otpCooldownRemain <= 0) {
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.innerHTML = oldText;
+                }
+            }
+        });
+    }
+
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('forgotEmail')?.value?.trim() || '';
+            const otpCode = document.getElementById('resetOtpCode')?.value?.trim() || '';
+            const newPassword = document.getElementById('newPassword')?.value || '';
+            const confirmPassword = document.getElementById('confirmNewPassword')?.value || '';
+
+            if (!email || !otpCode || !newPassword || !confirmPassword) {
+                notify('warning', 'Vui lòng nhập đầy đủ thông tin');
+                return;
+            }
+            if (!/^\d{6}$/.test(otpCode)) {
+                notify('warning', 'OTP phải gồm đúng 6 chữ số');
+                return;
+            }
+            if (newPassword.length < 6) {
+                notify('warning', 'Mật khẩu mới phải từ 6 ký tự');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                notify('warning', 'Mật khẩu nhập lại không khớp');
+                return;
+            }
+
+            if (resetPasswordBtn) {
+                resetPasswordBtn.disabled = true;
+                resetPasswordBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang cập nhật...';
+            }
+            try {
+                const res = await axios.post('http://localhost:8080/api/auth/reset-password', {
+                    email,
+                    otpCode,
+                    newPassword
+                });
+                notify('success', res.data?.message || 'Đặt lại mật khẩu thành công');
+                forgotPasswordForm.reset();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                modal?.hide();
+            } catch (error) {
+                const msg = error.response?.data?.message || 'Đặt lại mật khẩu thất bại';
+                notify('error', msg, 'Lỗi');
+            } finally {
+                if (resetPasswordBtn) {
+                    resetPasswordBtn.disabled = false;
+                    resetPasswordBtn.innerHTML = 'Đặt lại mật khẩu';
+                }
+            }
+        });
+    }
+
+    function startOtpCooldown(button, seconds) {
+        if (!button || seconds <= 0) return;
+        if (otpCooldownTimer) {
+            clearInterval(otpCooldownTimer);
+            otpCooldownTimer = null;
+        }
+        otpCooldownRemain = seconds;
+        button.disabled = true;
+        button.textContent = `Gửi lại OTP sau ${otpCooldownRemain}s`;
+        otpCooldownTimer = setInterval(() => {
+            otpCooldownRemain -= 1;
+            if (otpCooldownRemain <= 0) {
+                clearInterval(otpCooldownTimer);
+                otpCooldownTimer = null;
+                otpCooldownRemain = 0;
+                button.disabled = false;
+                button.textContent = 'Gửi mã OTP';
+                return;
+            }
+            button.textContent = `Gửi lại OTP sau ${otpCooldownRemain}s`;
+        }, 1000);
     }
 });
 
@@ -120,4 +233,15 @@ function saveUserAndRedirect(userData) {
             window.location.href = 'index/home.html';
         }
     }, 1200);
+}
+
+function notify(type, message, title = 'Thông báo') {
+    if (typeof toastr !== 'undefined') {
+        if (type === 'success') toastr.success(message, title);
+        else if (type === 'warning') toastr.warning(message, title);
+        else if (type === 'error') toastr.error(message, title);
+        else toastr.info(message, title);
+        return;
+    }
+    alert(message);
 }
