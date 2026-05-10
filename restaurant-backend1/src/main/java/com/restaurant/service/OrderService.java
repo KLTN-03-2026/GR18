@@ -341,6 +341,17 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public Page<StaffOrderResponse> getPaidOrderSummariesPage(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return orderRepository.findByStatusAndPaymentStatus(
+                        OrderStatus.COMPLETED,
+                        PaymentStatus.PAID,
+                        PageRequest.of(safePage, safeSize, Sort.by("paidAt").descending()))
+                .map(this::toStaffOrderResponse);
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, Object> getTodayRevenueForStaff() {
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         LocalDateTime now = LocalDateTime.now();

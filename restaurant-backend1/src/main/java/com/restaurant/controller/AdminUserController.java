@@ -11,9 +11,18 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -27,41 +36,56 @@ public class AdminUserController {
 
     private final UserManagementService userManagementService;
 
+    // ===== Create =====
     @PostMapping
     @Operation(summary = "Tạo tài khoản mới (Staff/Admin)")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
-        UserResponse response = userManagementService.createUser(request);
-        return ResponseEntity.ok(ApiResponse.success(response, "Tạo tài khoản thành công"));
+        return ok(userManagementService.createUser(request), "Tạo tài khoản thành công");
     }
 
+    // ===== Read =====
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả user")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        List<UserResponse> users = userManagementService.getAllUsers();
-        return ResponseEntity.ok(ApiResponse.success(users));
+        return ok(userManagementService.getAllUsers());
+    }
+
+    @GetMapping("/paged")
+    @Operation(summary = "Lấy danh sách user có phân trang")
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ok(userManagementService.getUsersPage(page, size));
     }
 
     @GetMapping("/role/{role}")
     @Operation(summary = "Lấy danh sách user theo role")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRole(@PathVariable UserRole role) {
-        List<UserResponse> users = userManagementService.getUsersByRole(role);
-        return ResponseEntity.ok(ApiResponse.success(users));
+        return ok(userManagementService.getUsersByRole(role));
+    }
+
+    @GetMapping("/role/{role}/paged")
+    @Operation(summary = "Lấy danh sách user theo role có phân trang")
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsersByRolePaged(
+            @PathVariable UserRole role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ok(userManagementService.getUsersByRolePage(role, page, size));
     }
 
     @GetMapping("/{userId}")
     @Operation(summary = "Lấy thông tin user theo ID")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long userId) {
-        UserResponse user = userManagementService.getUserById(userId);
-        return ResponseEntity.ok(ApiResponse.success(user));
+        return ok(userManagementService.getUserById(userId));
     }
 
+    // ===== Update =====
     @PutMapping("/{userId}")
     @Operation(summary = "Cập nhật thông tin user")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRequest request) {
-        UserResponse response = userManagementService.updateUser(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật thành công"));
+        return ok(userManagementService.updateUser(userId, request), "Cập nhật thành công");
     }
 
     @PatchMapping("/{userId}/reset-password")
@@ -70,7 +94,7 @@ public class AdminUserController {
             @PathVariable Long userId,
             @RequestParam String newPassword) {
         userManagementService.resetPassword(userId, newPassword);
-        return ResponseEntity.ok(ApiResponse.success(null, "Reset password thành công"));
+        return ok(null, "Reset password thành công");
     }
 
     @PatchMapping("/{userId}/toggle-status")
@@ -79,8 +103,15 @@ public class AdminUserController {
             @PathVariable Long userId,
             @RequestParam boolean isActive) {
         userManagementService.toggleUserStatus(userId, isActive);
-        return ResponseEntity.ok(ApiResponse.success(null, 
-                isActive ? "Đã kích hoạt tài khoản" : "Đã vô hiệu hóa tài khoản"));
+        return ok(null, isActive ? "Đã kích hoạt tài khoản" : "Đã vô hiệu hóa tài khoản");
+    }
+
+    private static <T> ResponseEntity<ApiResponse<T>> ok(T data) {
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    private static <T> ResponseEntity<ApiResponse<T>> ok(T data, String message) {
+        return ResponseEntity.ok(ApiResponse.success(data, message));
     }
 }
 

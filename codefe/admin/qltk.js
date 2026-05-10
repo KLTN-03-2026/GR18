@@ -50,6 +50,10 @@ let filtered = [];
 let createModal;
 let editModal;
 let resetModal;
+let memberCurrentPage = 0;
+let memberTotalPages = 1;
+let memberTotalElements = 0;
+const MEMBER_PAGE_SIZE = 10;
 
 function showToast(message, isError) {
     const body = document.getElementById("qltk-toast-body");
@@ -118,18 +122,24 @@ async function apiJson(path, options = {}) {
     return json;
 }
 
-async function loadMembers() {
+async function loadMembers(page = memberCurrentPage) {
     const tbody = document.getElementById("member-tbody");
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-secondary">Đang tải…</td></tr>';
     }
     try {
-        let path =
-            currentRoleTab === "ALL" ? "/admin/users" : "/admin/users/role/" + encodeURIComponent(currentRoleTab);
+        let path = currentRoleTab === "ALL"
+            ? `/admin/users/paged?page=${Math.max(page, 0)}&size=${MEMBER_PAGE_SIZE}`
+            : `/admin/users/role/${encodeURIComponent(currentRoleTab)}/paged?page=${Math.max(page, 0)}&size=${MEMBER_PAGE_SIZE}`;
         const json = await apiJson(path, { method: "GET" });
-        members = Array.isArray(json.data) ? json.data : [];
+        const pageData = json.data || {};
+        members = Array.isArray(pageData.content) ? pageData.content : [];
+        memberCurrentPage = typeof pageData.number === "number" ? pageData.number : Math.max(page, 0);
+        memberTotalPages = Math.max(1, Number(pageData.totalPages || 1));
+        memberTotalElements = Number(pageData.totalElements || members.length);
         applyFilter();
         updateStats();
+        updateMemberPager();
     } catch (e) {
         console.error(e);
         if (tbody) {
@@ -157,9 +167,9 @@ function applyFilter() {
 }
 
 function updateStats() {
-    const total = members.length;
+    const total = memberTotalElements;
     const active = members.filter((u) => u.isActive !== false).length;
-    const locked = total - active;
+    const locked = Math.max(0, members.length - active);
     const elT = document.getElementById("stat-total");
     const elA = document.getElementById("stat-active");
     const elL = document.getElementById("stat-locked");
@@ -224,7 +234,7 @@ function renderTable() {
         .join("");
 
     if (footer) {
-        footer.textContent = `Hiển thị ${filtered.length} trên ${members.length} tài khoản`;
+        footer.textContent = `Hiển thị ${filtered.length}/${members.length} tài khoản trên trang • Tổng ${memberTotalElements}`;
     }
 
     tbody.querySelectorAll(".btn-edit").forEach((btn) => {
@@ -236,6 +246,23 @@ function renderTable() {
     tbody.querySelectorAll(".btn-toggle").forEach((btn) => {
         btn.addEventListener("click", () => toggleActive(Number(btn.dataset.id), btn.dataset.active === "true"));
     });
+}
+
+function updateMemberPager() {
+    const indicator = document.getElementById("member-page-indicator");
+    const prevBtn = document.getElementById("member-prev-page");
+    const nextBtn = document.getElementById("member-next-page");
+    if (indicator) {
+        indicator.textContent = `Trang ${memberCurrentPage + 1} / ${memberTotalPages}`;
+    }
+    if (prevBtn) prevBtn.disabled = memberCurrentPage <= 0;
+    if (nextBtn) nextBtn.disabled = memberCurrentPage >= memberTotalPages - 1;
+}
+
+async function changeMemberPage(delta) {
+    const next = Math.min(memberTotalPages - 1, Math.max(0, memberCurrentPage + delta));
+    if (next === memberCurrentPage) return;
+    await loadMembers(next);
 }
 
 function setEditRoleUi(self) {
@@ -437,6 +464,7 @@ function bindRoleTabs() {
             const next = btn.getAttribute("data-role-tab");
             if (!next || next === currentRoleTab) return;
             currentRoleTab = next;
+            memberCurrentPage = 0;
             document.querySelectorAll("[data-role-tab]").forEach((b) => {
                 b.classList.toggle("active", b.getAttribute("data-role-tab") === currentRoleTab);
             });
@@ -470,6 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-edit-save")?.addEventListener("click", saveEdit);
     document.getElementById("btn-reset-save")?.addEventListener("click", saveResetPw);
     document.getElementById("member-search")?.addEventListener("input", applyFilter);
+    document.getElementById("member-prev-page")?.addEventListener("click", () => changeMemberPage(-1));
+    document.getElementById("member-next-page")?.addEventListener("click", () => changeMemberPage(1));
 
     bindRoleTabs();
     loadMembers();

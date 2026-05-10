@@ -117,6 +117,15 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orderService.getRecentPaidOrderSummaries(limit)));
     }
 
+    @GetMapping("/staff/orders/paid-history")
+    @Operation(summary = "Nhân viên: Đơn đã thanh toán có phân trang", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Page<StaffOrderResponse>>> getPaidHistoryOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.getPaidOrderSummariesPage(page, size)));
+    }
+
     @GetMapping("/staff/orders/{orderId}")
     @Operation(summary = "Nhân viên: Chi tiết đơn hàng (kèm dòng món)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")

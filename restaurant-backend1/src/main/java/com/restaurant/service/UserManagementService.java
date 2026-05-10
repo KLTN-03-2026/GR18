@@ -7,6 +7,9 @@ import com.restaurant.entity.User;
 import com.restaurant.entity.enums.UserRole;
 import com.restaurant.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -129,6 +132,20 @@ public class UserManagementService {
         return userRepository.findByRole(role).stream()
                 .map(this::toUserResponse)
                 .collect(Collectors.toList());
+    }
+
+    public Page<UserResponse> getUsersPage(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return userRepository.findAll(PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending()))
+                .map(this::toUserResponse);
+    }
+
+    public Page<UserResponse> getUsersByRolePage(UserRole role, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return userRepository.findByRole(role, PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending()))
+                .map(this::toUserResponse);
     }
 
     /**

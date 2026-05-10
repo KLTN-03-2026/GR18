@@ -14,6 +14,9 @@ let paidHistory = [];
 let paymentListFilter = "ALL";
 let pendingPaymentOrderId = null;
 let focusOrderHandled = false;
+const HISTORY_PAGE_SIZE = 8;
+let historyCurrentPage = 0;
+let historyTotalPages = 1;
 
 function stripFocusOrderFromUrl() {
     try {
@@ -77,6 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("btn-refresh-payments")?.addEventListener("click", loadPaymentPageData);
     document.getElementById("btn-confirm-payment-submit")?.addEventListener("click", submitConfirmPayment);
+    document.getElementById("history-prev-page")?.addEventListener("click", () => changeHistoryPage(-1));
+    document.getElementById("history-next-page")?.addEventListener("click", () => changeHistoryPage(1));
 
     document.querySelectorAll('input[name="paymentMethod"]').forEach((r) => {
         r.addEventListener("change", updatePaymentConfirmFormState);
@@ -106,13 +111,11 @@ async function api(path, options = {}) {
 
 async function loadPaymentPageData() {
     try {
-        const [unpaid, history, revMap] = await Promise.all([
+        const [unpaid, revMap] = await Promise.all([
             api("/staff/orders"),
-            api("/staff/orders/paid-recent?limit=50"),
             api("/staff/payments/today-revenue")
         ]);
         unpaidOrders = Array.isArray(unpaid) ? unpaid : [];
-        paidHistory = Array.isArray(history) ? history : [];
         const todayRev = revMap && revMap.todayRevenue != null ? Number(revMap.todayRevenue) : 0;
 
         const cntEl = document.getElementById("stat-unpaid-count");
@@ -121,7 +124,7 @@ async function loadPaymentPageData() {
         if (revEl) revEl.textContent = formatCurrencyShort(todayRev);
 
         renderUnpaidList();
-        renderHistoryList();
+        await loadHistoryPage(0);
         showPageAlert("", null);
         focusUnpaidOrderCardOnce();
     } catch (err) {
@@ -196,10 +199,46 @@ function renderHistoryList() {
 
     if (!paidHistory.length) {
         root.innerHTML = '<p class="text-secondary small mb-0">Chưa có giao dịch gần đây.</p>';
+        updateHistoryPager(historyCurrentPage, historyTotalPages);
         return;
     }
 
     root.innerHTML = paidHistory.map(renderHistoryItem).join("");
+    updateHistoryPager(historyCurrentPage, historyTotalPages);
+}
+
+async function loadHistoryPage(page) {
+    const safePage = Math.max(page, 0);
+    const data = await api(`/staff/orders/paid-history?page=${safePage}&size=${HISTORY_PAGE_SIZE}`);
+    paidHistory = Array.isArray(data?.content) ? data.content : [];
+    historyCurrentPage = typeof data?.number === "number" ? data.number : safePage;
+    historyTotalPages = Math.max(1, Number(data?.totalPages || 1));
+    renderHistoryList();
+}
+
+async function changeHistoryPage(delta) {
+    const next = Math.min(historyTotalPages - 1, Math.max(0, historyCurrentPage + delta));
+    if (next === historyCurrentPage) return;
+    try {
+        await loadHistoryPage(next);
+    } catch (err) {
+        showPageAlert(err.message || "Không tải được lịch sử thanh toán.", "error");
+    }
+}
+
+function updateHistoryPager(page, totalPages) {
+    const indicator = document.getElementById("history-page-indicator");
+    const prevBtn = document.getElementById("history-prev-page");
+    const nextBtn = document.getElementById("history-next-page");
+    if (indicator) {
+        indicator.textContent = `Trang ${page + 1} / ${totalPages}`;
+    }
+    if (prevBtn) {
+        prevBtn.disabled = page <= 0;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = page >= totalPages - 1;
+    }
 }
 
 function renderHistoryItem(order) {
