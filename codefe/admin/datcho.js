@@ -223,11 +223,33 @@ function renderActions(r) {
 }
 
 
+/**
+ * Id bàn để PATCH trạng thái: tableId > 0 và có trong staffTables, hoặc ghép từ tableNumber.
+ * Tránh gửi PATCH với id 0 (DB NULL / dữ liệu lỗi → JSON 0) gây HTTP 400.
+ */
+function resolveStaffTableIdForReservation(r) {
+    if (!r) return null;
+    let tid = r.tableId != null && Number(r.tableId) > 0 ? Number(r.tableId) : null;
+    if (tid != null && staffTables.some((x) => Number(x.id) === tid)) {
+        return tid;
+    }
+    const tn = r.tableNumber != null ? String(r.tableNumber).trim() : "";
+    if (tn && staffTables.length) {
+        const t = staffTables.find((x) => String(x.tableNumber).trim() === tn);
+        if (t?.id != null && Number(t.id) > 0) return Number(t.id);
+    }
+    return null;
+}
+
 /** Đồng bộ trạng thái bàn. Trả về true khi không cần PATCH (chưa gán bàn / id không hợp lệ). Trả về false chỉ khi đã gọi PATCH mà lỗi mạng hoặc HTTP không ok. */
 async function syncTableStatus(tableId, status) {
     if (status == null || String(status).trim() === "") return true;
     const idStr = tableId == null ? "" : String(tableId).trim();
     if (!idStr || idStr === "undefined" || idStr === "null" || !/^\d+$/.test(idStr)) {
+        return true;
+    }
+    const idNum = Number(idStr);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
         return true;
     }
 
@@ -255,7 +277,7 @@ async function confirmBooking(id) {
     const r = reservations.find(x => x.id === id);
     try {
         await axiosInstance.patch(`/staff/reservations/${id}/confirm`);
-        const synced = await syncTableStatus(r?.tableId, "RESERVED");
+        const synced = await syncTableStatus(resolveStaffTableIdForReservation(r), "RESERVED");
         if (!synced) {
             alert(
                 "Đặt chỗ đã được xác nhận nhưng không đồng bộ được trạng thái bàn (RESERVED). " +
@@ -321,7 +343,7 @@ async function completeBooking(id) {
     const r = reservations.find(x => x.id === id);
     try {
         await axiosInstance.patch(`/staff/reservations/${id}/complete`);
-        const synced = await syncTableStatus(r?.tableId, "CLEANING");
+        const synced = await syncTableStatus(resolveStaffTableIdForReservation(r), "CLEANING");
         if (!synced) {
             alert(
                 "Đặt chỗ đã hoàn thành nhưng không đồng bộ được trạng thái bàn (CLEANING). " +

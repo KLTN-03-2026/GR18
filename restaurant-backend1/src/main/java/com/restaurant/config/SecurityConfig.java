@@ -62,6 +62,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Forward/async sang `/error` không được JWT — né AuthorizationDenied khi response đã flush + Dispatcher#error .
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/tables/booking-options").permitAll()
                         .requestMatchers(HttpMethod.GET, "/reviews").permitAll()

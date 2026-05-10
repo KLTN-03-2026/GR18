@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 public class CreateReservationRequest {
     @NotNull
-    @Future
+    @Future(message = "Thời gian đặt bàn phải là mốc trong tương lai (không được chọn ngày giờ đã qua).")
     private LocalDateTime reservationTime;
 
     @NotNull

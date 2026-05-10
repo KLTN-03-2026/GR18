@@ -32,6 +32,107 @@ function toastWarn(msg) {
     else alert(msg);
 }
 
+/** yyyy-MM-dd theo giờ local */
+function formatInputDateLocal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+/** Ghép date (yyyy-MM-dd) + time (HH:mm) thành Date local; null nếu sai định dạng. */
+function parseCombinedLocalDateTime(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return null;
+    const tm = String(timeStr).trim().match(/^(\d{2}):(\d{2})$/);
+    const dm = String(dateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!tm || !dm) return null;
+    const y = Number(dm[1]);
+    const mo = Number(dm[2]) - 1;
+    const day = Number(dm[3]);
+    const h = Number(tm[1]);
+    const mi = Number(tm[2]);
+    if (mo < 0 || mo > 11 || day < 1 || day > 31 || h > 23 || mi > 59) return null;
+    const dt = new Date(y, mo, day, h, mi, 0, 0);
+    if (isNaN(dt.getTime())) return null;
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== day) return null;
+    return dt;
+}
+
+/** Không cho chọn ngày quá khứ; mặc định hôm nay + giờ hiện tại nếu trống. */
+function initReservationDateTimeInputs() {
+    const dateEl = document.getElementById("resDate");
+    const timeEl = document.getElementById("resTime");
+    if (!dateEl) return;
+    const today = formatInputDateLocal(new Date());
+    dateEl.min = today;
+    if (!dateEl.value || dateEl.value < today) {
+        dateEl.value = today;
+    }
+    if (timeEl && !timeEl.value) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        timeEl.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+}
+
+/**
+ * Chuỗi reservationTime từ API là LocalDateTime (ISO không có offset).
+ * Không dùng `new Date(iso)` trực tiếp — trình duyệt thường coi là UTC → lệch ngày/giờ VN.
+ */
+function formatApiReservationTimeVi(value) {
+    if (value == null || value === "") return "";
+    const s = String(value).trim();
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?/);
+    if (m) {
+        const y = Number(m[1]);
+        const mo = Number(m[2]) - 1;
+        const day = Number(m[3]);
+        const h = Number(m[4]);
+        const mi = Number(m[5]);
+        const sec = m[6] != null && m[6] !== "" ? Number(m[6]) : 0;
+        if (h <= 23 && mi <= 59 && sec <= 59) {
+            const d = new Date(y, mo, day, h, mi, sec, 0);
+            if (!isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === mo && d.getDate() === day) {
+                return d.toLocaleString("vi-VN", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            }
+        }
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime())
+        ? s
+        : d.toLocaleString("vi-VN", {
+              weekday: "long",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+          });
+}
+
+/** Điền SĐT + email ô đặt bàn từ `userInfo` (sau đăng nhập), giống alias header khách. */
+function prefillBookingContactFromUserInfo() {
+    let u = {};
+    try {
+        u = JSON.parse(localStorage.getItem("userInfo") || "{}");
+    } catch (e) {
+        return;
+    }
+    const phone = String(u.phone || u.phoneNumber || u.mobile || "").trim();
+    const email = String(u.email || u.mail || "").trim();
+    const phoneEl = document.getElementById("customerPhone");
+    const emailEl = document.getElementById("customerEmail");
+    if (phoneEl && phone) phoneEl.value = phone;
+    if (emailEl && email) emailEl.value = email;
+}
+
 function escAttr(s) {
     return String(s == null ? "" : s)
         .replace(/&/g, "&amp;")
@@ -138,13 +239,11 @@ document.addEventListener("DOMContentLoaded", () => {
         toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-right", timeOut: 4000 };
     }
 
-    const userInfoEarly = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const emailInput = document.getElementById("customerEmail");
-    if (emailInput && userInfoEarly.email) {
-        emailInput.value = String(userInfoEarly.email);
-    }
+    prefillBookingContactFromUserInfo();
 
     loadBookingOptions();
+
+    initReservationDateTimeInputs();
 
     const guestsEl = document.getElementById("guests");
     guestsEl?.addEventListener("input", refillTablePreference);
@@ -169,6 +268,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const date = document.getElementById("resDate").value;
             const time = document.getElementById("resTime").value;
+            const whenLocal = parseCombinedLocalDateTime(date, time);
+            if (!whenLocal) {
+                toastWarn("Vui lòng chọn đầy đủ ngày và giờ hợp lệ.");
+                return;
+            }
+            if (whenLocal.getTime() <= Date.now()) {
+                toastErr(
+                    "Thời gian đặt bàn phải sau thời điểm hiện tại. Không được chọn ngày hoặc giờ đã qua."
+                );
+                return;
+            }
+
             const guests = document.getElementById("guests").value;
             const phoneEl = document.getElementById("customerPhone");
             const customerPhone = (phoneEl?.value || "").trim();
@@ -225,8 +336,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (idEl) idEl.textContent = d && d.id != null ? "#" + d.id : "—";
                     if (detEl && d) {
                         const segments = [];
-                        if (d.reservationTime)
-                            segments.push("Thời gian: " + new Date(d.reservationTime).toLocaleString("vi-VN"));
+                        if (d.reservationTime) {
+                            const timeLabel = formatApiReservationTimeVi(d.reservationTime);
+                            if (timeLabel) segments.push("Thời gian: " + timeLabel);
+                        }
                         if (d.numberOfGuests != null) segments.push(d.numberOfGuests + " khách");
                         if (d.tableNumber)
                             segments.push(
@@ -247,7 +360,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             } catch (error) {
                 console.error("Booking Error:", error);
-                const message = error.response?.data?.message || "Đặt bàn thất bại. Vui lòng thử lại!";
+                const body = error.response?.data;
+                const message =
+                    body?.message ||
+                    (typeof body?.error === "string" ? body.error : null) ||
+                    error.message ||
+                    "Đặt bàn thất bại. Vui lòng thử lại!";
                 toastErr(message);
             } finally {
                 submitBtn.disabled = false;

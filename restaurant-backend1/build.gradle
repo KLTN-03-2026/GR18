@@ -89,6 +89,36 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+/** Trên Windows, Stop trong IntelliJ đôi khi để lại javaw/java giữ cổng 8080 → lần chạy sau “Address already in use”.
+ * Chạy: gradlew.bat freePort8080
+ * Hoặc: gradlew.bat bootRun -Pkill8080   (kill rồi bootRun trong một lệnh)
+ * Hoặc: PowerShell .\scripts\free-port-8080.ps1 */
+tasks.register('freePort8080') {
+    group = 'application'
+    description = 'Ends process(es) listening on TCP 8080 (orphan JVM after IDE stop)'
+    doLast {
+        if (System.getProperty('os.name', '').toLowerCase().contains('windows')) {
+            exec {
+                commandLine 'powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+                        "${project.projectDir}\\scripts\\free-port-8080.ps1"
+                ignoreExitValue = true
+            }
+        } else {
+            exec {
+                commandLine 'bash', '-c',
+                        'PIDS=$(command -v lsof >/dev/null 2>&1 && lsof -t -i:8080 2>/dev/null); if [ -n "$PIDS" ]; then kill $PIDS 2>/dev/null || true; fi'
+                ignoreExitValue = true
+            }
+        }
+    }
+}
+
+if (project.hasProperty('kill8080')) {
+    tasks.named('bootRun').configure {
+        dependsOn tasks.named('freePort8080')
+    }
+}
+
 // Compiler configuration
 tasks.withType(JavaCompile) {
     options.compilerArgs += ['-parameters']

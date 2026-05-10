@@ -37,6 +37,9 @@ public final class PublicApiPathHelper {
         if (!StringUtils.hasText(path)) {
             return false;
         }
+        if (path.startsWith("/error")) {
+            return true;
+        }
         return path.startsWith("/auth")
                 || path.startsWith("/menu")
                 || path.startsWith("/categories")
