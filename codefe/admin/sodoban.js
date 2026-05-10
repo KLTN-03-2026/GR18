@@ -495,6 +495,10 @@
             }
         });
 
+        document.getElementById("btn-floor-editor-placeholder")?.addEventListener("click", function () {
+            alert("Tính năng chỉnh sửa sơ đồ mặt bằng đang được phát triển.");
+        });
+
         document.getElementById("btn-add-table")?.addEventListener("click", function () {
             if (!getJwt()) {
                 alert("Vui lòng đăng nhập quyền Admin để thêm bàn.");
@@ -527,6 +531,14 @@
         } else {
             window.__tablesFromApi = false;
             tables = FALLBACK_TABLES;
+            var listRoot2 = document.getElementById("qr-list-root");
+            if (listRoot2 && !document.getElementById("qr-api-warn")) {
+                var warn = document.createElement("div");
+                warn.className = "alert alert-warning small py-2 mb-3";
+                warn.id = "qr-api-warn";
+                warn.textContent = "Không kết nối được API — đang hiển thị dữ liệu mẫu. Thao tác thêm/sửa/xóa cần quyền Admin và backend.";
+                listRoot2.prepend(warn);
+            }
         }
         render(tables);
     }

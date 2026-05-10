@@ -333,10 +333,15 @@ document.addEventListener("DOMContentLoaded", () => {
     bindFilterButtons();
     bindOrderTableRowOpens();
     initStaffWalkInModal();
-    const modalEl = document.getElementById("order-detail-modal");
-    if (modalEl && typeof bootstrap !== "undefined") {
-        orderDetailModalInstance = new bootstrap.Modal(modalEl);
+
+    // FUNC_ORDER_14/26: Export CSV
+    const exportBtn = document.querySelector('button[title="Xu\u1ea5t file (s\u1eafp t\u1edbi)"]') ||
+        document.querySelector('.btn-icon-tool[title*="Xu\u1ea5t"]');
+    if (exportBtn) {
+        exportBtn.title = "Xu\u1ea5t CSV";
+        exportBtn.addEventListener("click", exportOrdersCSV);
     }
+    getOrderDetailModalInstance();
     loadOrders();
     ordersPollTimer = setInterval(() => {
         if (viewMode === "ACTIVE") loadOrders({ silent: true });
@@ -381,10 +386,31 @@ function applyViewModeUi() {
     }
 }
 
+/** Một instance Bootstrap Modal cho `#order-detail-modal` (getOrCreateInstance, khởi tạo lười/không trùng). */
+function getOrderDetailModalInstance() {
+    const modalEl = document.getElementById("order-detail-modal");
+    if (!modalEl || typeof bootstrap === "undefined") return null;
+    if (!orderDetailModalInstance) {
+        orderDetailModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    }
+    return orderDetailModalInstance;
+}
+
 function bindOrderTableRowOpens() {
     const tbody = document.getElementById("order-table-body");
     if (!tbody) return;
     tbody.addEventListener("click", (e) => {
+        const payBtn = e.target.closest("button[data-pay-method]");
+        if (payBtn) {
+            const rawId = payBtn.dataset.orderId;
+            const method = payBtn.dataset.payMethod;
+            const id = Number(rawId);
+            if (Number.isFinite(id) && (method === "CASH" || method === "QR_CODE")) {
+                e.preventDefault();
+                payOrder(id, method);
+            }
+            return;
+        }
         const detailHist = e.target.closest("button.order-history-detail");
         if (detailHist && detailHist.dataset.orderId != null && detailHist.dataset.orderId !== "") {
             const id = Number(detailHist.dataset.orderId);
@@ -578,11 +604,60 @@ function cashierHref(orderId) {
 }
 
 function renderGoToCashier(orderId) {
-    const href = escapeHtml(cashierHref(orderId));
+    const safeId = typeof orderId === "number" && Number.isFinite(orderId) ? orderId : Number.parseInt(String(orderId), 10);
+    if (!Number.isFinite(safeId)) {
+        return '<span class="small text-secondary">Không có thao tác</span>';
+    }
+    const href = escapeHtml(cashierHref(safeId));
+    const idAttr = String(Math.trunc(safeId));
     return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end align-items-center">
             <span class="small text-secondary d-none d-xl-inline me-1">Chờ thu · chuyển quầy</span>
             <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán</a>
+            <button type="button" class="btn btn-settle btn-pay-cash" data-order-id="${idAttr}" data-pay-method="CASH" title="Thanh toán tiền mặt">Tiền mặt</button>
+            <button type="button" class="btn btn-table-action btn-pay-qr" data-order-id="${idAttr}" data-pay-method="QR_CODE" title="Thanh toán QR / chuyển khoản">QR/CK</button>
         </div>`;
+}
+
+/** Set trạng thái đang xử lý cho các nút thanh toán của 1 đơn (FUNC_ORDER_10/22/23) */
+function setPayBtnsLoading(orderId, loading) {
+    const n = Number(orderId);
+    if (!Number.isFinite(n)) return;
+    const idStr = String(Math.trunc(n));
+    document
+        .querySelectorAll(`button[data-pay-method][data-order-id="${idStr}"]`)
+        .forEach((btn) => {
+            btn.disabled = loading;
+        });
+}
+
+/** FUNC_ORDER_08/09/10/21/22/23/24: Thanh toán trực tiếp */
+async function payOrder(orderId, method) {
+    const numericId =
+        typeof orderId === "number" && Number.isFinite(orderId) ? orderId : Number.parseInt(String(orderId), 10);
+    if (!Number.isFinite(numericId)) {
+        showAlert("Mã đơn không hợp lệ.", "error");
+        return;
+    }
+    const order = allOrders.find(o => Number(o?.id) === numericId);
+    if (!order) {
+        showAlert("Không thấy đơn trong danh sách hiện tại (có thể đã hết hạn). Vui lòng làm mới trang hoặc chọn lại đơn.", "error");
+        return;
+    }
+    if (!needsStaffPayment(order)) {
+        showAlert("Đơn này chưa đến bước thu tiền.", "error");
+        return;
+    }
+    setPayBtnsLoading(numericId, true);
+    try {
+        await api(`/staff/orders/${numericId}/payment?method=${encodeURIComponent(method)}`, { method: "PATCH" });
+        const methodLabel = method === "CASH" ? "Tiền mặt" : "QR / Chuyển khoản";
+        showAlert(`Thanh toán thành công (${methodLabel}).`, "success");
+        await reloadCurrentOrderLists();
+    } catch (err) {
+        showAlert(err.message || "Thanh toán thất bại.", "error");
+    } finally {
+        setPayBtnsLoading(numericId, false);
+    }
 }
 
 function renderActionButtons(order) {
@@ -672,13 +747,49 @@ function escapeHtml(s) {
         .replace(/"/g, "&quot;");
 }
 
+// FUNC_ORDER_14/26: Export CSV
+function exportOrdersCSV() {
+    const statusLabel = {
+        PENDING: "\u0110\u01a1n m\u1edbi",
+        PREPARING: "\u0110ang chu\u1ea9n b\u1ecb",
+        SERVING: "\u0110ang ph\u1ee5c v\u1ee5",
+        COMPLETED: "Ho\u00e0n th\u00e0nh",
+        CANCELLED: "\u0110\u00e3 h\u1ee7y"
+    };
+    const methodLabel = { CASH: "Ti\u1ec1n m\u1eb7t", QR_CODE: "QR/CK", CARD: "Th\u1ebb", TRANSFER: "Chuy\u1ec3n kho\u1ea3n" };
+    const payLabel = { UNPAID: "Ch\u01b0a thanh to\u00e1n", PAID: "\u0110\u00e3 thanh to\u00e1n", FAILED: "Th\u1ea5t b\u1ea1i" };
+    const headers = ["M\u00e3 \u0111\u01a1n", "B\u00e0n", "Kh\u00e1ch", "Tr\u1ea1ng th\u00e1i \u0111\u01a1n", "T\u1ed5ng ti\u1ec1n", "Thanh to\u00e1n", "Ph\u01b0\u01a1ng th\u1ee9c", "Th\u1eddi gian"];
+    const rows = getFilteredOrders().map(o => {
+        const timeRaw = viewMode === "HISTORY" ? o.paidAt : o.createdAt;
+        return [
+            String(o.id || ""),
+            o.tableNumber || (o.tableId != null ? `B\u00e0n ${o.tableId}` : ""),
+            o.guestName || "Kh\u00e1ch v\u00e3ng lai",
+            o.status === "COMPLETED" && o.paymentStatus === "UNPAID" ? "Ch\u1edd thanh to\u00e1n" : (statusLabel[o.status] || o.status || ""),
+            Number(o.totalAmount || 0).toLocaleString("vi-VN"),
+            payLabel[o.paymentStatus] || o.paymentStatus || "",
+            methodLabel[o.paymentMethod] || o.paymentMethod || "",
+            formatDateTime(timeRaw)
+        ];
+    });
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 10);
+    a.download = `donhang_${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 async function openOrderDetail(orderId) {
-    const modalEl = document.getElementById("order-detail-modal");
-    let modalInst = orderDetailModalInstance;
-    if (!modalInst && modalEl && typeof bootstrap !== "undefined") {
-        orderDetailModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modalInst = orderDetailModalInstance;
-    }
+    const modalInst = getOrderDetailModalInstance();
     if (!modalInst) return;
     const loading = document.getElementById("order-detail-loading");
     const bodyWrap = document.getElementById("order-detail-body");

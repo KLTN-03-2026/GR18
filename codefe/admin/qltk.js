@@ -227,6 +227,7 @@ function renderTable() {
                         <button type="button" class="btn btn-icon-sm btn-edit" data-id="${u.id}" title="Sửa"><span class="material-symbols-outlined fs-5">edit_note</span></button>
                         <button type="button" class="btn btn-icon-sm btn-reset-pw" data-id="${u.id}" title="Đặt lại mật khẩu"><span class="material-symbols-outlined fs-5">key</span></button>
                         ${toggleBtn}
+                        ${self ? "" : `<button type="button" class="btn btn-icon-sm text-danger btn-delete" data-id="${u.id}" title="Xóa tài khoản"><span class="material-symbols-outlined fs-5">delete</span></button>`}
                     </div>
                 </td>
             </tr>`;
@@ -245,6 +246,9 @@ function renderTable() {
     });
     tbody.querySelectorAll(".btn-toggle").forEach((btn) => {
         btn.addEventListener("click", () => toggleActive(Number(btn.dataset.id), btn.dataset.active === "true"));
+    });
+    tbody.querySelectorAll(".btn-delete").forEach((btn) => {
+        btn.addEventListener("click", () => deleteUser(Number(btn.dataset.id)));
     });
 }
 
@@ -311,11 +315,15 @@ async function saveEdit() {
     const role = self ? uRow?.role || "ADMIN" : roleEl.value;
 
     if (!fullName) {
-        showToast("Nhập họ tên.", true);
+        showToast("Vui lòng nhập đầy đủ thông tin.", true);
+        return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast("Email không hợp lệ.", true);
         return;
     }
     if (phone && !/^0\d{9}$/.test(phone)) {
-        showToast("Số điện thoại phải 10 số bắt đầu bằng 0.", true);
+        showToast("Số điện thoại không hợp lệ (10 số bắt đầu bằng 0).", true);
         return;
     }
 
@@ -366,11 +374,15 @@ async function saveCreate() {
         return;
     }
     if (!fullName || !password || password.length < 6) {
-        showToast("Họ tên và mật khẩu (≥6 ký tự) là bắt buộc.", true);
+        showToast("Vui lòng nhập đầy đủ thông tin (họ tên và mật khẩu ≥6 ký tự).", true);
+        return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast("Email không hợp lệ.", true);
         return;
     }
     if (phone && !/^0\d{9}$/.test(phone)) {
-        showToast("Số điện thoại phải 10 số bắt đầu bằng 0.", true);
+        showToast("Số điện thoại không hợp lệ (10 số bắt đầu bằng 0).", true);
         return;
     }
     const body = {
@@ -427,6 +439,19 @@ async function saveResetPw() {
         showToast("Đã đặt lại mật khẩu.");
     } catch (e) {
         showToast(e.message || "Thất bại", true);
+    }
+}
+
+async function deleteUser(id) {
+    const u = members.find((x) => x.id === id);
+    if (!u) return;
+    if (!confirm(`Xóa vĩnh viễn tài khoản "${u.fullName || "ID " + id}"? Hành động này không thể hoàn tác.`)) return;
+    try {
+        await apiJson("/admin/users/" + id, { method: "DELETE" });
+        showToast("Đã xóa tài khoản.");
+        await loadMembers();
+    } catch (e) {
+        showToast(e.message || "Xóa thất bại", true);
     }
 }
 

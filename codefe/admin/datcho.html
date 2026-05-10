@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8"/>
@@ -63,6 +63,17 @@
                 </div>
 
                 <div class="col-12 col-lg-9">
+                    <div class="view-tab-bar mb-3 flex-wrap align-items-center" role="tablist" aria-label="Chế độ xem đặt chỗ">
+                        <button type="button" class="view-tab active" id="tabList" onclick="switchView('list')" title="Danh sách theo ngày">
+                            <span class="material-symbols-outlined">view_list</span>
+                            Danh sách
+                        </button>
+                        <button type="button" class="view-tab" id="tabCalendar" onclick="switchView('calendar')" title="Lịch theo tháng">
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            Lịch
+                        </button>
+                    </div>
+                    <div id="listViewSection">
                     <div class="table-container">
                         <div class="table-header">
                             <h3 class="table-title mb-0">Đặt chỗ sắp tới</h3>
@@ -80,8 +91,6 @@
                                     </ul>
                                 </div>
                                 <button type="button" class="tool-btn" id="btnExport" aria-label="Xuất" title="Xuất dữ liệu CSV"><span class="material-symbols-outlined">download</span></button>
-                                <button type="button" class="tool-btn" aria-label="Lọc" title="Lọc (xem trong bộ lọc ngày)"><span class="material-symbols-outlined">filter_list</span></button>
-                                <button type="button" class="tool-btn" aria-label="Xuất" title="Xuất dữ liệu"><span class="material-symbols-outlined">download</span></button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -104,12 +113,27 @@
                             <div class="pagination-dash" id="paginationDash" aria-label="Phân trang"></div>
                         </div>
                     </div>
+                    </div>
+                    <div id="calendarView" class="d-none">
+                        <div class="table-container">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 px-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2" onclick="calendarPrev()" aria-label="Tháng trước">
+                                    <span class="material-symbols-outlined align-middle" style="font-size:1.25rem;">chevron_left</span>
+                                </button>
+                                <span id="calendarMonthLabel" class="fw-semibold text-center flex-grow-1"></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2" onclick="calendarNext()" aria-label="Tháng sau">
+                                    <span class="material-symbols-outlined align-middle" style="font-size:1.25rem;">chevron_right</span>
+                                </button>
+                            </div>
+                            <div id="calendarGrid" class="pb-3"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <button type="button" class="fab-add shadow-lg" data-bs-toggle="modal" data-bs-target="#editModal" title="Thêm / chỉnh sửa nhanh">
+    <button type="button" class="fab-add shadow-lg" onclick="openAddNew()" title="Thêm đặt bàn mới">
         <span class="material-symbols-outlined filled">add</span>
     </button>
 
@@ -145,6 +169,16 @@
                         <div class="col-12 col-md-6 mb-3">
                             <label class="form-label fw-semibold" for="editTime">Thời gian</label>
                             <input id="editTime" type="datetime-local" class="form-control">
+                        </div>
+                        <div class="col-12 mb-3" id="editStatusWrap">
+                            <label class="form-label fw-semibold" for="editStatus">Trạng thái</label>
+                            <select id="editStatus" class="form-select">
+                                <option value="PENDING">Chờ xử lý</option>
+                                <option value="CONFIRMED">Đã xác nhận</option>
+                                <option value="ARRIVED">Đã đến</option>
+                                <option value="COMPLETED">Hoàn thành</option>
+                                <option value="CANCELLED">Đã hủy</option>
+                            </select>
                         </div>
                     </div>
                 </div>

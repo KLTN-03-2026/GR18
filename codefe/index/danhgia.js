@@ -1,4 +1,4 @@
-/* ================================================================
+﻿/* ================================================================
    danhgia.js — Đánh giá: xem công khai, gửi theo đơn đã thanh toán, sửa/xóa của tôi
    ================================================================ */
 function _apiHost() {
@@ -162,6 +162,16 @@ function dgOnOrderChange() {
     });
 }
 
+function dgParseDate(val) {
+    if (!val) return null;
+    // Java LocalDateTime array: [year, month, day, hour, min, sec] (month is 1-based)
+    if (Array.isArray(val) && val.length >= 3) {
+        return new Date(val[0], val[1] - 1, val[2], val[3] || 0, val[4] || 0, val[5] || 0);
+    }
+    var d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+}
+
 async function dgLoadEligibleOrders() {
     try {
         var res = await fetch(dgApiBase() + "/reviews/me/eligible-orders", {
@@ -184,13 +194,31 @@ async function dgLoadEligibleOrders() {
             sel.appendChild(opt);
         });
         if (_dgEligible.length === 0) {
+           
+            if (dgQr()) {
+                _dgGuestMode = true;
+                dgLoadEligibleGuestOrders();
+                dgLoadMyGuestReviews();
+                return;
+            }
             var opt0 = document.createElement("option");
             opt0.value = "";
             opt0.textContent = "— Không có đơn nào đủ điều kiện (hoàn tất + đã thanh toán, chưa đánh giá) —";
             sel.appendChild(opt0);
         }
     } catch (e) {
-        console.warn(e);
+        console.error("dgLoadEligibleOrders error:", e);
+      
+        if (dgQr()) {
+            _dgGuestMode = true;
+            dgLoadEligibleGuestOrders();
+            dgLoadMyGuestReviews();
+            return;
+        }
+        var sel2 = document.getElementById("dg-sel-order");
+        if (sel2) {
+            sel2.innerHTML = '<option value="">' + (e.message || "Lỗi tải đơn hàng") + '</option>';
+        }
     }
 }
 
@@ -225,7 +253,11 @@ async function dgLoadEligibleGuestOrders() {
             sel.appendChild(opt0);
         }
     } catch (e) {
-        console.warn(e);
+        console.error("dgLoadEligibleGuestOrders error:", e);
+        var selErr = document.getElementById("dg-sel-order");
+        if (selErr) {
+            selErr.innerHTML = '<option value="">' + (e.message || "Lỗi tải đơn hàng") + '</option>';
+        }
     }
 }
 
@@ -238,9 +270,15 @@ async function dgLoadMyReviews() {
             headers: { Authorization: "Bearer " + dgToken() }
         });
         var json = await res.json();
-        if (!res.ok || json.success === false) {
-            throw new Error(json.message || "Lỗi");
+        if (!res.ok) {
+            // 500 = lỗi server, hiện trống thay vì báo lỗi
+            if (res.status >= 500) {
+                box.innerHTML = '<p class="text-muted small mb-0">Bạn chưa có đánh giá nào.</p>';
+                return;
+            }
+            throw new Error((json && json.message) || "Lỗi");
         }
+        if (json.success === false) throw new Error(json.message || "Lỗi");
         var list = Array.isArray(json.data) ? json.data : [];
         if (list.length === 0) {
             box.innerHTML = '<p class="text-muted small mb-0">Bạn chưa có đánh giá nào.</p>';
@@ -284,7 +322,8 @@ async function dgLoadMyReviews() {
             });
         });
     } catch (e) {
-        box.innerHTML = '<p class="text-danger small">Không tải được danh sách đánh giá của bạn.</p>';
+        console.error("dgLoadMyReviews error:", e);
+        box.innerHTML = '<p class="text-danger small">Không tải được danh sách đánh giá của bạn: ' + dgEsc(e.message || "") + '</p>';
     }
 }
 
@@ -548,6 +587,11 @@ function dgOnSubmit(e) {
         })
         .catch(function (err) {
             toastr.error(err.message || "Lỗi gửi đánh giá");
+            // Nếu đã đánh giá rồi, reload danh sách để hiện đánh giá cũ cho user xem/xóa
+            if (err.message && err.message.indexOf("đánh giá") !== -1) {
+                if (_dgGuestMode) dgLoadMyGuestReviews();
+                else dgLoadMyReviews();
+            }
         })
         .finally(function () {
             if (btn) btn.disabled = false;
@@ -886,3 +930,4 @@ function dgCapNhatBadge() {
         badge.style.display = tong > 0 ? "inline-block" : "none";
     } catch (e) {}
 }
+

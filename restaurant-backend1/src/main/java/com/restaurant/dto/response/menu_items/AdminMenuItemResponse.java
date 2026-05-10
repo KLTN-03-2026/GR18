@@ -28,7 +28,6 @@ public class AdminMenuItemResponse {
 
     String categoryName;
 
-    /** Để form sửa chọn đúng danh mục */
     Long categoryId;
 
     Integer totalSold;

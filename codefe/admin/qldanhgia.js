@@ -107,17 +107,25 @@
             params.set("size", String(_size));
             if (_filterVisible === true) params.set("isVisible", "true");
             if (_filterVisible === false) params.set("isVisible", "false");
-            const res = await fetch(API + "/admin/reviews?" + params.toString(), { headers: authHeaders() });
-            const json = await res.json();
+            let res = await fetch(API + "/admin/reviews?" + params.toString(), { headers: authHeaders() });
+            let json = await res.json();
+            // Fallback: nếu /admin/reviews lỗi server, thử /reviews (endpoint công khai có token)
+            if (!res.ok && res.status >= 500) {
+                const fbParams = new URLSearchParams();
+                fbParams.set("page", String(_page));
+                fbParams.set("size", String(_size));
+                res = await fetch(API + "/reviews?" + fbParams.toString(), { headers: authHeaders() });
+                json = await res.json();
+            }
             if (!res.ok || json.success === false) {
                 throw new Error(json.message || "Không tải được");
             }
             const page = json.data;
-            const content = (page && page.content) || [];
+            const content = (page && page.content) || (Array.isArray(json.data) ? json.data : []);
             _lastContent = content;
             _lastTotal = (page && page.totalElements) || content.length;
             renderList(content);
-            renderPagination(page);
+            renderPagination(page && page.totalPages != null ? page : null);
         } catch (e) {
             if (list) {
                 list.innerHTML =
@@ -322,12 +330,14 @@
         const se = el("qldg-search");
         if (se) {
             let t;
-            se.addEventListener("input", function () {
+            const onSearch = function () {
                 clearTimeout(t);
                 t = setTimeout(function () {
                     renderList(_lastContent);
                 }, 200);
-            });
+            };
+            se.addEventListener("input", onSearch);
+            se.addEventListener("search", onSearch);
         }
         load();
     });

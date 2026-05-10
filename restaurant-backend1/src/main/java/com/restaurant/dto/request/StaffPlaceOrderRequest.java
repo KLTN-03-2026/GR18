@@ -8,9 +8,6 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * Nhân viên tạo đơn và gắn trực tiếp theo {@code tableId} (không quét QR).
- */
 @Data
 public class StaffPlaceOrderRequest {
 

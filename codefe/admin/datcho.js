@@ -23,6 +23,7 @@ let currentPage = 1;
 const PAGE_SIZE = 6;
 let staffTables = [];
 let selectedDate = formatInputDate(new Date());
+let statusFilter = "";
 
 function extractPreferredArea(note) {
     if (!note) return "";
@@ -68,16 +69,18 @@ function refillEditTableSelect() {
     if (keep && staffTables.some((x) => String(x.id) === keep)) sel.value = keep;
 }
 
-// ================= INIT =================
+
 document.addEventListener("DOMContentLoaded", async () => {
     initDateFilter();
     bindPagination();
     await loadStaffTables();
     loadReservations();
     setupSearch();
+    setupStatusFilter();
+    document.getElementById("btnExport")?.addEventListener("click", exportCSV);
 });
 
-// ================= LOAD =================
+
 async function loadStaffTables() {
     try {
         const res = await axiosInstance.get("/tables/staff/tables");
@@ -97,10 +100,15 @@ async function loadReservations() {
         });
 
         reservations = Array.isArray(res.data?.data) ? res.data.data : [];
-        filteredRows = reservations.slice();
-        currentPage = 1;
-        redrawList();
-        updateStats(reservations);
+
+        // FUNC_BOOKING_19 — Sắp xếp theo thời gian tăng dần
+        reservations.sort((a, b) => {
+            const da = parseReservationDate(a.reservationTime);
+            const db = parseReservationDate(b.reservationTime);
+            return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
+        });
+
+        applyFilters();
 
     } catch (err) {
         console.error("ERROR:", err);
@@ -113,7 +121,7 @@ async function loadReservations() {
     }
 }
 
-// ================= RENDER =================
+
 function redrawList() {
     renderTablePage();
     renderPaginationDash();
@@ -133,8 +141,10 @@ function renderTablePage() {
     const slice = filteredRows.slice(start, start + PAGE_SIZE);
 
     if (!slice.length) {
-        tbody.innerHTML =
-            '<tr><td colspan="6" class="text-center py-5 text-secondary">Không có đặt chỗ cho ngày này.</td></tr>';
+        const msg = statusFilter
+            ? "Không có đặt chỗ phù hợp với bộ lọc."
+            : "Không có đặt chỗ cho ngày này.";
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-secondary">${msg}</td></tr>`;
         return;
     }
 
@@ -177,7 +187,6 @@ function renderPaginationDash() {
     el.innerHTML = html || `<button type="button" class="active-pg" data-page="1">1</button>`;
 }
 
-// ================= STATUS =================
 function renderStatus(status) {
     const st = normalizeReservationStatus(status);
     switch (st) {
@@ -213,9 +222,51 @@ function renderActions(r) {
     </div>`;
 }
 
-// ================= API =================
+
+/** Đồng bộ trạng thái bàn. Trả về true khi không cần PATCH (chưa gán bàn / id không hợp lệ). Trả về false chỉ khi đã gọi PATCH mà lỗi mạng hoặc HTTP không ok. */
+async function syncTableStatus(tableId, status) {
+    if (status == null || String(status).trim() === "") return true;
+    const idStr = tableId == null ? "" : String(tableId).trim();
+    if (!idStr || idStr === "undefined" || idStr === "null" || !/^\d+$/.test(idStr)) {
+        return true;
+    }
+
+    try {
+        const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
+        const base = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+        const pathId = encodeURIComponent(idStr);
+        const st = encodeURIComponent(String(status));
+        const res = await fetch(`${base}/tables/staff/tables/${pathId}/status?status=${st}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            console.warn("syncTableStatus: HTTP", res.status, idStr, status);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.warn("syncTableStatus:", e);
+        return false;
+    }
+}
+
 async function confirmBooking(id) {
-    await callAPI(`/staff/reservations/${id}/confirm`);
+    const r = reservations.find(x => x.id === id);
+    try {
+        await axiosInstance.patch(`/staff/reservations/${id}/confirm`);
+        const synced = await syncTableStatus(r?.tableId, "RESERVED");
+        if (!synced) {
+            alert(
+                "Đặt chỗ đã được xác nhận nhưng không đồng bộ được trạng thái bàn (RESERVED). " +
+                    "Kiểm tra quyền, mạng hoặc cập nhật bàn thủ công nếu cần."
+            );
+        }
+    } catch (err) {
+        handleError(err);
+        return;
+    }
+    loadReservations();
 }
 
 async function confirmArrival(id) {
@@ -253,6 +304,13 @@ async function confirmArrival(id) {
     }
     try {
         await axiosInstance.patch(`/staff/reservations/${id}/arrived`, { tableId });
+        const synced = await syncTableStatus(tableId, "OCCUPIED");
+        if (!synced) {
+            alert(
+                "Đã ghi nhận khách đến nhưng không đồng bộ được trạng thái bàn (OCCUPIED). " +
+                    "Kiểm tra mạng hoặc mục Quản lý bàn."
+            );
+        }
         loadReservations();
     } catch (err) {
         handleError(err);
@@ -260,7 +318,21 @@ async function confirmArrival(id) {
 }
 
 async function completeBooking(id) {
-    await callAPI(`/staff/reservations/${id}/complete`);
+    const r = reservations.find(x => x.id === id);
+    try {
+        await axiosInstance.patch(`/staff/reservations/${id}/complete`);
+        const synced = await syncTableStatus(r?.tableId, "CLEANING");
+        if (!synced) {
+            alert(
+                "Đặt chỗ đã hoàn thành nhưng không đồng bộ được trạng thái bàn (CLEANING). " +
+                    "Kiểm tra quyền, mạng hoặc cập nhật bàn thủ công nếu cần."
+            );
+        }
+    } catch (err) {
+        handleError(err);
+        return;
+    }
+    loadReservations();
 }
 
 async function cancelBooking(id) {
@@ -269,15 +341,6 @@ async function cancelBooking(id) {
         await axiosInstance.delete(`/reservations/${id}/cancel`, {
             params: { reason }
         });
-        loadReservations();
-    } catch (err) {
-        handleError(err);
-    }
-}
-
-async function callAPI(url) {
-    try {
-        await axiosInstance.patch(url);
         loadReservations();
     } catch (err) {
         handleError(err);
@@ -297,22 +360,90 @@ function bindPagination() {
     });
 }
 
-// ================= SEARCH =================
+
 function setupSearch() {
     const input = document.querySelector(".search-input");
     if (!input) return;
+    input.addEventListener("input", applyFilters);
+}
 
-    input.addEventListener("input", (e) => {
-        const val = String(e.target.value || "").toLowerCase();
+function applyFilters() {
+    const input = document.querySelector(".search-input");
+    const val = String(input?.value || "").toLowerCase();
+    filteredRows = reservations.filter((r) => {
+        const matchSearch = !val ||
+            (r.customerName || "").toLowerCase().includes(val) ||
+            String(r.customerPhone || "").includes(val);
+        const matchStatus = !statusFilter ||
+            normalizeReservationStatus(r.status) === statusFilter;
+        return matchSearch && matchStatus;
+    });
+    currentPage = 1;
+    redrawList();
+    updateStats(reservations);
+}
 
-        filteredRows = reservations.filter(
-            (r) =>
-                (r.customerName || "").toLowerCase().includes(val) ||
-                String(r.customerPhone || "").includes(val)
-        );
-        currentPage = 1;
-        redrawList();
-        updateStats(reservations);
+function setupStatusFilter() {
+    document.getElementById("btnFilter")
+        ?.closest(".dropdown")
+        ?.querySelectorAll("[data-status]")
+        ?.forEach((item) => {
+            item.addEventListener("click", (e) => {
+                e.preventDefault();
+                statusFilter = item.dataset.status || "";
+                item.closest("ul")?.querySelectorAll(".dropdown-item")?.forEach((el) => el.classList.remove("active"));
+                item.classList.add("active");
+                applyFilters();
+            });
+        });
+}
+
+function exportCSV() {
+    const statusLabel = {
+        CONFIRMED: "Đã xác nhận",
+        PENDING: "Chờ xử lý",
+        ARRIVED: "Đã đến",
+        COMPLETED: "Hoàn thành",
+        CANCELLED: "Đã hủy"
+    };
+    const headers = ["Tên khách", "Số điện thoại", "Số khách", "Thời gian", "Vị trí / Bàn", "Trạng thái"];
+    const rows = filteredRows.map((r) => {
+        const dt = parseReservationDate(r.reservationTime);
+        const time = dt ? dt.toLocaleString("vi-VN") : "";
+        const loc = r.tableNumber
+            ? `${r.tableNumber}${r.tableLocation ? " - " + r.tableLocation : ""}`
+            : "";
+        const st = normalizeReservationStatus(r.status);
+        return [
+            r.customerName || "",
+            r.customerPhone || "",
+            r.numberOfGuests || 0,
+            time,
+            loc,
+            statusLabel[st] || r.status || ""
+        ];
+    });
+    const BOM = "\uFEFF";
+    const csv = BOM + [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `datcho_${selectedDate || formatInputDate(new Date())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function resetStatusFilterToAll() {
+    statusFilter = "";
+    const dropdown = document.getElementById("btnFilter")?.closest(".dropdown");
+    if (!dropdown) return;
+    dropdown.querySelectorAll("[data-status]").forEach((item) => {
+        item.classList.toggle("active", (item.dataset.status || "") === "");
     });
 }
 
@@ -325,12 +456,14 @@ function initDateFilter() {
 
     input.addEventListener("change", () => {
         selectedDate = input.value || formatInputDate(new Date());
+        resetStatusFilterToAll();
         loadReservations();
     });
 
     btnToday?.addEventListener("click", () => {
         selectedDate = formatInputDate(new Date());
         input.value = selectedDate;
+        resetStatusFilterToAll();
         loadReservations();
     });
 }
@@ -369,6 +502,33 @@ function formatInputDate(d) {
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+}
+
+/** Chuẩn hoá giá trị `datetime-local` (yyyy-MM-ddTHH:mm hoặc có giây) thành LocalDateTime ISO gửi API. */
+function normalizeDatetimeLocalForApi(raw) {
+    if (!raw || typeof raw !== "string") return null;
+    const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!m) return null;
+    const sec = m[6] != null && m[6] !== "" ? m[6] : "00";
+    return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${sec}`;
+}
+
+/** Parse yyyy-MM-ddTHH:mm:ss như giờ địa phương (datetime-local), không dùng `new Date(string)`. */
+function parseDatetimeLocalNormalizedToDate(normalizedIsoLocal) {
+    if (!normalizedIsoLocal || typeof normalizedIsoLocal !== "string") return null;
+    const m = normalizedIsoLocal.trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    const h = Number(m[4]);
+    const mi = Number(m[5]);
+    const s = Number(m[6]);
+    if (mo < 0 || mo > 11 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) return null;
+    const dt = new Date(y, mo, d, h, mi, s);
+    if (isNaN(dt.getTime())) return null;
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return null;
+    return dt;
 }
 
 function parseReservationDate(value) {
@@ -450,11 +610,52 @@ function handleError(err) {
         return;
     }
 
-    alert(err.response?.data?.message || "Lỗi server");
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Lỗi server";
+    const status = err.response?.status ? ` (${err.response.status})` : "";
+    alert(msg + status);
 }
+
+/** Một instance Bootstrap Modal cho `#editModal` (getOrCreateInstance — tránh lỗi khi khởi tạo lặp `new Modal`). */
+function getEditModalBootstrap() {
+    const el = document.getElementById("editModal");
+    if (!el || typeof bootstrap === "undefined") return null;
+    return bootstrap.Modal.getOrCreateInstance(el);
+}
+
+function openAddNew() {
+    document.getElementById("editId").value = "";
+    document.getElementById("editName").value = "";
+    document.getElementById("editPhone").value = "";
+    document.getElementById("editGuests").value = "2";
+    document.getElementById("editTime").value = "";
+
+    refillEditTableSelect();
+    const sel = document.getElementById("editTableId");
+    if (sel) sel.value = "";
+
+    const statusSel = document.getElementById("editStatus");
+    if (statusSel) statusSel.value = "PENDING";
+
+    document.getElementById("editStatusWrap")?.classList.add("d-none");
+
+    const badge = document.getElementById("editModalMode");
+    if (badge) badge.classList.remove("d-none");
+
+    document.getElementById("btnSaveReservation").textContent = "Thêm mới";
+
+    getEditModalBootstrap()?.show();
+}
+
 function openEdit(id) {
     const r = reservations.find(x => x.id === id);
     if (!r) return;
+
+    document.getElementById("editStatusWrap")?.classList.remove("d-none");
+
+    const badge = document.getElementById("editModalMode");
+    if (badge) badge.classList.add("d-none");
+
+    document.getElementById("btnSaveReservation").textContent = "Lưu thay đổi";
 
     document.getElementById("editId").value = r.id;
     document.getElementById("editName").value = r.customerName;
@@ -469,45 +670,210 @@ function openEdit(id) {
     const sel = document.getElementById("editTableId");
     if (sel) sel.value = tid;
 
-    new bootstrap.Modal(document.getElementById("editModal")).show();
+    const statusSel = document.getElementById("editStatus");
+    if (statusSel) statusSel.value = normalizeReservationStatus(r.status) || "PENDING";
+
+    getEditModalBootstrap()?.show();
 }
 async function updateReservation() {
     const id = document.getElementById("editId").value;
+    const saveBtn = document.getElementById("btnSaveReservation");
 
-    if (!id) {
-        alert("Mở chỉnh sửa từ biểu tượng bút chì trên một dòng đặt chỗ.");
-        return;
-    }
+  
+    if (saveBtn && saveBtn.disabled) return;
 
     const rawTable = document.getElementById("editTableId")?.value;
     const tableId = rawTable ? Number(rawTable) : null;
 
+    const nameRaw = document.getElementById("editName").value.trim();
+    const phoneRaw = document.getElementById("editPhone").value.trim();
+    const guestsTrim = String(document.getElementById("editGuests")?.value ?? "").trim();
+    const guestsRaw = parseInt(guestsTrim, 10);
+    const timeRaw = document.getElementById("editTime").value;
+
+    if (!nameRaw || !phoneRaw || !timeRaw || guestsTrim === "") {
+        alert("Vui lòng nhập đầy đủ tên, số điện thoại, thời gian và số khách.");
+        return;
+    }
+
+    if (!/^[\p{L}\s]+$/u.test(nameRaw)) {
+        alert("Tên khách hàng chỉ được chứa chữ cái và khoảng trắng.");
+        return;
+    }
+
+    const phoneClean = phoneRaw.replace(/\s/g, "");
+    if (!/^(0[0-9]{8,10}|\+84[0-9]{8,10})$/.test(phoneClean)) {
+        alert(
+            "Số điện thoại \"" +
+                phoneRaw +
+                "\" không đúng định dạng. Vui lòng nhập số Việt Nam (VD: 0912345678, 09876543210 hoặc +84912345678)."
+        );
+        return;
+    }
+
+    if (!Number.isFinite(guestsRaw)) {
+        alert("Số khách không hợp lệ (chỉ nhập số).");
+        return;
+    }
+    if (guestsRaw < 1 || guestsRaw > 100) {
+        alert("Vui lòng nhập số khách từ 1 đến 100.");
+        return;
+    }
+
+    
+    const timeValNorm = normalizeDatetimeLocalForApi(timeRaw);
+    if (!timeValNorm) {
+        alert("Thời gian không đúng định dạng. Vui lòng chọn ngày giờ đầy đủ (giờ:phút).");
+        return;
+    }
+
+    if (!id) {
+        const selectedTime = parseDatetimeLocalNormalizedToDate(timeValNorm);
+        if (!selectedTime) {
+            alert("Thời gian không đúng định dạng. Vui lòng chọn ngày giờ đầy đủ (giờ:phút).");
+            return;
+        }
+        if (selectedTime.getTime() <= Date.now()) {
+            alert("Thời gian đặt bàn không hợp lệ. Chỉ được đặt cho thời điểm trong tương lai.");
+            return;
+        }
+        const h = selectedTime.getHours();
+        if (!(h >= 7 && h <= 23)) {
+            alert("Thời gian đặt bàn ngoài giờ hoạt động (7:00 – 23:59). Vui lòng chọn lại.");
+            return;
+        }
+    }
+
     const data = {
-        customerName: document.getElementById("editName").value,
-        customerPhone: document.getElementById("editPhone").value,
-        numberOfGuests: parseInt(document.getElementById("editGuests").value, 10),
-        reservationTime: document.getElementById("editTime").value,
-        tableId: rawTable !== "" && Number.isFinite(tableId) ? tableId : null
+        customerName: nameRaw,
+        customerPhone: phoneRaw,
+        numberOfGuests: guestsRaw,
+        reservationTime: timeValNorm,
+        tableId: rawTable !== "" && Number.isFinite(tableId) ? tableId : null,
+        status: document.getElementById("editStatus")?.value || "PENDING"
     };
 
+    if (saveBtn) saveBtn.disabled = true;
     try {
-        await axiosInstance.put(`/reservations/${id}`, data);
+        if (id) {
+            await axiosInstance.put(`/reservations/${id}`, data);
+            alert("Cập nhật thành công");
+        } else {
+            // Tạo mới: không truyền status — backend luôn tạo PENDING (UI không hiện ô trạng thái khi thêm mới)
+            const createData = {
+                customerName: data.customerName,
+                customerPhone: data.customerPhone,
+                numberOfGuests: data.numberOfGuests,
+                reservationTime: data.reservationTime,
+                tableId: data.tableId
+            };
+            await axiosInstance.post(`/reservations`, createData);
+            alert("Thêm đặt chỗ thành công");
 
-        alert("Cập nhật thành công");
+            const newDay = String(data.reservationTime).slice(0, 10);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(newDay)) {
+                selectedDate = newDay;
+                const fd = document.getElementById("filterDate");
+                if (fd) fd.value = selectedDate;
+            }
+        }
 
         loadReservations();
 
-        bootstrap.Modal.getInstance(
-            document.getElementById("editModal")
-        )?.hide();
+        getEditModalBootstrap()?.hide();
 
     } catch (err) {
         handleError(err);
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
     }
-
 }
 function normalizeReservationStatus(raw) {
     return String(raw == null ? "" : raw).trim().toUpperCase();
+}
+
+// ================= CALENDAR VIEW (FUNC_BOOKING_05/06) =================
+let calendarYear = new Date().getFullYear();
+let calendarMonth = new Date().getMonth(); // 0-indexed
+
+function switchView(view) {
+    const listSection = document.getElementById("listViewSection");
+    const calSection = document.getElementById("calendarView");
+    const tabList = document.getElementById("tabList");
+    const tabCal = document.getElementById("tabCalendar");
+    if (view === "calendar") {
+        listSection?.classList.add("d-none");
+        calSection?.classList.remove("d-none");
+        tabList?.classList.remove("active");
+        tabCal?.classList.add("active");
+        const d = new Date(`${selectedDate}T12:00:00`);
+        calendarYear = d.getFullYear();
+        calendarMonth = d.getMonth();
+        renderCalendarGrid();
+    } else {
+        listSection?.classList.remove("d-none");
+        calSection?.classList.add("d-none");
+        tabList?.classList.add("active");
+        tabCal?.classList.remove("active");
+    }
+}
+
+function calendarPrev() {
+    if (calendarMonth === 0) { calendarMonth = 11; calendarYear--; }
+    else calendarMonth--;
+    renderCalendarGrid();
+}
+
+function calendarNext() {
+    if (calendarMonth === 11) { calendarMonth = 0; calendarYear++; }
+    else calendarMonth++;
+    renderCalendarGrid();
+}
+
+function renderCalendarGrid() {
+    const label = document.getElementById("calendarMonthLabel");
+    const grid = document.getElementById("calendarGrid");
+    if (!label || !grid) return;
+
+    const monthNames = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6","Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
+    label.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+
+    const dayLabels = ["CN","T2","T3","T4","T5","T6","T7"];
+    const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const todayStr = formatInputDate(new Date());
+
+    // Build set of dates with reservations
+    const bookedDates = new Set();
+    reservations.forEach(r => {
+        const d = parseReservationDate(r.reservationTime);
+        if (d) bookedDates.add(formatInputDate(d));
+    });
+
+    let html = '<div class="cal-grid">';
+    dayLabels.forEach(d => { html += `<div class="cal-cell cal-hdr">${d}</div>`; });
+    for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell"></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+        const cls = [
+            "cal-cell cal-day",
+            dateStr === todayStr ? "cal-today" : "",
+            dateStr === selectedDate ? "cal-selected" : "",
+            bookedDates.has(dateStr) ? "cal-has-booking" : ""
+        ].filter(Boolean).join(" ");
+        html += `<div class="${cls}" onclick="calendarSelectDay('${dateStr}')">${day}${bookedDates.has(dateStr) ? '<span class="cal-dot"></span>' : ''}</div>`;
+    }
+    html += '</div>';
+    grid.innerHTML = html;
+}
+
+function calendarSelectDay(dateStr) {
+    selectedDate = dateStr;
+    const fi = document.getElementById("filterDate");
+    if (fi) fi.value = dateStr;
+    resetStatusFilterToAll();
+    loadReservations();
+    switchView("list");
 }
 
 function formatStatCountPlain(num) {
