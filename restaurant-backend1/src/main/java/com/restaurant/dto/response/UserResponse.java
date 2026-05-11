@@ -18,6 +18,7 @@ public class UserResponse {
     private String email;
     private String phone;
     private UserRole role;
+    private String allowedPagesJson;
     private Boolean isActive;
     private String avatarUrl;
     private LocalDateTime createdAt;

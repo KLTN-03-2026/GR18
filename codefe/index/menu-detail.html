@@ -336,15 +336,42 @@
     window.onload = function () {
         if (typeof getActiveQrToken === 'function') getActiveQrToken();
         if (typeof syncHeaderCartVisibility === 'function') syncHeaderCartVisibility();
-        var backBtn = document.getElementById('btn-back-menu');
-        if (backBtn && typeof appendQrToHref === 'function') {
-            backBtn.href = appendQrToHref('menu.html');
-        }
+        setupBackButton();
         capNhatBadge();
         var id = new URLSearchParams(window.location.search).get('id');
         if (!id) { showError('Không có ID món ăn trong URL.'); return; }
         fetchFromAPI(id);
     };
+
+    function setupBackButton() {
+        var backBtn = document.getElementById('btn-back-menu');
+        if (!backBtn) return;
+
+        backBtn.href = getBackMenuHref();
+
+        // Nếu người dùng đi từ danh sách món trước đó, ưu tiên quay lại history để giữ đúng vị trí đã lướt.
+        var canUseHistoryBack = false;
+        try {
+            var ref = document.referrer ? new URL(document.referrer) : null;
+            var sameOrigin = !!ref && ref.origin === window.location.origin;
+            var fromMenuList = sameOrigin && /\/(qr-menu|menu)\.html$/i.test(ref.pathname || '');
+            canUseHistoryBack = !!fromMenuList && window.history.length > 1;
+        } catch (e) {
+            canUseHistoryBack = false;
+        }
+
+        if (!canUseHistoryBack) return;
+        backBtn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            window.history.back();
+        });
+    }
+
+    function getBackMenuHref() {
+        var hasQr = typeof getActiveQrToken === 'function' && !!getActiveQrToken();
+        var fallback = hasQr ? 'qr-menu.html' : 'menu.html';
+        return (typeof appendQrToHref === 'function') ? appendQrToHref(fallback) : fallback;
+    }
 
     /* ── Fetch from API ── */
     function fetchFromAPI(id) {
@@ -459,12 +486,13 @@ var cat = item.category;
 
     /* ── Show Error ── */
     function showError(id) {
+        var backHref = getBackMenuHref();
         document.getElementById('detail-container').innerHTML =
             '<div class="text-center py-5">' +
                 '<i class="fa-solid fa-circle-exclamation fa-3x text-muted mb-3 d-block"></i>' +
                 '<p class="text-muted">Không tìm thấy món ăn (ID: <code>' + id + '</code>).<br>' +
                 'Món có thể không tồn tại hoặc backend chưa chạy.</p>' +
-                '<a href="menu.html" class="btn btn-orange rounded-pill px-4">' +
+                '<a href="' + backHref + '" class="btn btn-orange rounded-pill px-4">' +
                     '<i class="fa-solid fa-arrow-left me-2"></i>Quay lại menu' +
                 '</a>' +
             '</div>';

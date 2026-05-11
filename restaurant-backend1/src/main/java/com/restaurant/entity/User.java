@@ -57,6 +57,10 @@ public class User extends BaseEntity {
     @Column(name = "oauth_id", length = 200)
     private String oauthId;
 
+    /** Danh sách page admin mà STAFF được phép truy cập (JSON array string). */
+    @Column(name = "allowed_pages_json", length = 2000)
+    private String allowedPagesJson;
+
     // ---- Relations ----
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default

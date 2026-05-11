@@ -54,6 +54,13 @@ let memberCurrentPage = 0;
 let memberTotalPages = 1;
 let memberTotalElements = 0;
 const MEMBER_PAGE_SIZE = 10;
+const STAFF_PAGE_OPTIONS = [
+    { page: "donhang.html", label: "Quản lý đơn hàng" },
+    { page: "qlthanhtoan.html", label: "Quản lý thanh toán" },
+    { page: "datcho.html", label: "Quản lý đặt chỗ" },
+    { page: "qltrangthaiban.html", label: "Trạng thái bàn" },
+    { page: "goinv.html", label: "Gọi nhân viên" }
+];
 
 function showToast(message, isError) {
     const body = document.getElementById("qltk-toast-body");
@@ -331,7 +338,8 @@ async function saveEdit() {
         fullName,
         email: email ? email : null,
         phone: phone ? phone : null,
-        role: role
+        role: role,
+        allowedPagesJson: role === "STAFF" ? (uRow?.allowedPagesJson || null) : null
     };
     try {
         await apiJson("/admin/users/" + id, {
@@ -361,6 +369,44 @@ function validateStaffAdminContact(email, phone, role) {
     return null;
 }
 
+function renderCreateStaffPageOptions(selectedPages) {
+    const root = document.getElementById("create-staff-pages");
+    if (!root) return;
+    const selectedSet = new Set(Array.isArray(selectedPages) ? selectedPages : STAFF_PAGE_OPTIONS.map((x) => x.page));
+    root.innerHTML = STAFF_PAGE_OPTIONS.map((opt) => {
+        const checked = selectedSet.has(opt.page) ? " checked" : "";
+        return `<label class="staff-page-item d-flex align-items-center gap-2 mb-1" style="cursor:pointer;">
+            <input type="checkbox" class="form-check-input create-staff-page-cb" value="${escapeHtml(opt.page)}"${checked} />
+            <span class="small">${escapeHtml(opt.label)}</span>
+        </label>`;
+    }).join("");
+}
+
+function updateCreateRoleUi() {
+    const role = document.getElementById("create-role")?.value || "CUSTOMER";
+    const wrap = document.getElementById("create-staff-pages-wrap");
+    if (!wrap) return;
+    if (role === "STAFF") {
+        wrap.classList.remove("d-none");
+        if (!document.getElementById("create-staff-pages")?.innerHTML.trim()) {
+            renderCreateStaffPageOptions(STAFF_PAGE_OPTIONS.map((x) => x.page));
+        }
+    } else {
+        wrap.classList.add("d-none");
+    }
+}
+
+function collectCreateStaffPagesJson(role) {
+    if (role !== "STAFF") return null;
+    const checked = Array.from(document.querySelectorAll(".create-staff-page-cb:checked"))
+        .map((el) => el.value)
+        .filter((v) => STAFF_PAGE_OPTIONS.some((opt) => opt.page === v));
+    if (!checked.length) {
+        throw new Error("Vui lòng chọn ít nhất 1 chức năng cho tài khoản Nhân viên.");
+    }
+    return JSON.stringify(checked);
+}
+
 async function saveCreate() {
     const fullName = document.getElementById("create-fullname").value.trim();
     const email = document.getElementById("create-email").value.trim();
@@ -385,12 +431,20 @@ async function saveCreate() {
         showToast("Số điện thoại không hợp lệ (10 số bắt đầu bằng 0).", true);
         return;
     }
+    let allowedPagesJson = null;
+    try {
+        allowedPagesJson = collectCreateStaffPagesJson(role);
+    } catch (e) {
+        showToast(e.message || "Dữ liệu chức năng không hợp lệ.", true);
+        return;
+    }
     const body = {
         fullName,
         email: email ? email : null,
         phone: phone ? phone : null,
         password,
-        role: role
+        role: role,
+        allowedPagesJson
     };
     try {
         await apiJson("/admin/users", {
@@ -403,6 +457,8 @@ async function saveCreate() {
         document.getElementById("create-phone").value = "";
         document.getElementById("create-password").value = "";
         document.getElementById("create-role").value = "CUSTOMER";
+        renderCreateStaffPageOptions(STAFF_PAGE_OPTIONS.map((x) => x.page));
+        updateCreateRoleUi();
         showToast("Đã tạo tài khoản.");
         await loadMembers();
     } catch (e) {
@@ -517,8 +573,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("create-phone").value = "";
         document.getElementById("create-password").value = "";
         document.getElementById("create-role").value = "CUSTOMER";
+        renderCreateStaffPageOptions(STAFF_PAGE_OPTIONS.map((x) => x.page));
+        updateCreateRoleUi();
         createModal.show();
     });
+    document.getElementById("create-role")?.addEventListener("change", updateCreateRoleUi);
     document.getElementById("btn-create-save")?.addEventListener("click", saveCreate);
     document.getElementById("btn-edit-save")?.addEventListener("click", saveEdit);
     document.getElementById("btn-reset-save")?.addEventListener("click", saveResetPw);

@@ -3,6 +3,8 @@ package com.restaurant.service;
 import com.restaurant.dto.request.CreateUserRequest;
 import com.restaurant.dto.request.UpdateUserRequest;
 import com.restaurant.dto.response.UserResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restaurant.entity.User;
 import com.restaurant.entity.enums.UserRole;
 import com.restaurant.repository.UserRepository;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +30,14 @@ public class UserManagementService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
+    private static final Set<String> STAFF_ALLOWED_PAGES = Set.of(
+            "datcho.html",
+            "donhang.html",
+            "qltrangthaiban.html",
+            "goinv.html",
+            "qlthanhtoan.html"
+    );
 
     /**
      * Admin tạo tài khoản Staff hoặc Admin khác
@@ -47,6 +58,7 @@ public class UserManagementService {
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword())) // ✅ MÃ HÓA PASSWORD
                 .role(request.getRole())
+                .allowedPagesJson(normalizeAllowedPagesJson(request.getAllowedPagesJson(), request.getRole()))
                 .isActive(true)
                 .build();
 
@@ -84,9 +96,28 @@ public class UserManagementService {
         }
 
         user.setRole(request.getRole());
+        user.setAllowedPagesJson(normalizeAllowedPagesJson(request.getAllowedPagesJson(), request.getRole()));
 
         user = userRepository.save(user);
         return toUserResponse(user);
+    }
+
+    private String normalizeAllowedPagesJson(String raw, UserRole role) {
+        if (role != UserRole.STAFF) return null;
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            List<String> pages = objectMapper.readValue(raw, new TypeReference<List<String>>() {});
+            List<String> sanitized = pages.stream()
+                    .map(x -> x == null ? "" : x.trim())
+                    .filter(x -> !x.isEmpty())
+                    .filter(STAFF_ALLOWED_PAGES::contains)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (sanitized.isEmpty()) return null;
+            return objectMapper.writeValueAsString(sanitized);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Danh sách chức năng không hợp lệ");
+        }
     }
 
     private static String normalizeBlank(String s) {
@@ -183,6 +214,7 @@ public class UserManagementService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .role(user.getRole())
+                .allowedPagesJson(user.getAllowedPagesJson())
                 .isActive(user.getIsActive())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())

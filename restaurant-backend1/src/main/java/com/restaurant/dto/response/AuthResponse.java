@@ -16,4 +16,5 @@ public class AuthResponse {
     /** Số điện thoại (có thể null nếu chưa cập nhật) */
     private String phone;
     private UserRole role;
+    private String allowedPagesJson;
 }

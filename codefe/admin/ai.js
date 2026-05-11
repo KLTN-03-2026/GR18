@@ -5,6 +5,9 @@
     var pinnedOrder = [];
     var menuItemsCache = [];
     var searchDebounce = null;
+    var aiRecentRowsCache = [];
+    var aiRecentPage = 1;
+    var AI_RECENT_PAGE_SIZE = 10;
 
     function getToken() {
         return localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
@@ -242,14 +245,96 @@
 
     async function loadRecent() {
         var rows = await apiGet("/admin/ai/suggestions/recent");
-        var tbody = $("ai-log-tbody");
-        if (!tbody) return;
-        if (!rows || !rows.length) {
-            tbody.innerHTML =
-                '<tr><td colspan="6" class="text-secondary small py-3">Chưa có lượt gợi ý nào được ghi nhận.</td></tr>';
+        aiRecentRowsCache = Array.isArray(rows) ? rows : [];
+        aiRecentPage = 1;
+        renderRecentTable();
+    }
+
+    function getRecentPageSlice() {
+        var total = aiRecentRowsCache.length;
+        var totalPages = Math.max(1, Math.ceil(total / AI_RECENT_PAGE_SIZE));
+        if (aiRecentPage > totalPages) aiRecentPage = totalPages;
+        if (aiRecentPage < 1) aiRecentPage = 1;
+        var start = (aiRecentPage - 1) * AI_RECENT_PAGE_SIZE;
+        var end = Math.min(start + AI_RECENT_PAGE_SIZE, total);
+        return {
+            total: total,
+            totalPages: totalPages,
+            start: start,
+            end: end,
+            rows: aiRecentRowsCache.slice(start, end)
+        };
+    }
+
+    function renderRecentPagination(total, totalPages) {
+        var nav = $("ai-log-pagination-nav");
+        var list = $("ai-log-pagination");
+        var meta = $("ai-log-meta");
+        if (!nav || !list || !meta) return;
+
+        if (!total) {
+            nav.classList.add("d-none");
+            list.innerHTML = "";
+            meta.textContent = "";
             return;
         }
-        tbody.innerHTML = rows
+
+        var startLabel = (aiRecentPage - 1) * AI_RECENT_PAGE_SIZE + 1;
+        var endLabel = Math.min(aiRecentPage * AI_RECENT_PAGE_SIZE, total);
+        meta.textContent = "Hiển thị " + startLabel + "-" + endLabel + " trên " + total + " lượt";
+
+        if (totalPages <= 1) {
+            nav.classList.add("d-none");
+            list.innerHTML = "";
+            return;
+        }
+
+        var maxButtons = 5;
+        var startPage = Math.max(1, aiRecentPage - Math.floor(maxButtons / 2));
+        var endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage + 1 < maxButtons) startPage = Math.max(1, endPage - maxButtons + 1);
+
+        var parts = [];
+        parts.push(renderRecentPaginationItem("Trước", aiRecentPage - 1, aiRecentPage === 1, false));
+        for (var p = startPage; p <= endPage; p++) {
+            parts.push(renderRecentPaginationItem(String(p), p, false, p === aiRecentPage));
+        }
+        parts.push(renderRecentPaginationItem("Sau", aiRecentPage + 1, aiRecentPage === totalPages, false));
+        list.innerHTML = parts.join("");
+        nav.classList.remove("d-none");
+    }
+
+    function renderRecentPaginationItem(label, page, disabled, active) {
+        var classes = ["page-item"];
+        if (disabled) classes.push("disabled");
+        if (active) classes.push("active");
+        var p = Number(page);
+        if (!isFinite(p)) p = 1;
+        return (
+            '<li class="' +
+            classes.join(" ") +
+            '"><button type="button" class="page-link ai-log-page-link" data-page="' +
+            p +
+            '"' +
+            (disabled ? " disabled" : "") +
+            ">" +
+            esc(label) +
+            "</button></li>"
+        );
+    }
+
+    function renderRecentTable() {
+        var tbody = $("ai-log-tbody");
+        if (!tbody) return;
+        if (!aiRecentRowsCache.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="6" class="text-secondary small py-3">Chưa có lượt gợi ý nào được ghi nhận.</td></tr>';
+            renderRecentPagination(0, 0);
+            return;
+        }
+
+        var pageData = getRecentPageSlice();
+        tbody.innerHTML = pageData.rows
             .map(function (row) {
                 var acc = row.acceptedMenuItemId != null ? "#" + row.acceptedMenuItemId : "—";
                 var at = row.acceptedAt ? new Date(row.acceptedAt).toLocaleString("vi-VN") : "—";
@@ -275,6 +360,7 @@
                 );
             })
             .join("");
+        renderRecentPagination(pageData.total, pageData.totalPages);
     }
 
     async function saveConfig() {
@@ -320,6 +406,17 @@
             search.addEventListener("input", function () {
                 if (searchDebounce) clearTimeout(searchDebounce);
                 searchDebounce = setTimeout(renderMenuPicker, 200);
+            });
+        }
+        var pageList = $("ai-log-pagination");
+        if (pageList) {
+            pageList.addEventListener("click", function (e) {
+                var btn = e.target.closest(".ai-log-page-link[data-page]");
+                if (!btn || btn.disabled) return;
+                var next = parseInt(btn.getAttribute("data-page"), 10);
+                if (!isFinite(next) || next < 1 || next === aiRecentPage) return;
+                aiRecentPage = next;
+                renderRecentTable();
             });
         }
         refreshAll();

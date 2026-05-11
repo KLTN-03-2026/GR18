@@ -256,6 +256,17 @@
     padding-top: 0.25rem;
 }
 
+.qr-sticky-search-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 1060;
+    background: #f2f4f8;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding: 0.5rem 0.75rem 0.6rem;
+    box-shadow: 0 6px 12px rgba(20, 24, 32, 0.06);
+}
+
 /* Toast giỏ hàng (menu.css) */
 #cart-toast.cart-toast--qr {
     z-index: 1100;

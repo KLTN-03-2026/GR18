@@ -22,7 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnOrder = document.getElementById("filterOrder");
     const btnBooking = document.getElementById("filterBooking");
     const detailModal = new bootstrap.Modal(document.getElementById("reservationDetailModal"));
+    const paginationNav = document.getElementById("historyPaginationNav");
+    const paginationEl = document.getElementById("historyPagination");
+    const paginationMeta = document.getElementById("historyPaginationMeta");
+    const PAGE_SIZE = 10;
     let currentTab = "all";
+    let currentPage = 1;
+    let cachedBookings = [];
+    let cachedOrders = [];
 
     if (!token) {
         tableBody.innerHTML = `
@@ -185,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="mt-2 text-muted mb-0">Đang tải...</p>
                 </td>
             </tr>`;
+        renderPagination(0);
     }
 
     function showFetchError() {
@@ -194,6 +202,70 @@ document.addEventListener("DOMContentLoaded", () => {
                     Không thể kết nối máy chủ.
                 </td>
             </tr>`;
+        renderPagination(0);
+    }
+
+    function getPageSlice(items) {
+        const list = Array.isArray(items) ? items : [];
+        const total = list.length;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const end = start + PAGE_SIZE;
+        return {
+            pageItems: list.slice(start, end),
+            total,
+            start,
+            end: Math.min(end, total),
+            totalPages,
+        };
+    }
+
+    function renderPagination(totalItems) {
+        if (!paginationEl || !paginationNav || !paginationMeta) return;
+        if (!totalItems) {
+            paginationEl.innerHTML = "";
+            paginationNav.classList.add("d-none");
+            paginationMeta.textContent = "";
+            return;
+        }
+        const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        const start = (currentPage - 1) * PAGE_SIZE + 1;
+        const end = Math.min(currentPage * PAGE_SIZE, totalItems);
+        paginationMeta.textContent = `Hiển thị ${start}-${end} trên ${totalItems}`;
+
+        if (totalPages <= 1) {
+            paginationEl.innerHTML = "";
+            paginationNav.classList.add("d-none");
+            return;
+        }
+
+        const maxButtons = 5;
+        let from = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let to = Math.min(totalPages, from + maxButtons - 1);
+        if (to - from + 1 < maxButtons) from = Math.max(1, to - maxButtons + 1);
+
+        const parts = [];
+        parts.push(renderPaginationItem("Trước", currentPage - 1, currentPage === 1, false));
+        for (let p = from; p <= to; p++) {
+            parts.push(renderPaginationItem(String(p), p, false, p === currentPage));
+        }
+        parts.push(renderPaginationItem("Sau", currentPage + 1, currentPage === totalPages, false));
+
+        paginationEl.innerHTML = parts.join("");
+        paginationNav.classList.remove("d-none");
+    }
+
+    function renderPaginationItem(label, page, disabled, active) {
+        const classes = ["page-item"];
+        if (disabled) classes.push("disabled");
+        if (active) classes.push("active");
+        return `<li class="${classes.join(" ")}">
+            <button class="page-link history-page-link" type="button" data-page="${Number(page)}" ${
+            disabled ? "disabled" : ""
+        }>${escapeHtml(label)}</button>
+        </li>`;
     }
 
     async function fetchBookings() {
@@ -221,10 +293,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <td colspan="5" class="text-center py-5 text-muted">Không có lịch sử đặt bàn.</td>
                 </tr>`;
+            renderPagination(0);
             return;
         }
 
-        tableBody.innerHTML = bookings
+        const { pageItems, total } = getPageSlice(bookings);
+        tableBody.innerHTML = pageItems
             .map((item) => {
                 const date = formatDate(item.reservationTime);
                 const statusKey = String(item.status || "").toUpperCase();
@@ -245,6 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </tr>`;
             })
             .join("");
+        renderPagination(total);
     }
 
     function renderOrderRows(orders) {
@@ -253,10 +328,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <td colspan="5" class="text-center py-5 text-muted">Không có đơn hàng.</td>
                 </tr>`;
+            renderPagination(0);
             return;
         }
 
-        tableBody.innerHTML = orders
+        const { pageItems, total } = getPageSlice(orders);
+        tableBody.innerHTML = pageItems
             .map((o) => {
                 const date = formatDate(o.createdAt);
                 const st = orderStatusLabel(o.status);
@@ -285,6 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </tr>`;
             })
             .join("");
+        renderPagination(total);
     }
 
     function renderMerged(bookings, orders) {
@@ -300,10 +378,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <tr>
                     <td colspan="5" class="text-center py-5 text-muted">Chưa có lịch sử.</td>
                 </tr>`;
+            renderPagination(0);
             return;
         }
 
-        tableBody.innerHTML = rows
+        const { pageItems, total } = getPageSlice(rows);
+        tableBody.innerHTML = pageItems
             .map((r) => {
                 if (r.kind === "booking") {
                     const item = r.booking;
@@ -351,20 +431,35 @@ document.addEventListener("DOMContentLoaded", () => {
                     </tr>`;
             })
             .join("");
+        renderPagination(total);
+    }
+
+    function renderCurrentTabFromCache() {
+        if (currentTab === "booking") {
+            renderBookingRows(cachedBookings);
+            return;
+        }
+        if (currentTab === "order") {
+            renderOrderRows(cachedOrders);
+            return;
+        }
+        renderMerged(cachedBookings, cachedOrders);
     }
 
     async function refresh() {
         showLoading();
         try {
             if (currentTab === "booking") {
-                const bookings = await fetchBookings();
-                renderBookingRows(bookings);
+                cachedBookings = await fetchBookings();
+                renderBookingRows(cachedBookings);
             } else if (currentTab === "order") {
-                const orders = await fetchOrders();
-                renderOrderRows(orders);
+                cachedOrders = await fetchOrders();
+                renderOrderRows(cachedOrders);
             } else {
                 const [bookings, orders] = await Promise.all([fetchBookings(), fetchOrders()]);
-                renderMerged(bookings, orders);
+                cachedBookings = bookings;
+                cachedOrders = orders;
+                renderMerged(cachedBookings, cachedOrders);
             }
         } catch (e) {
             console.error(e);
@@ -517,18 +612,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnAll.addEventListener("click", () => {
         currentTab = "all";
+        currentPage = 1;
         setFilterActive("all");
         refresh();
     });
     btnOrder.addEventListener("click", () => {
         currentTab = "order";
+        currentPage = 1;
         setFilterActive("order");
         refresh();
     });
     btnBooking.addEventListener("click", () => {
         currentTab = "booking";
+        currentPage = 1;
         setFilterActive("booking");
         refresh();
+    });
+
+    paginationEl?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".history-page-link[data-page]");
+        if (!btn || btn.disabled) return;
+        const next = Number(btn.dataset.page);
+        if (!Number.isFinite(next) || next < 1 || next === currentPage) return;
+        currentPage = next;
+        renderCurrentTabFromCache();
     });
 
     setFilterActive("all");

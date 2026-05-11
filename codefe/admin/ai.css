@@ -257,3 +257,26 @@ table.custom-dark-table tbody td.text-secondary {
     border: 1px solid rgba(78, 222, 163, 0.45);
     white-space: nowrap;
 }
+
+.ai-log-pagination .pagination .page-link {
+    background: transparent;
+    border: 1px solid rgba(137, 206, 255, 0.28);
+    color: var(--text-slate);
+    border-radius: 10px;
+    min-width: 34px;
+}
+
+.ai-log-pagination .pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+    background: rgba(137, 206, 255, 0.12);
+    color: var(--primary);
+}
+
+.ai-log-pagination .pagination .page-item.active .page-link {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+}
+
+.ai-log-pagination .pagination .page-item.disabled .page-link {
+    opacity: 0.45;
+}

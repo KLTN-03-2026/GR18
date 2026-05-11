@@ -26,4 +26,7 @@ public class UpdateUserRequest {
 
     @NotNull(message = "Vai trò không được để trống")
     private UserRole role;
+
+    @Size(max = 2000, message = "Danh sách quyền tối đa 2000 ký tự")
+    private String allowedPagesJson;
 }

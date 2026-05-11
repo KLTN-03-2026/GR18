@@ -215,6 +215,22 @@
     border-radius: 8px;
 }
 
+#order-history-pagination .page-link {
+    border-radius: 8px;
+    color: var(--outline);
+    min-width: 34px;
+}
+
+#order-history-pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+    background: var(--surface-container-high);
+    color: var(--primary);
+}
+
+#order-history-pagination .page-item.disabled .page-link {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 /* Bottom Sections */
 .h-250 { height: 250px; }
 

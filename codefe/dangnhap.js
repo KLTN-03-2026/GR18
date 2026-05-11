@@ -216,7 +216,8 @@ function saveUserAndRedirect(userData) {
         fullName: userData.fullName,
         role: userData.role,
         email: userData.email || oldUser.email || "",
-        phone: userData.phone || oldUser.phone || ""
+        phone: userData.phone || oldUser.phone || "",
+        allowedPagesJson: typeof userData.allowedPagesJson === 'string' ? userData.allowedPagesJson : (oldUser.allowedPagesJson || "")
     }));
 
     toastr.success(`Chào mừng ${userData.fullName} quay trở lại!`, 'Thành công');
@@ -228,11 +229,31 @@ function saveUserAndRedirect(userData) {
             return;
         }
         if (userData.role === 'ADMIN' || userData.role === 'STAFF') {
-            window.location.href = 'admin/tongquan.html';
+            if (userData.role === 'STAFF') {
+                const nextStaff = pickStaffLandingPage(userData.allowedPagesJson);
+                window.location.href = 'admin/' + nextStaff;
+            } else {
+                window.location.href = 'admin/tongquan.html';
+            }
         } else {
             window.location.href = 'index/home.html';
         }
     }, 1200);
+}
+
+function pickStaffLandingPage(allowedPagesJson) {
+    const fallback = 'donhang.html';
+    const priority = ['donhang.html', 'qlthanhtoan.html', 'datcho.html', 'qltrangthaiban.html', 'goinv.html'];
+    try {
+        const raw = typeof allowedPagesJson === 'string' ? allowedPagesJson : '';
+        if (!raw.trim()) return fallback;
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr) || !arr.length) return fallback;
+        for (const p of priority) {
+            if (arr.includes(p)) return p;
+        }
+    } catch (e) {}
+    return fallback;
 }
 
 function notify(type, message, title = 'Thông báo') {

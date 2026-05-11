@@ -231,6 +231,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .role(user.getRole())
+                .allowedPagesJson(user.getAllowedPagesJson())
                 .build();
     }
 

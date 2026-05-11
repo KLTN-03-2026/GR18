@@ -35,6 +35,7 @@ let monDangChon = null;
 let _pageSize = 16;
 let _hienTai = 16;
 let _qrCategoryKey = "__all";
+const MENU_SCROLL_STATE_KEY = "menu_scroll_restore_v1";
 const DEMO_MENU = [
     {
         id: 9001,
@@ -287,7 +288,7 @@ window.addEventListener("load", async () => {
     initQrLanding();
     if (typeof syncHeaderCartVisibility === "function") syncHeaderCartVisibility();
     capNhatBadgeGioHang();
-    loadMenu();
+    await loadMenu();
 
     const input = document.getElementById("searchInput");
     const icon = document.querySelector(".search-container .fa-magnifying-glass");
@@ -350,6 +351,8 @@ window.addEventListener("load", async () => {
         if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
         closeQrCategoryDropdown();
     });
+
+    restoreMenuScrollState();
 });
 
 // ============================================================
@@ -817,10 +820,70 @@ function closeQrCategoryDropdown() {
 // ACTION
 // ============================================================
 function xemChiTiet(id) {
+    saveMenuScrollState();
     let q = `id=${encodeURIComponent(id)}&from=menu`;
     const t = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
     if (t) q += `&t=${encodeURIComponent(t)}`;
     window.location.href = `menu-detail.html?${q}`;
+}
+
+function saveMenuScrollState() {
+    try {
+        const state = {
+            path: (window.location.pathname || "").toLowerCase(),
+            scrollY: Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0)),
+            visibleCount: Math.max(_pageSize, Number(_hienTai) || _pageSize),
+            categoryKey: _qrCategoryKey || "__all",
+            savedAt: Date.now()
+        };
+        sessionStorage.setItem(MENU_SCROLL_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn("saveMenuScrollState:", e);
+    }
+}
+
+function restoreMenuScrollState() {
+    let raw = "";
+    try {
+        raw = sessionStorage.getItem(MENU_SCROLL_STATE_KEY) || "";
+    } catch {
+        return;
+    }
+    if (!raw) return;
+
+    let state = null;
+    try {
+        state = JSON.parse(raw);
+    } catch {
+        sessionStorage.removeItem(MENU_SCROLL_STATE_KEY);
+        return;
+    }
+
+    const nowPath = (window.location.pathname || "").toLowerCase();
+    const targetPath = String(state && state.path ? state.path : "");
+    const savedAt = Number(state && state.savedAt ? state.savedAt : 0);
+    const isFresh = Number.isFinite(savedAt) && Date.now() - savedAt <= 30 * 60 * 1000;
+    if (!targetPath || targetPath !== nowPath || !isFresh) {
+        sessionStorage.removeItem(MENU_SCROLL_STATE_KEY);
+        return;
+    }
+
+    const nextCat = String(state.categoryKey || "__all");
+    if (nextCat !== _qrCategoryKey) {
+        _qrCategoryKey = nextCat;
+        renderMenuCategoryTabs(danhSachMon);
+        renderQrCategoryList(danhSachMon);
+    }
+
+    _hienTai = Math.max(_pageSize, Number(state.visibleCount) || _pageSize);
+    renderMenu(getBaseItemsForView(), false);
+
+    const y = Math.max(0, Number(state.scrollY) || 0);
+    requestAnimationFrame(() => {
+        window.scrollTo({ top: y, behavior: "auto" });
+    });
+
+    sessionStorage.removeItem(MENU_SCROLL_STATE_KEY);
 }
 
 function moModalById(id) {

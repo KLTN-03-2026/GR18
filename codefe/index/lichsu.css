@@ -86,3 +86,29 @@ body { font-family: 'Segoe UI', sans-serif; }
 #toast-container > .toast-success {
     background-color: #198754 !important;
 }
+
+.history-pagination-wrap .pagination .page-link {
+    color: #495057;
+    border: 1px solid #dee2e6;
+    border-radius: 999px;
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    min-width: 34px;
+    background: #fff;
+}
+
+.history-pagination-wrap .pagination .page-link:hover {
+    color: var(--orange-main);
+    border-color: #ffb195;
+    background: #fff6f2;
+}
+
+.history-pagination-wrap .pagination .page-item.active .page-link {
+    background: var(--orange-main);
+    border-color: var(--orange-main);
+    color: #fff;
+}
+
+.history-pagination-wrap .pagination .page-item.disabled .page-link {
+    opacity: 0.5;
+}

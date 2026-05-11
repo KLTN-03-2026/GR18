@@ -8,6 +8,8 @@ let orderDetailModalInstance = null;
 /** @type {"ACTIVE" | "HISTORY"} */
 let viewMode = "ACTIVE";
 let ordersPollTimer = null;
+const HISTORY_PAGE_SIZE = 10;
+let historyCurrentPage = 1;
 
 /** Menu cho form tạo đơn gắn bàn (ô tìm + gợi ý; nameNorm / categoryLabel) */
 /** @type {{ id: number; name: string; price: number | null; nameNorm: string; categoryLabel: string }[]} */
@@ -332,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindViewModeButtons();
     bindFilterButtons();
     bindOrderTableRowOpens();
+    bindHistoryPagination();
     initStaffWalkInModal();
 
     // FUNC_ORDER_14/26: Export CSV
@@ -362,8 +365,13 @@ function bindViewModeButtons() {
                 b.classList.toggle("active", (b.dataset.filter || "ALL") === "ALL");
             });
             applyViewModeUi();
-            if (viewMode === "ACTIVE") loadOrders();
-            else loadOrderHistory();
+            if (viewMode === "ACTIVE") {
+                historyCurrentPage = 1;
+                loadOrders();
+            } else {
+                historyCurrentPage = 1;
+                loadOrderHistory();
+            }
         });
     });
 }
@@ -448,6 +456,19 @@ function bindFilterButtons() {
     });
 }
 
+function bindHistoryPagination() {
+    const pagination = document.getElementById("order-history-pagination");
+    if (!pagination) return;
+    pagination.addEventListener("click", (e) => {
+        const btn = e.target.closest("button.order-history-page-link[data-page]");
+        if (!btn || btn.disabled) return;
+        const nextPage = Number(btn.dataset.page);
+        if (!Number.isFinite(nextPage) || nextPage < 1 || nextPage === historyCurrentPage) return;
+        historyCurrentPage = nextPage;
+        renderTable();
+    });
+}
+
 async function api(path, options = {}) {
     const res = await fetch(`${BASE_URL}${path}`, {
         headers: {
@@ -502,6 +523,7 @@ async function loadOrderHistory(opts = {}) {
     try {
         const orders = await api("/staff/orders/paid-recent?limit=120");
         allOrders = Array.isArray(orders) ? orders : [];
+        historyCurrentPage = 1;
         renderStats();
         renderTable();
     } catch (err) {
@@ -541,6 +563,8 @@ function getFilteredOrders() {
 function renderTable() {
     const tbody = document.getElementById("order-table-body");
     const meta = document.getElementById("order-table-meta");
+    const paginationNav = document.getElementById("order-history-pagination-nav");
+    const paginationEl = document.getElementById("order-history-pagination");
     if (!tbody) return;
 
     const rows = getFilteredOrders();
@@ -553,17 +577,75 @@ function renderTable() {
         if (meta)
             meta.textContent =
                 viewMode === "HISTORY" ? "Danh sách trống (tối đa 120 đơn mới nhất)." : "Không có đơn hàng cần xử lý.";
+        if (paginationEl) paginationEl.innerHTML = "";
+        if (paginationNav) paginationNav.classList.add("d-none");
         return;
     }
 
-    tbody.innerHTML = rows.map(renderRow).join("");
+    if (viewMode === "HISTORY") {
+        const totalPages = Math.max(1, Math.ceil(rows.length / HISTORY_PAGE_SIZE));
+        if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+        if (historyCurrentPage < 1) historyCurrentPage = 1;
+        const start = (historyCurrentPage - 1) * HISTORY_PAGE_SIZE;
+        const end = start + HISTORY_PAGE_SIZE;
+        const pageRows = rows.slice(start, end);
+        tbody.innerHTML = pageRows.map(renderRow).join("");
+        renderHistoryPagination(totalPages);
+        if (paginationNav) paginationNav.classList.remove("d-none");
+    } else {
+        tbody.innerHTML = rows.map(renderRow).join("");
+        if (paginationEl) paginationEl.innerHTML = "";
+        if (paginationNav) paginationNav.classList.add("d-none");
+    }
+
     if (meta) {
         if (viewMode === "HISTORY") {
-            meta.textContent = `Hiển thị ${rows.length} đơn đã hoàn thành & đã thanh toán (mới nhất trước)`;
+            const startIndex = (historyCurrentPage - 1) * HISTORY_PAGE_SIZE + 1;
+            const endIndex = Math.min(historyCurrentPage * HISTORY_PAGE_SIZE, rows.length);
+            meta.textContent = `Hiển thị ${startIndex}-${endIndex} trên ${rows.length} đơn đã hoàn thành & đã thanh toán`;
         } else {
             meta.textContent = `Đang hiển thị ${rows.length} trên ${allOrders.length} đơn đang xử lý`;
         }
     }
+}
+
+function renderHistoryPagination(totalPages) {
+    const pagination = document.getElementById("order-history-pagination");
+    if (!pagination) return;
+    if (totalPages <= 1) {
+        pagination.innerHTML = "";
+        return;
+    }
+
+    const maxButtons = 5;
+    let startPage = Math.max(1, historyCurrentPage - Math.floor(maxButtons / 2));
+    let endPage = startPage + maxButtons - 1;
+    if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    const items = [];
+    items.push(renderHistoryPaginationItem("Trước", historyCurrentPage - 1, historyCurrentPage === 1, false));
+    for (let page = startPage; page <= endPage; page++) {
+        items.push(renderHistoryPaginationItem(String(page), page, false, page === historyCurrentPage));
+    }
+    items.push(
+        renderHistoryPaginationItem("Sau", historyCurrentPage + 1, historyCurrentPage === totalPages, false)
+    );
+    pagination.innerHTML = items.join("");
+}
+
+function renderHistoryPaginationItem(label, page, disabled, active) {
+    const liClasses = ["page-item"];
+    if (disabled) liClasses.push("disabled");
+    if (active) liClasses.push("active");
+    const safePage = Number.isFinite(Number(page)) ? Number(page) : 1;
+    return `<li class="${liClasses.join(" ")}">
+        <button class="page-link order-history-page-link" type="button" data-page="${safePage}" ${
+        disabled ? "disabled" : ""
+    }>${escapeHtml(label)}</button>
+    </li>`;
 }
 
 function renderRow(order) {
@@ -609,12 +691,9 @@ function renderGoToCashier(orderId) {
         return '<span class="small text-secondary">Không có thao tác</span>';
     }
     const href = escapeHtml(cashierHref(safeId));
-    const idAttr = String(Math.trunc(safeId));
     return `<div class="d-inline-flex flex-wrap gap-2 justify-content-end align-items-center">
             <span class="small text-secondary d-none d-xl-inline me-1">Chờ thu · chuyển quầy</span>
             <a class="btn btn-outline-secondary btn-sm" href="${href}">Mở Thanh toán</a>
-            <button type="button" class="btn btn-settle btn-pay-cash" data-order-id="${idAttr}" data-pay-method="CASH" title="Thanh toán tiền mặt">Tiền mặt</button>
-            <button type="button" class="btn btn-table-action btn-pay-qr" data-order-id="${idAttr}" data-pay-method="QR_CODE" title="Thanh toán QR / chuyển khoản">QR/CK</button>
         </div>`;
 }
 

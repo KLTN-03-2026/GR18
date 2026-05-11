@@ -2,18 +2,38 @@
 const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
 
 const STAFF_ALLOWED_PAGES = new Set([
-    "tongquan.html",
     "datcho.html",
     "donhang.html",
     "qltrangthaiban.html",
     "goinv.html",
     "qlthanhtoan.html",
 ]);
+const STAFF_DEFAULT_PAGE = "donhang.html";
+
+function getStaffAllowedPagesFromUserInfo() {
+    try {
+        const raw = localStorage.getItem("userInfo");
+        const u = raw ? JSON.parse(raw) : {};
+        const rawJson = typeof u.allowedPagesJson === "string" ? u.allowedPagesJson : "";
+        if (!rawJson.trim()) return null;
+        const arr = JSON.parse(rawJson);
+        if (!Array.isArray(arr)) return null;
+        const pages = arr
+            .map((x) => String(x || "").trim())
+            .filter((x) => STAFF_ALLOWED_PAGES.has(x));
+        return pages.length ? new Set(pages) : new Set();
+    } catch (e) {
+        return null;
+    }
+}
 
 /** `null` = mọi trang (ADMIN). Set rỗng = không trang nào. */
 function getAllowedPagesByRole(role) {
     if (role === "ADMIN") return null;
-    if (role === "STAFF") return STAFF_ALLOWED_PAGES;
+    if (role === "STAFF") {
+        const custom = getStaffAllowedPagesFromUserInfo();
+        return custom === null ? STAFF_ALLOWED_PAGES : custom;
+    }
     return new Set();
 }
 
@@ -71,7 +91,7 @@ function enforcePageAccess() {
 
     // STAFF chỉ được vào các page trong allowlist
     if (!allowed.has(currentPage)) {
-        window.location.href = "tongquan.html";
+        window.location.href = role === "STAFF" ? STAFF_DEFAULT_PAGE : "tongquan.html";
     }
 }
 
