@@ -72,7 +72,7 @@ function unlockChatbotPageScroll() {
     window.addEventListener("pageshow", syncChatViewportLayers);
 })();
 
-const CHATBOT_API_BASE = window.RESTAURANT_API_BASE || "http://localhost:8080/api";
+const CHATBOT_API_BASE = window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api";
 const CHAT_ENDPOINTS = [`${CHATBOT_API_BASE}/chat`, `${CHATBOT_API_BASE}/chatbot`];
 const MENU_FALLBACK_IMAGE =
     "data:image/svg+xml," +

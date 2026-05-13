@@ -1,7 +1,7 @@
 /**
  * Quản lý tài khoản (ADMIN) — CUSTOMER / STAFF / ADMIN
  */
-const QLTK_API = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+const QLTK_API = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
 
 let currentRoleTab = "ALL";
 

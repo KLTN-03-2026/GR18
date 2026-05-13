@@ -85,7 +85,7 @@
         var b =
             typeof window.RESTAURANT_API_BASE === "string" && window.RESTAURANT_API_BASE.trim()
                 ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, "")
-                : "http://127.0.0.1:8080/api";
+                : "https://gr18.onrender.com/api";
         return b;
     }
 

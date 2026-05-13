@@ -1,13 +1,8 @@
 ﻿/* ================================================================
    danhgia.js — Đánh giá: xem công khai, gửi theo đơn đã thanh toán, sửa/xóa của tôi
    ================================================================ */
-function _apiHost() {
-    var h = window.location.hostname;
-    return h === "localhost" || h === "127.0.0.1" ? "localhost" : h;
-}
-
 function dgApiBase() {
-    return (window.RESTAURANT_API_BASE || "http://" + _apiHost() + ":8080/api").replace(/\/+$/, "");
+    return (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
 }
 
 function dgToken() {

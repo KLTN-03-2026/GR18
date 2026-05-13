@@ -2,7 +2,7 @@
  * Quản lý đánh giá (ADMIN): danh sách, lọc, ẩn/hiện, xóa. Không có chức năng sửa nội dung khách.
  */
 (function () {
-    const API = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+    const API = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
     const token = () => localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
 
     let _page = 0;

@@ -7,7 +7,7 @@
 (function () {
     "use strict";
 
-    const BASE_URL = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+    const BASE_URL = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
 
     const INVOICE_PRINT_DEFAULTS = {
         restaurantName: "Restaurant AI",

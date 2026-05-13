@@ -158,7 +158,7 @@
     var _monHienTai = null;
 
     function detailApiBase() {
-        return (window.RESTAURANT_API_BASE || ('http://' + (window.location.hostname || '127.0.0.1') + ':8080/api')).replace(/\/+$/, '');
+        return (window.RESTAURANT_API_BASE || 'https://gr18.onrender.com/api').replace(/\/+$/, '');
     }
 
     function escapeHtmlDetail(s) {

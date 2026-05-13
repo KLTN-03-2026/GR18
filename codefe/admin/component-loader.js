@@ -1,5 +1,5 @@
 /** Cùng quy ước với khu vực khách (`RESTAURANT_API_BASE` trong `menu.js` / `giohang.js`). */
-const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+const API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
 
 const STAFF_ALLOWED_PAGES = new Set([
     "datcho.html",
