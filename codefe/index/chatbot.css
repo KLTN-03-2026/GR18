@@ -264,6 +264,10 @@ html.chatbot-scroll-locked body {
     border-radius: 10px;
     object-fit: cover;
     flex-shrink: 0;
+    /* Khi src lỗi trước khi onerror kịp swap, không cho alt text rò rỉ */
+    color: transparent;
+    font-size: 0;
+    background: #f1f3f5;
 }
 
 .food-meta {

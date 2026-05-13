@@ -22,4 +22,14 @@ public final class MenuCategoryRules {
         }
         return n.equals("drinks") || n.equals("beverages") || n.equals("beverage") || n.equals("cafe");
     }
+
+    /** Danh mục tráng miệng / món ngọt (dùng cho intent dessert của chatbot). */
+    public static boolean isDessertCategory(Category c) {
+        if (c == null || c.getName() == null || c.getName().isBlank()) {
+            return false;
+        }
+        String n = c.getName().trim().toLowerCase(Locale.ROOT);
+        return n.contains("tráng miệng") || n.contains("dessert") || n.contains("ngọt")
+                || n.equals("desserts") || n.equals("sweets") || n.equals("sweet");
+    }
 }

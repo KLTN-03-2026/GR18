@@ -147,6 +147,10 @@
                                 <p class="order-detail-label mb-1">Đặt lúc</p>
                                 <p class="order-detail-value mb-0 small" id="detail-created">—</p>
                             </div>
+                            <div class="col-sm-6 col-md-4">
+                                <p class="order-detail-label mb-1">Cập nhật đơn</p>
+                                <p class="order-detail-value mb-0 small" id="detail-updated">—</p>
+                            </div>
                             <div class="col-12">
                                 <p class="order-detail-label mb-1">Ghi chú đơn</p>
                                 <p class="order-detail-value mb-0 small" id="detail-note">Không có</p>
@@ -159,6 +163,7 @@
                                 <thead>
                                     <tr>
                                         <th class="ps-3">Tên món</th>
+                                        <th class="text-center" style="min-width: 7rem">Phân loại</th>
                                         <th class="text-center">SL</th>
                                         <th class="text-end">Đơn giá</th>
                                         <th class="text-end pe-3">Thành tiền</th>
@@ -167,8 +172,14 @@
                                 <tbody id="order-detail-lines-body"></tbody>
                             </table>
                         </div>
-                        <div class="d-flex justify-content-end mt-3">
-                            <p class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                            <div id="order-detail-add-items-wrap" class="d-none">
+                                <button type="button" class="btn btn-outline-light btn-sm rounded-3" id="order-detail-add-items-btn">
+                                    <span class="material-symbols-outlined align-middle fs-6 me-1">add_shopping_cart</span>
+                                    Thêm món
+                                </button>
+                            </div>
+                            <p class="mb-0 ms-auto">
                                 <span class="text-secondary me-2">Tổng cộng</span>
                                 <span class="fs-5 fw-bold text-primary" id="detail-total">0 VND</span>
                             </p>
@@ -229,6 +240,85 @@
                 <div class="modal-footer border-secondary border-opacity-10">
                     <button type="button" class="btn btn-light btn-sm rounded-3 px-4" data-bs-dismiss="modal">Huỷ</button>
                     <button type="button" class="btn btn-settle btn-sm rounded-3 px-4" id="staff-order-submit">Gửi đơn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thêm món vào đơn hiện tại -->
+    <div class="modal fade" id="staff-add-items-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content order-detail-modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-secondary border-opacity-10">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="staff-add-items-title">Thêm món vào đơn</h5>
+                        <p class="text-secondary small mb-0 mt-1" id="staff-add-items-sub"></p>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="staff-add-items-paid-alert" class="alert alert-warning d-none mb-0" role="alert"></div>
+                    <div id="staff-add-items-main">
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-4">
+                                <p class="order-detail-label mb-1">Bàn</p>
+                                <p class="order-detail-value mb-0" id="staff-add-items-table">—</p>
+                            </div>
+                            <div class="col-sm-4">
+                                <p class="order-detail-label mb-1">Mã đơn</p>
+                                <p class="order-detail-value mb-0" id="staff-add-items-order-id">—</p>
+                            </div>
+                            <div class="col-sm-4">
+                                <p class="order-detail-label mb-1">Tổng tiền hiện tại</p>
+                                <p class="order-detail-value mb-0 fw-bold text-primary" id="staff-add-items-current-total">—</p>
+                            </div>
+                        </div>
+                        <h6 class="fw-bold mb-2">Món hiện có</h6>
+                        <div class="table-responsive rounded-3 border border-secondary border-opacity-10 mb-4 staff-add-items-scroll-box">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-3">Tên món</th>
+                                        <th class="text-center" style="min-width: 6.5rem">Phân loại</th>
+                                        <th class="text-center">SL</th>
+                                        <th class="text-end pe-3">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-add-items-current-lines"></tbody>
+                            </table>
+                        </div>
+                        <div class="row g-2 mb-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary mb-1" for="staff-add-items-search">Tìm món</label>
+                                <input type="search" class="form-control form-control-sm rounded-3" id="staff-add-items-search" placeholder="Tên món…" autocomplete="off" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary mb-1" for="staff-add-items-category">Danh mục</label>
+                                <select class="form-select form-select-sm rounded-3" id="staff-add-items-category"></select>
+                            </div>
+                        </div>
+                        <h6 class="fw-bold mb-2">Chọn món từ thực đơn</h6>
+                        <div id="staff-add-items-menu-grid" class="staff-add-items-menu-grid"></div>
+                        <h6 class="fw-bold mt-4 mb-2">Món sẽ thêm</h6>
+                        <p id="staff-add-items-cart-empty" class="text-secondary small mb-2">Chưa chọn món.</p>
+                        <div class="table-responsive rounded-3 border border-secondary border-opacity-10 d-none" id="staff-add-items-cart-wrap">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-3">Món</th>
+                                        <th class="text-center" style="width: 9rem">Số lượng</th>
+                                        <th>Ghi chú món</th>
+                                        <th class="text-end pe-2" style="width: 3rem"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-add-items-cart-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-10">
+                    <button type="button" class="btn btn-light btn-sm rounded-3 px-3" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-settle btn-sm rounded-3 px-4" id="staff-add-items-confirm" disabled>Xác nhận thêm món</button>
                 </div>
             </div>
         </div>

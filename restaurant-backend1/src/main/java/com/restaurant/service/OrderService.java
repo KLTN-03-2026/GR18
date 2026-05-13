@@ -15,6 +15,7 @@ import com.restaurant.entity.enums.PaymentMethod;
 import com.restaurant.entity.enums.PaymentStatus;
 import com.restaurant.entity.enums.TableStatus;
 import com.restaurant.dto.request.OrderRequest;
+import com.restaurant.dto.request.StaffAppendOrderItemsRequest;
 import com.restaurant.dto.request.StaffPlaceOrderRequest;
 import com.restaurant.entity.Reservation;
 import com.restaurant.repository.*;
@@ -274,6 +275,86 @@ public class OrderService {
         return buildStaffOrderDetailResponse(order);
     }
 
+    /**
+     * Nhân viên thêm món vào đơn đang tồn tại (không tạo đơn mới).
+     * Chỉ gửi realtime cho bếp các dòng mới (topic items-appended).
+     */
+    public StaffOrderDetailResponse appendItemsToStaffOrder(Long orderId, StaffAppendOrderItemsRequest request) {
+        List<OrderRequest.OrderItemRequest> itemRequests = request.getItems();
+        if (itemRequests == null || itemRequests.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách món không được rỗng");
+        }
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        assertOrderAllowsStaffAppend(order);
+
+        LocalDateTime addedMark = LocalDateTime.now();
+        List<OrderItem> newLines = new ArrayList<>();
+        BigDecimal delta = BigDecimal.ZERO;
+
+        for (OrderRequest.OrderItemRequest itemReq : itemRequests) {
+            MenuItem menuItem = menuItemRepository.findById(itemReq.getMenuItemId())
+                    .orElseThrow(() -> new IllegalArgumentException("Món ăn không tồn tại: " + itemReq.getMenuItemId()));
+            if (!Boolean.TRUE.equals(menuItem.getIsAvailable())) {
+                throw new IllegalArgumentException("Món '" + menuItem.getName() + "' hiện không có sẵn");
+            }
+            BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()));
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .menuItem(menuItem)
+                    .quantity(itemReq.getQuantity())
+                    .unitPrice(menuItem.getPrice())
+                    .subtotal(subtotal)
+                    .note(itemReq.getNote())
+                    .status(OrderItemStatus.PENDING)
+                    .addedToOrderAt(addedMark)
+                    .build();
+            order.getOrderItems().add(orderItem);
+            newLines.add(orderItem);
+            delta = delta.add(subtotal);
+        }
+
+        order.setTotalAmount(order.getTotalAmount().add(delta));
+        orderRepository.save(order);
+        orderRepository.flush();
+
+        List<Long> newIds = newLines.stream().map(OrderItem::getId).filter(id -> id != null).toList();
+
+        java.util.Map<String, Object> kitchenPayload = new java.util.HashMap<>();
+        kitchenPayload.put("type", "ORDER_ITEMS_APPENDED");
+        kitchenPayload.put("orderId", orderId);
+        kitchenPayload.put("itemIds", newIds);
+        kitchenPayload.put("count", newIds.size());
+        kitchenPayload.put(
+                "tableNumber",
+                order.getTable() != null && order.getTable().getTableNumber() != null
+                        ? order.getTable().getTableNumber()
+                        : "");
+        messagingTemplate.convertAndSend("/topic/orders/" + orderId + "/items-appended", kitchenPayload);
+
+        Order reloaded = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        return buildStaffOrderDetailResponse(reloaded);
+    }
+
+    private void assertOrderAllowsStaffAppend(Order order) {
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new IllegalStateException("Đơn hàng đã thanh toán");
+        }
+        if (order.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            throw new IllegalStateException("Đơn hàng đã hoàn tiền");
+        }
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Đơn hàng đã hủy");
+        }
+        if (order.getStatus() == OrderStatus.PENDING) {
+            throw new IllegalStateException("Đơn mới chưa chuyển bếp — không thêm món tại bước này");
+        }
+        if (order.getStatus() == OrderStatus.COMPLETED && order.getPaymentStatus() != PaymentStatus.UNPAID) {
+            throw new IllegalStateException("Không thể thêm món vào đơn này");
+        }
+    }
+
     @Transactional(readOnly = true)
     public StaffOrderDetailResponse getCustomerOrderDetail(Long orderId, Long userId) {
         Order order = orderRepository.findDetailById(orderId)
@@ -306,11 +387,13 @@ public class OrderService {
             for (OrderItem oi : order.getOrderItems()) {
                 String name = oi.getMenuItem() != null ? oi.getMenuItem().getName() : "Món";
                 lines.add(StaffOrderDetailResponse.LineItem.builder()
+                        .id(oi.getId())
                         .itemName(name)
                         .quantity(oi.getQuantity())
                         .unitPrice(oi.getUnitPrice())
                         .subtotal(oi.getSubtotal())
                         .note(oi.getNote())
+                        .addedToOrderAt(oi.getAddedToOrderAt())
                         .build());
             }
         }
@@ -325,6 +408,7 @@ public class OrderService {
                 .paymentMethod(order.getPaymentMethod())
                 .paidAt(order.getPaidAt())
                 .createdAt(order.getCreatedAt())
+                .updatedAt(order.getUpdatedAt())
                 .note(order.getNote())
                 .items(lines)
                 .build();

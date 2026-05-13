@@ -287,8 +287,11 @@ function appendFoodList(items, suggestionLogId) {
         const price = item.formattedPrice || formatVND(item.price || item.gia || 0);
         const image = item.imageUrl || item.image || MENU_FALLBACK_IMAGE;
 
+        // alt rỗng + aria-hidden để không hiển thị "tên món" 2 lần khi ảnh lỗi
+        // (tên đầy đủ đã có trong .food-name kế bên cho người dùng & screen reader).
         div.innerHTML = `
-            <img src="${image}" alt="${name}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${MENU_FALLBACK_IMAGE}';}">
+            <img src="${image}" alt="" aria-hidden="true" loading="lazy"
+                 onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${MENU_FALLBACK_IMAGE}';}">
             <div class="food-meta">
                 <div class="food-name">${name}</div>
                 <div class="food-price">${escapeHtml(price)}</div>

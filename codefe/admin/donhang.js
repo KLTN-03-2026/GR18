@@ -336,6 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindOrderTableRowOpens();
     bindHistoryPagination();
     initStaffWalkInModal();
+    initStaffAddItemsModal();
 
     // FUNC_ORDER_14/26: Export CSV
     const exportBtn = document.querySelector('button[title="Xu\u1ea5t file (s\u1eafp t\u1edbi)"]') ||
@@ -425,6 +426,14 @@ function bindOrderTableRowOpens() {
             if (Number.isFinite(id)) openOrderDetail(id);
             return;
         }
+        const addOpen = e.target.closest("button.staff-add-items-open");
+        if (addOpen && addOpen.dataset.orderId != null && addOpen.dataset.orderId !== "") {
+            e.stopPropagation();
+            const id = Number(addOpen.dataset.orderId);
+            if (Number.isFinite(id)) openStaffAddItemsModal(id);
+            return;
+        }
+        if (e.target.closest("a")) return;
         if (e.target.closest("button")) return;
         const tr = e.target.closest("tr[data-order-id]");
         if (!tr) return;
@@ -551,6 +560,15 @@ function renderStats() {
 
 function needsStaffPayment(order) {
     return order.paymentStatus === "UNPAID" && (order.status === "SERVING" || order.status === "COMPLETED");
+}
+
+/** Thêm món vào đơn: đang chuẩn bị / đang phục vụ / chờ thu (COMPLETED+UNPAID); không cho đơn mới (PENDING) hoặc đã thanh toán. */
+function canStaffAppendItems(order) {
+    if (viewMode === "HISTORY" || !order) return false;
+    if (order.paymentStatus === "PAID" || order.paymentStatus === "REFUNDED") return false;
+    if (order.status === "CANCELLED" || order.status === "PENDING") return false;
+    if (order.status === "PREPARING" || order.status === "SERVING") return true;
+    return order.status === "COMPLETED" && order.paymentStatus === "UNPAID";
 }
 
 function getFilteredOrders() {
@@ -740,17 +758,32 @@ async function payOrder(orderId, method) {
 }
 
 function renderActionButtons(order) {
+    const addBtn = canStaffAppendItems(order)
+        ? `<button type="button" class="btn btn-outline-light btn-sm rounded-3 staff-add-items-open" data-order-id="${order.id}" onclick="event.stopPropagation();openStaffAddItemsModal(${order.id})" title="Thêm món vào đơn">
+                <span class="material-symbols-outlined align-middle fs-6 me-1">add_shopping_cart</span>Thêm món
+            </button>`
+        : "";
+
     if (viewMode === "HISTORY") {
         return `<button type="button" class="btn btn-link btn-sm p-0 order-history-detail text-primary text-decoration-underline fw-semibold" data-order-id="${order.id}" title="Xem chi tiết đơn">Chi tiết</button>`;
     }
     if (order.status === "PENDING") {
-        return `<button class="btn btn-settle" onclick="updateOrderStatus(${order.id}, 'PREPARING')">Xác nhận & chuyển bếp</button>`;
+        return `<button type="button" class="btn btn-settle" onclick="event.stopPropagation();updateOrderStatus(${order.id}, 'PREPARING')">Xác nhận & chuyển bếp</button>`;
     }
     if (order.status === "PREPARING") {
-        return `<button class="btn btn-table-action" onclick="updateOrderStatus(${order.id}, 'SERVING')">Đánh dấu phục vụ</button>`;
+        return `<div class="d-inline-flex flex-wrap gap-1 justify-content-end">${addBtn}<button type="button" class="btn btn-table-action" onclick="event.stopPropagation();updateOrderStatus(${order.id}, 'SERVING')">Đánh dấu phục vụ</button></div>`;
+    }
+    if (order.status === "SERVING") {
+        if (addBtn) {
+            return `<div class="d-inline-flex flex-wrap gap-1 justify-content-end">${addBtn}</div>`;
+        }
+        return `<span class="small text-secondary">Không có thao tác</span>`;
     }
     if (needsStaffPayment(order)) {
-        return renderGoToCashier(order.id);
+        return `<div class="d-inline-flex flex-wrap gap-1 justify-content-end align-items-center">${addBtn}${renderGoToCashier(order.id)}</div>`;
+    }
+    if (addBtn) {
+        return `<div class="d-inline-flex flex-wrap gap-1 justify-content-end">${addBtn}</div>`;
     }
     return `<span class="small text-secondary">Không có thao tác</span>`;
 }
@@ -927,7 +960,7 @@ function fillOrderDetailError(orderId, msg) {
     const linesBody = document.getElementById("order-detail-lines-body");
     if (linesBody) {
         linesBody.innerHTML =
-            `<tr><td colspan="4" class="ps-3 py-3 text-secondary">${escapeHtml(
+            `<tr><td colspan="5" class="ps-3 py-3 text-secondary">${escapeHtml(
                 typeof msg === "string" ? msg : ""
             )}</td></tr>`;
     }
@@ -945,6 +978,9 @@ function resetOrderDetailFields() {
     const payEl = document.getElementById("detail-payment");
     if (payEl) payEl.textContent = "—";
     setTextEl("detail-created", "—");
+    setTextEl("detail-updated", "—");
+    const addWrap = document.getElementById("order-detail-add-items-wrap");
+    if (addWrap) addWrap.classList.add("d-none");
     const totalEl = document.getElementById("detail-total");
     if (totalEl) totalEl.textContent = "—";
 }
@@ -1021,6 +1057,21 @@ function translatePayment(status, method, paidAt) {
     return out;
 }
 
+function lineIsAddedLater(line) {
+    return line && line.addedToOrderAt != null && String(line.addedToOrderAt).trim() !== "";
+}
+
+function orderDetailLineKindCell(line) {
+    if (!lineIsAddedLater(line)) {
+        return '<span class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary-emphasis border border-secondary border-opacity-25 small">Ban đầu</span>';
+    }
+    const when = formatDateTime(line.addedToOrderAt);
+    const title = when && when !== "—" ? "Thêm lúc: " + when : "Món gọi thêm";
+    return `<span class="badge rounded-pill bg-info bg-opacity-25 text-info border border-info border-opacity-35 small" title="${escapeHtml(
+        title
+    )}">Món thêm</span>`;
+}
+
 function fillOrderDetailModal(d, fallbackOrderId) {
     if (!d || typeof d !== "object") {
         fillOrderDetailError(fallbackOrderId, "Dữ liệu không hợp lệ.");
@@ -1045,16 +1096,11 @@ function fillOrderDetailModal(d, fallbackOrderId) {
     }
 
     const payEl = document.getElementById("detail-payment");
-    const summaryPay = { status: d.status, paymentStatus: d.paymentStatus };
-    let payHtml = translatePayment(d.paymentStatus, d.paymentMethod, d.paidAt);
-    if (needsStaffPayment(summaryPay) && d.id != null) {
-        payHtml += `<div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
-            <a class="btn btn-outline-secondary btn-sm rounded-3" href="${escapeHtml(cashierHref(d.id))}">Xử lý thanh toán tại màn Thu ngân</a>
-        </div>`;
-    }
+    const payHtml = translatePayment(d.paymentStatus, d.paymentMethod, d.paidAt);
     if (payEl) payEl.innerHTML = payHtml;
 
     setTextEl("detail-created", formatDateTime(d.createdAt));
+    setTextEl("detail-updated", formatDateTime(d.updatedAt));
 
     const noteTxt = (d.note && String(d.note).trim()) || "Không có";
     setHtmlEl("detail-note", escapeHtml(noteTxt));
@@ -1062,12 +1108,24 @@ function fillOrderDetailModal(d, fallbackOrderId) {
     const totalEl = document.getElementById("detail-total");
     if (totalEl) totalEl.textContent = formatCurrency(d.totalAmount);
 
+    const addWrap = document.getElementById("order-detail-add-items-wrap");
+    const addBtn = document.getElementById("order-detail-add-items-btn");
+    if (addWrap && addBtn) {
+        if (canStaffAppendItems(d)) {
+            addWrap.classList.remove("d-none");
+            addBtn.dataset.orderId = String(d.id);
+        } else {
+            addWrap.classList.add("d-none");
+            delete addBtn.dataset.orderId;
+        }
+    }
+
     const linesBody = document.getElementById("order-detail-lines-body");
     const items = Array.isArray(d.items) ? d.items : [];
     if (linesBody) {
         if (!items.length) {
             linesBody.innerHTML =
-                `<tr><td colspan="4" class="text-center py-4 text-secondary">Không có dòng món.</td></tr>`;
+                `<tr><td colspan="5" class="text-center py-4 text-secondary">Không có dòng món.</td></tr>`;
         } else {
             linesBody.innerHTML = items
                 .map((line) => {
@@ -1075,11 +1133,13 @@ function fillOrderDetailModal(d, fallbackOrderId) {
                     const qty = Number(line.quantity) || 0;
                     const unit = formatCurrency(line.unitPrice);
                     const sub = formatCurrency(line.subtotal);
+                    const kind = orderDetailLineKindCell(line);
                     const n = line.note && String(line.note).trim()
                         ? `<div class="line-note mt-1"><span class="material-symbols-outlined align-middle text-secondary me-1" style="font-size:0.95rem;line-height:1;vertical-align:-2px;">edit_note</span>${escapeHtml(line.note)}</div>`
                         : "";
                     return `<tr>
               <td class="ps-3">${name}${n}</td>
+              <td class="text-center align-middle">${kind}</td>
               <td class="text-center">${qty}</td>
               <td class="text-end">${unit}</td>
               <td class="text-end pe-3">${sub}</td>
@@ -1100,6 +1160,332 @@ function setHtmlEl(id, htmlTrustedLiteralsFromEscape) {
     if (!el) return;
     el.innerHTML = htmlTrustedLiteralsFromEscape;
 }
+
+/* ——— Thêm món vào đơn hiện có ——— */
+let staffAddItemsBootstrapModal = null;
+let staffAddItemsOrderId = null;
+/** @type {{ menuItemId: number, name: string, price: number | null, imageUrl: string, quantity: number, note: string }[]} */
+let staffAddItemsCart = [];
+
+function getStaffAddItemsModal() {
+    const el = document.getElementById("staff-add-items-modal");
+    if (!el || typeof bootstrap === "undefined" || !bootstrap.Modal) return null;
+    if (!staffAddItemsBootstrapModal) {
+        staffAddItemsBootstrapModal =
+            typeof bootstrap.Modal.getOrCreateInstance === "function"
+                ? bootstrap.Modal.getOrCreateInstance(el)
+                : new bootstrap.Modal(el);
+    }
+    return staffAddItemsBootstrapModal;
+}
+
+function resetStaffAddItemsCart() {
+    staffAddItemsCart = [];
+}
+
+function staffAddItemsCartKey(menuItemId, note) {
+    return String(menuItemId) + "\u0000" + String(note || "").trim();
+}
+
+function staffAddItemsFindCartLine(menuItemId, note) {
+    const k = staffAddItemsCartKey(menuItemId, note);
+    return staffAddItemsCart.findIndex((l) => staffAddItemsCartKey(l.menuItemId, l.note) === k);
+}
+
+function syncStaffAddItemsConfirmEnabled() {
+    const btn = document.getElementById("staff-add-items-confirm");
+    if (btn) btn.disabled = staffAddItemsCart.length === 0;
+}
+
+function populateStaffAddItemsCategorySelect() {
+    const sel = document.getElementById("staff-add-items-category");
+    if (!sel) return;
+    const cats = getStaffWalkInSortedCategories();
+    sel.innerHTML =
+        `<option value="">${escapeHtml("Tất cả danh mục")}</option>` +
+        cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+}
+
+function getStaffAddItemsFilteredMenu() {
+    const q = normalizeStaffMenuQuery(document.getElementById("staff-add-items-search")?.value || "");
+    const cat = String(document.getElementById("staff-add-items-category")?.value || "").trim();
+    let list = staffWalkInMenuItems.slice();
+    if (cat) list = list.filter((m) => (m.categoryLabel || "Khác") === cat);
+    if (q) list = list.filter((m) => m.nameNorm.includes(q));
+    return list;
+}
+
+function renderStaffAddItemsMenuGrid() {
+    const root = document.getElementById("staff-add-items-menu-grid");
+    if (!root) return;
+    if (!staffWalkInMenuItems.length) {
+        root.innerHTML = `<p class="text-secondary small mb-0">Chưa tải được thực đơn. Đóng modal và thử mở lại, hoặc mở &quot;Tạo đơn gắn bàn&quot; một lần để nạp menu.</p>`;
+        return;
+    }
+    const list = getStaffAddItemsFilteredMenu();
+    if (!list.length) {
+        root.innerHTML = `<p class="text-secondary small mb-0">Không có món phù hợp bộ lọc.</p>`;
+        return;
+    }
+    root.innerHTML = list
+        .map((m) => {
+            const price =
+                m.price != null && Number.isFinite(Number(m.price))
+                    ? Number(m.price).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "\u202fđ"
+                    : "—";
+            const img =
+                m.imageUrl && String(m.imageUrl).trim().length
+                    ? `<img class="staff-add-item-card-img" src="${escapeHtml(m.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling && (this.nextElementSibling.style.display='flex');" />`
+                    : "";
+            const ph = `<div class="staff-add-item-card-img staff-add-item-card-img-ph"${m.imageUrl ? ` style="display:none"` : ""}><span class="material-symbols-outlined">restaurant</span></div>`;
+            return `<div class="staff-add-item-card">
+                <div class="staff-add-item-card-media">${img}${ph}</div>
+                <div class="staff-add-item-card-body">
+                    <p class="staff-add-item-card-name mb-1">${escapeHtml(m.name)}</p>
+                    <p class="staff-add-item-card-price mb-2">${escapeHtml(price)}</p>
+                    <button type="button" class="btn btn-sm btn-primary rounded-3 w-100 staff-add-item-pick" data-menu-id="${m.id}">Thêm</button>
+                </div>
+            </div>`;
+        })
+        .join("");
+}
+
+function renderStaffAddItemsCart() {
+    const empty = document.getElementById("staff-add-items-cart-empty");
+    const wrap = document.getElementById("staff-add-items-cart-wrap");
+    const body = document.getElementById("staff-add-items-cart-body");
+    if (!empty || !wrap || !body) return;
+    if (!staffAddItemsCart.length) {
+        empty.classList.remove("d-none");
+        wrap.classList.add("d-none");
+        body.innerHTML = "";
+        syncStaffAddItemsConfirmEnabled();
+        return;
+    }
+    empty.classList.add("d-none");
+    wrap.classList.remove("d-none");
+    body.innerHTML = staffAddItemsCart
+        .map((line, idx) => {
+            const price =
+                line.price != null && Number.isFinite(Number(line.price))
+                    ? Number(line.price).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "\u202fđ"
+                    : "—";
+            return `<tr data-cart-idx="${idx}">
+                <td class="ps-3 align-middle">
+                    <div class="fw-semibold">${escapeHtml(line.name)}</div>
+                    <div class="small text-secondary">${escapeHtml(price)}/suất</div>
+                </td>
+                <td class="align-middle text-center">
+                    <div class="d-inline-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2 staff-add-cart-dec" data-idx="${idx}" title="Giảm">−</button>
+                        <input type="number" min="1" max="999" class="form-control form-control-sm text-center staff-add-cart-qty" style="width:3.5rem" data-idx="${idx}" value="${line.quantity}" />
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2 staff-add-cart-inc" data-idx="${idx}" title="Tăng">+</button>
+                    </div>
+                </td>
+                <td class="align-middle">
+                    <input type="text" class="form-control form-control-sm rounded-3 staff-add-cart-note" data-idx="${idx}" maxlength="500" placeholder="Ghi chú (tuỳ chọn)" value="${escapeHtml(line.note)}" />
+                </td>
+                <td class="text-end align-middle pe-2">
+                    <button type="button" class="btn btn-link btn-sm text-danger p-0 staff-add-cart-remove" data-idx="${idx}" title="Xóa">✕</button>
+                </td>
+            </tr>`;
+        })
+        .join("");
+    syncStaffAddItemsConfirmEnabled();
+}
+
+function staffAddItemsPickByMenuId(menuItemId) {
+    const m = staffWalkInMenuItems.find((x) => String(x.id) === String(menuItemId));
+    if (!m) return;
+    const ix = staffAddItemsFindCartLine(m.id, "");
+    if (ix >= 0) {
+        staffAddItemsCart[ix].quantity += 1;
+    } else {
+        staffAddItemsCart.push({
+            menuItemId: m.id,
+            name: m.name,
+            price: m.price,
+            imageUrl: m.imageUrl || "",
+            quantity: 1,
+            note: ""
+        });
+    }
+    renderStaffAddItemsCart();
+}
+
+function populateStaffAddItemsCurrentLines(d) {
+    const tbody = document.getElementById("staff-add-items-current-lines");
+    if (!tbody) return;
+    const items = Array.isArray(d.items) ? d.items : [];
+    if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-secondary">Chưa có món.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = items
+        .map((line) => {
+            const name = escapeHtml(line.itemName || "Món");
+            const qty = Number(line.quantity) || 0;
+            const sub = formatCurrency(line.subtotal);
+            const kind = orderDetailLineKindCell(line);
+            return `<tr><td class="ps-3">${name}</td><td class="text-center">${kind}</td><td class="text-center">${qty}</td><td class="text-end pe-3">${sub}</td></tr>`;
+        })
+        .join("");
+}
+
+async function openStaffAddItemsModal(orderId) {
+    const id = Number(orderId);
+    if (!Number.isFinite(id)) return;
+    const modal = getStaffAddItemsModal();
+    if (!modal) return;
+
+    staffAddItemsOrderId = id;
+    resetStaffAddItemsCart();
+    renderStaffAddItemsCart();
+
+    const paidAlert = document.getElementById("staff-add-items-paid-alert");
+    const main = document.getElementById("staff-add-items-main");
+    if (paidAlert) {
+        paidAlert.classList.add("d-none");
+        paidAlert.textContent = "";
+    }
+    if (main) main.classList.remove("d-none");
+
+    if (document.getElementById("staff-add-items-search")) document.getElementById("staff-add-items-search").value = "";
+    populateStaffAddItemsCategorySelect();
+
+    try {
+        if (!staffWalkInMenuItems.length) {
+            await ensureStaffWalkInChoices();
+        }
+        const d = await fetchOrderDetail(id);
+        if (d.paymentStatus === "PAID" || d.paymentStatus === "REFUNDED") {
+            if (main) main.classList.add("d-none");
+            if (paidAlert) {
+                paidAlert.textContent = "Đơn hàng đã thanh toán — không thể thêm món.";
+                paidAlert.classList.remove("d-none");
+            }
+            syncStaffAddItemsConfirmEnabled();
+            modal.show();
+            return;
+        }
+        if (!canStaffAppendItems(d)) {
+            showAlert("Không thể thêm món vào đơn ở trạng thái hiện tại.", "error");
+            return;
+        }
+        const titleEl = document.getElementById("staff-add-items-title");
+        const subEl = document.getElementById("staff-add-items-sub");
+        if (titleEl) titleEl.textContent = `Thêm món · Đơn #${d.id}`;
+        const tbl = d.tableNumber || (d.tableId != null ? `Bàn ${d.tableId}` : "—");
+        if (subEl) subEl.textContent = `${tbl} · ${orderStatusLabel(d)}`;
+        setTextEl("staff-add-items-table", tbl);
+        setTextEl("staff-add-items-order-id", `#${d.id}`);
+        const tot = document.getElementById("staff-add-items-current-total");
+        if (tot) tot.textContent = formatCurrency(d.totalAmount);
+        populateStaffAddItemsCurrentLines(d);
+        renderStaffAddItemsMenuGrid();
+        modal.show();
+    } catch (e) {
+        showAlert(e.message || "Không tải được đơn.", "error");
+    }
+}
+
+async function submitStaffAddItems() {
+    if (!staffAddItemsOrderId || !staffAddItemsCart.length) return;
+    const btn = document.getElementById("staff-add-items-confirm");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Đang gửi…";
+    }
+    try {
+        const items = staffAddItemsCart.map((l) => ({
+            menuItemId: l.menuItemId,
+            quantity: Math.max(1, Math.min(999, Number(l.quantity) || 1)),
+            note: (l.note && String(l.note).trim()) || null
+        }));
+        await apiPost(`/staff/orders/${staffAddItemsOrderId}/items`, { items });
+        showAlert("Đã thêm món vào đơn.", "success");
+        getStaffAddItemsModal()?.hide();
+        await reloadCurrentOrderLists();
+    } catch (e) {
+        showAlert(e.message || "Không thêm được món.", "error");
+    } finally {
+        if (btn) {
+            btn.textContent = "Xác nhận thêm món";
+            syncStaffAddItemsConfirmEnabled();
+        }
+    }
+}
+
+function initStaffAddItemsModal() {
+    if (document.body.dataset.staffAddItemsInit === "1") return;
+    document.body.dataset.staffAddItemsInit = "1";
+    const grid = document.getElementById("staff-add-items-menu-grid");
+    if (!grid) return;
+    grid.addEventListener("click", (e) => {
+        const b = e.target.closest("button.staff-add-item-pick");
+        if (!b || b.dataset.menuId == null) return;
+        staffAddItemsPickByMenuId(Number(b.dataset.menuId));
+    });
+
+    const search = document.getElementById("staff-add-items-search");
+    if (search) {
+        search.addEventListener("input", () => renderStaffAddItemsMenuGrid());
+    }
+    const cat = document.getElementById("staff-add-items-category");
+    if (cat) {
+        cat.addEventListener("change", () => renderStaffAddItemsMenuGrid());
+    }
+
+    const cartWrap = document.getElementById("staff-add-items-cart-wrap");
+    if (cartWrap) {
+        cartWrap.addEventListener("click", (e) => {
+            const rm = e.target.closest("button.staff-add-cart-remove");
+            if (rm && rm.dataset.idx != null) {
+                const i = Number(rm.dataset.idx);
+                if (Number.isFinite(i)) staffAddItemsCart.splice(i, 1);
+                renderStaffAddItemsCart();
+                return;
+            }
+            const dec = e.target.closest("button.staff-add-cart-dec");
+            const inc = e.target.closest("button.staff-add-cart-inc");
+            const btn = dec || inc;
+            if (!btn || btn.dataset.idx == null) return;
+            const i = Number(btn.dataset.idx);
+            if (!Number.isFinite(i) || !staffAddItemsCart[i]) return;
+            if (dec) staffAddItemsCart[i].quantity = Math.max(1, (Number(staffAddItemsCart[i].quantity) || 1) - 1);
+            else staffAddItemsCart[i].quantity = Math.min(999, (Number(staffAddItemsCart[i].quantity) || 1) + 1);
+            renderStaffAddItemsCart();
+        });
+        cartWrap.addEventListener("change", (e) => {
+            const inp = e.target.closest("input.staff-add-cart-qty");
+            if (!inp || inp.dataset.idx == null) return;
+            const i = Number(inp.dataset.idx);
+            if (!Number.isFinite(i) || !staffAddItemsCart[i]) return;
+            let v = Number.parseInt(String(inp.value), 10);
+            if (!Number.isFinite(v) || v < 1) v = 1;
+            if (v > 999) v = 999;
+            staffAddItemsCart[i].quantity = v;
+            renderStaffAddItemsCart();
+        });
+        cartWrap.addEventListener("input", (e) => {
+            const n = e.target.closest("input.staff-add-cart-note");
+            if (!n || n.dataset.idx == null) return;
+            const i = Number(n.dataset.idx);
+            if (!Number.isFinite(i) || !staffAddItemsCart[i]) return;
+            staffAddItemsCart[i].note = String(n.value || "");
+        });
+    }
+
+    document.getElementById("staff-add-items-confirm")?.addEventListener("click", submitStaffAddItems);
+
+    document.getElementById("order-detail-add-items-btn")?.addEventListener("click", (e) => {
+        const raw = e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.orderId : "";
+        const id = Number(raw);
+        if (Number.isFinite(id)) openStaffAddItemsModal(id);
+    });
+}
+
+window.openStaffAddItemsModal = openStaffAddItemsModal;
 
 /* ——— Nhân viên tạo đơn gắn bàn ——— */
 let staffWalkInBootstrapModal = null;
@@ -1268,12 +1654,14 @@ async function ensureStaffWalkInChoices() {
             var idNum = Number(m.id);
             var name = String(m.name != null ? m.name : "").trim();
             var catRaw = String(m.categoryName != null ? m.categoryName : "").trim();
+            var img = m.imageUrl != null && String(m.imageUrl).trim().length ? String(m.imageUrl).trim() : "";
             return {
                 id: idNum,
                 name: name,
                 price: m.price != null && !Number.isNaN(Number(m.price)) ? Number(m.price) : null,
                 categoryLabel: catRaw.length ? catRaw : "Khác",
-                nameNorm: normalizeStaffMenuQuery(name)
+                nameNorm: normalizeStaffMenuQuery(name),
+                imageUrl: img
             };
         })
         .filter(function (x) {

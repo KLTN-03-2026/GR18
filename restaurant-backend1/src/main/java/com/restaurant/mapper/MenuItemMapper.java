@@ -13,9 +13,12 @@ import java.util.Locale;
 @Mapper(componentModel = "spring")
 public interface MenuItemMapper {
 
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "price", expression = "java(mapPrice(menuItem.getPrice()))")
     @Mapping(target = "formattedPrice", expression = "java(formatPrice(menuItem.getPrice()))")
     @Mapping(target = "image", source = "imageUrl")
+    @Mapping(target = "categoryName",
+            expression = "java(menuItem.getCategory() != null ? menuItem.getCategory().getName() : null)")
     MenuItemResponse toResponse(MenuItem menuItem);
 
     List<MenuItemResponse> toResponseList(List<MenuItem> items);

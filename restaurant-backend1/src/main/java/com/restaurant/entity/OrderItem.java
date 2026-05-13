@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "order_items")
@@ -43,4 +44,8 @@ public class OrderItem extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private OrderItemStatus status = OrderItemStatus.PENDING;
+
+    /** Khác null nếu món được nhân viên thêm sau khi đơn đã tồn tại (gọi thêm). */
+    @Column(name = "added_to_order_at")
+    private LocalDateTime addedToOrderAt;
 }

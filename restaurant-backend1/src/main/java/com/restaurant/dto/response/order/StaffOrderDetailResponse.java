@@ -30,6 +30,8 @@ public class StaffOrderDetailResponse {
     private LocalDateTime paidAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime updatedAt;
     private String note;
     private List<LineItem> items;
 
@@ -38,10 +40,13 @@ public class StaffOrderDetailResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LineItem {
+        private Long id;
         private String itemName;
         private Integer quantity;
         private BigDecimal unitPrice;
         private BigDecimal subtotal;
         private String note;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private LocalDateTime addedToOrderAt;
     }
 }

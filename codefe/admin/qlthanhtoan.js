@@ -59,11 +59,72 @@ function focusUnpaidOrderCardOnce() {
     });
 }
 
+/** Click / Enter / Space vào phần thân thẻ đơn chưa thu → mở xem hóa đơn (không gồm hàng nút). */
+function onUnpaidInvoiceCardMainClick(e) {
+    const zone = e.target.closest(".invoice-card-open-print");
+    if (!zone) return;
+    if (e.target.closest("button, a, input, label, select, textarea")) return;
+    const id = zone.closest(".invoice-card")?.dataset.orderId;
+    if (id && typeof window.openInvoicePrint === "function") {
+        window.openInvoicePrint(Number(id));
+    }
+}
+
+function onUnpaidInvoiceCardMainKeydown(e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const zone = e.target.closest(".invoice-card-open-print");
+    if (!zone || !e.currentTarget.contains(zone)) return;
+    e.preventDefault();
+    const id = zone.closest(".invoice-card")?.dataset.orderId;
+    if (id && typeof window.openInvoicePrint === "function") {
+        window.openInvoicePrint(Number(id));
+    }
+}
+
+/** Lịch sử đã thu: click / Enter / Space trên dòng → xem hóa đơn. */
+function onHistoryInvoiceRowClick(e) {
+    const row = e.target.closest(".history-item-open-print");
+    if (!row) return;
+    if (e.target.closest("button, a, input, label, select, textarea")) return;
+    const id = row.dataset.orderId;
+    if (id && typeof window.openInvoicePrint === "function") {
+        window.openInvoicePrint(Number(id));
+    }
+}
+
+function onHistoryInvoiceRowKeydown(e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest(".history-item-open-print");
+    if (!row || !e.currentTarget.contains(row)) return;
+    e.preventDefault();
+    const id = row.dataset.orderId;
+    if (id && typeof window.openInvoicePrint === "function") {
+        window.openInvoicePrint(Number(id));
+    }
+}
+
+function attachInvoiceViewDelegates() {
+    const unpaidRoot = document.getElementById("unpaid-invoices-list");
+    if (unpaidRoot && !unpaidRoot.dataset.invoiceViewBound) {
+        unpaidRoot.dataset.invoiceViewBound = "1";
+        unpaidRoot.addEventListener("click", onUnpaidInvoiceCardMainClick);
+        unpaidRoot.addEventListener("keydown", onUnpaidInvoiceCardMainKeydown);
+    }
+    const historyRoot = document.getElementById("payment-history-list");
+    if (historyRoot && !historyRoot.dataset.invoiceViewBound) {
+        historyRoot.dataset.invoiceViewBound = "1";
+        historyRoot.addEventListener("click", onHistoryInvoiceRowClick);
+        historyRoot.addEventListener("keydown", onHistoryInvoiceRowKeydown);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     if (!getPaymentToken()) {
         window.location.href = "../dangnhap.html?next=admin/qlthanhtoan.html";
         return;
     }
+
+    attachInvoiceViewDelegates();
 
     document.querySelectorAll(".payment-filter").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -167,6 +228,7 @@ function renderUnpaidCard(order) {
 
     return `
         <div class="invoice-card p-4 rounded-4 mb-4 border border-outline-variant/10 shadow-sm" data-order-id="${order.id}">
+            <div class="invoice-card-open-print" role="button" tabindex="0" title="Xem hóa đơn">
             <div class="d-flex flex-column flex-md-row align-items-center gap-4">
                 <div class="table-badge-wrapper">
                     <span class="badge bg-tertiary-container text-on-tertiary px-3 py-2 rounded-3 fw-bold">${escapeHtml(tableLabel)}</span>
@@ -181,9 +243,14 @@ function renderUnpaidCard(order) {
                     <div class="d-flex align-items-center gap-2 justify-content-md-end mt-1">${suggest}</div>
                 </div>
             </div>
-            <div class="mt-4 pt-4 border-top border-outline-variant/10 d-flex flex-wrap gap-2">
+            </div>
+            <div class="mt-4 pt-4 border-top border-outline-variant/10 d-flex flex-wrap gap-2 align-items-stretch">
                 <button type="button" class="btn btn-primary flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-2" onclick="openPaymentConfirm(${order.id})">
                     <span class="material-symbols-outlined fs-5">check_circle</span> Xác nhận thanh toán
+                </button>
+                <button type="button" class="btn btn-surface-high rounded-pill px-3 d-inline-flex align-items-center justify-content-center gap-2" onclick="openInvoicePrint(${order.id})" title="In hóa đơn">
+                    <span class="material-symbols-outlined fs-5">print</span>
+                    <span class="d-none d-sm-inline">In hóa đơn</span>
                 </button>
                 <button type="button" class="btn btn-surface-high rounded-pill px-3" onclick="showPaymentDetail(${order.id})" title="Chi tiết">
                     <span class="material-symbols-outlined fs-5">receipt_long</span>
@@ -249,7 +316,7 @@ function renderHistoryItem(order) {
     const icon = order.paymentMethod === "QR_CODE" ? "qr_code" : "payments";
 
     return `
-        <div class="history-item d-flex align-items-center justify-content-between p-3 rounded-4 mb-3">
+        <div class="history-item history-item-open-print d-flex align-items-center justify-content-between p-3 rounded-4 mb-3" data-order-id="${order.id}" role="button" tabindex="0" title="Xem hóa đơn">
             <div class="d-flex align-items-center gap-3">
                 <div class="icon-box bg-secondary-soft text-secondary">
                     <span class="material-symbols-outlined">${icon}</span>
@@ -478,3 +545,6 @@ function escapeHtml(s) {
 
 window.openPaymentConfirm = openPaymentConfirm;
 window.showPaymentDetail = showPaymentDetail;
+/** Cho invoice-print.js: tóm tắt đơn trên danh sách chưa thu (không cần chờ API chi tiết để hiện hóa đơn). */
+window.getUnpaidOrderSummaryForPrint = (id) =>
+    unpaidOrders.find((o) => Number(o.id) === Number(id)) || null;

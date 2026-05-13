@@ -1,6 +1,7 @@
 package com.restaurant.controller;
 
 import com.restaurant.dto.request.OrderRequest;
+import com.restaurant.dto.request.StaffAppendOrderItemsRequest;
 import com.restaurant.dto.request.StaffPlaceOrderRequest;
 import com.restaurant.dto.response.ApiResponse;
 import com.restaurant.dto.response.order.GuestOrderResponse;
@@ -124,6 +125,16 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.success(orderService.getPaidOrderSummariesPage(page, size)));
+    }
+
+    @PostMapping("/staff/orders/{orderId}/items")
+    @Operation(summary = "Nhân viên: Thêm món vào đơn hiện tại", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<StaffOrderDetailResponse>> appendItemsToOrder(
+            @PathVariable Long orderId,
+            @Valid @RequestBody StaffAppendOrderItemsRequest request) {
+        StaffOrderDetailResponse detail = orderService.appendItemsToStaffOrder(orderId, request);
+        return ResponseEntity.ok(ApiResponse.success(detail, "Đã thêm món vào đơn."));
     }
 
     @GetMapping("/staff/orders/{orderId}")

@@ -9,8 +9,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MenuItemResponse {
+    Long id;
     String name;
     Double price;
     String formattedPrice;
     String image;
+    String categoryName;
 }

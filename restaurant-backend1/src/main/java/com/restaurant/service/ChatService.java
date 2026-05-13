@@ -50,18 +50,18 @@ public class ChatService {
         }
 
         if (!msg.contains("đặt bàn")) {
-            Optional<ChatResponse> tastyCategory = chatMenuAssistant.tryAnswerTastyCategoryPicks(safeSessionId, user,
-                    rawMessage, msg);
-            if (tastyCategory.isPresent()) {
-                BookingSessionManager.clear(safeSessionId);
-                return tastyCategory.get();
-            }
-
             Optional<ChatResponse> nl = chatMenuAssistant.tryAnswerMenuQuestion(safeSessionId, user,
                     rawMessage, msg);
             if (nl.isPresent()) {
                 BookingSessionManager.clear(safeSessionId);
                 return nl.get();
+            }
+
+            // Khớp tên danh mục (vd. "sushi", "lẩu") khi không match intent đặc thù
+            Optional<ChatResponse> cat = chatMenuAssistant.matchCategory(safeSessionId, user, msg);
+            if (cat.isPresent()) {
+                BookingSessionManager.clear(safeSessionId);
+                return cat.get();
             }
         }
 
