@@ -3,7 +3,7 @@
  */
 
 const BASE_URL = String(
-    (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "http://127.0.0.1:8080/api"
+    (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "https://gr18.onrender.com/api"
 ).replace(/\/+$/, "");
 
 document.addEventListener("DOMContentLoaded", () => {

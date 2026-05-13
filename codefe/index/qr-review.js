@@ -6,7 +6,7 @@
     var _qrRevModal;
 
     function apiBase() {
-        return (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+        return (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
     }
 
     function qrTok() {

@@ -1,4 +1,6 @@
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = (typeof window !== "undefined" && window.RESTAURANT_API_BASE)
+    ? String(window.RESTAURANT_API_BASE).replace(/\/+$/, "")
+    : "https://gr18.onrender.com/api";
 const token = localStorage.getItem("accessToken");
 
 let allOrders = [];

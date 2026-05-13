@@ -1,5 +1,5 @@
 (function () {
-    const API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+    const API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
     let pendingCalls = [];
     let resolvedCalls = [];
     let currentFilter = "all";

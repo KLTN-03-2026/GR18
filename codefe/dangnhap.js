@@ -19,7 +19,7 @@ async function handleGoogleLogin(response) {
     toastr.info("Đang xác thực tài khoản Google...", "Thông báo");
 
     try {
-        const res = await axios.post('http://localhost:8080/api/auth/google', {
+        const res = await axios.post('https://gr18.onrender.com/api/auth/google', {
             token: idToken
         });
 
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                const response = await axios.post('http://localhost:8080/api/auth/login', payload);
+                const response = await axios.post('https://gr18.onrender.com/api/auth/login', payload);
 
                 if (response.data.success) {
                     saveUserAndRedirect(response.data.data);
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const oldText = sendOtpBtn.innerHTML;
             sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang gửi...';
             try {
-                const res = await axios.post('http://localhost:8080/api/auth/forgot-password', { email });
+                const res = await axios.post('https://gr18.onrender.com/api/auth/forgot-password', { email });
                 notify('success', res.data?.message || 'Nếu email tồn tại, OTP đã được gửi');
                 startOtpCooldown(sendOtpBtn, 60);
             } catch (error) {
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetPasswordBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang cập nhật...';
             }
             try {
-                const res = await axios.post('http://localhost:8080/api/auth/reset-password', {
+                const res = await axios.post('https://gr18.onrender.com/api/auth/reset-password', {
                     email,
                     otpCode,
                     newPassword

@@ -2,19 +2,16 @@
 (function () {
     var host = window.location.hostname || "";
     var isLocalHost = host === "localhost" || host === "127.0.0.1";
-    // Cùng máy chạy Live Server + Spring: dùng đúng host trang (vd 127.0.0.1:5501 → API 127.0.0.1:8080).
-    // Điện thoại quét QR mở http://IP-LAN:5500/... → API phải là http://IP-LAN:8080/api (cùng IP máy chạy BE).
-    // Nếu từng lưu restaurant_api_base = http://127.0.0.1/... trên PC rồi mở trang từ IP LAN, bỏ qua để tránh gọi nhầm loopback.
-    var defaultApi = isLocalHost
-        ? ("http://" + host + ":8080/api")
-        : (window.location.protocol + "//" + host + ":8080/api");
+    // Production (Vercel) -> Render backend; localhost dev -> backend cùng máy.
+    var PROD_API = "https://gr18.onrender.com/api";
+    var defaultApi = isLocalHost ? ("http://" + host + ":8080/api") : PROD_API;
     var API = defaultApi;
     try {
         var rawStored = localStorage.getItem("restaurant_api_base");
         if (rawStored && String(rawStored).trim()) {
             var u = new URL(String(rawStored).trim());
             if (!isLocalHost && (u.hostname === "127.0.0.1" || u.hostname === "localhost")) {
-                // giữ defaultApi
+                // Trang chạy ngoài LAN nhưng cache còn lưu loopback → bỏ qua, ép sang prod.
             } else {
                 API = String(rawStored).trim().replace(/\/+$/, "");
             }
@@ -24,7 +21,7 @@
         if (s && String(s).trim()) API = String(s).trim().replace(/\/+$/, "");
     }
 
-    if (!host) API = "http://127.0.0.1:8080/api";
+    if (!host) API = PROD_API;
 
     window.RESTAURANT_API_BASE = API;
 

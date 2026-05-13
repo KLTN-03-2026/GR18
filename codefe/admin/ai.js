@@ -1,5 +1,5 @@
 (function () {
-    var API_BASE = (window.RESTAURANT_API_BASE || "http://localhost:8080/api").replace(/\/+$/, "");
+    var API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
 
     /** Thứ tự id món ưu tiên (giữ thứ tự chọn). */
     var pinnedOrder = [];

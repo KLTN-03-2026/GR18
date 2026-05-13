@@ -1,11 +1,14 @@
 // ============================================================
 // CONFIG (qr-session.js đặt RESTAURANT_API_BASE trước khi load file này)
 // ============================================================
-let API_BASE = window.RESTAURANT_API_BASE || "http://127.0.0.1:8080/api";
-/** Cùng host với trang (LAN / điện thoại) ưu tiên sau RESTAURANT_API_BASE. */
+const PROD_API_BASE = "https://gr18.onrender.com/api";
+let API_BASE = window.RESTAURANT_API_BASE || PROD_API_BASE;
+/** Cùng host với trang (LAN dev): chỉ áp dụng khi trang chạy trên LAN, không phải production. */
 function sameHostApiBases() {
     const h = typeof window !== "undefined" && window.location && window.location.hostname;
     if (!h || h === "localhost" || h === "127.0.0.1") return [];
+    // Production (Vercel/HTTPS) thì không thử LAN candidate — tránh vẽ mixed content.
+    if (window.location.protocol === "https:") return [];
     return [(window.location.protocol + "//" + h + ":8080/api").replace(/\/+$/, "")];
 }
 function getApiBaseCandidates() {
@@ -13,7 +16,7 @@ function getApiBaseCandidates() {
     const set = new Set();
     if (fromSession) set.add(fromSession);
     sameHostApiBases().forEach(function (b) { set.add(b); });
-    [API_BASE, "http://127.0.0.1:8080/api", "http://localhost:8080/api"]
+    [API_BASE, PROD_API_BASE]
         .filter(Boolean)
         .forEach(function (b) { set.add(b.replace(/\/+$/, "")); });
     return [...set];
@@ -194,7 +197,7 @@ function qrCallStaffFromMenu(customNote) {
         hienToast(err.message, "warning");
         return Promise.reject(err);
     }
-    const base = (window.RESTAURANT_API_BASE || API_BASE || "http://127.0.0.1:8080/api").replace(/\/$/, "");
+    const base = (window.RESTAURANT_API_BASE || API_BASE || PROD_API_BASE).replace(/\/$/, "");
     const defaultNote = "Khách bấm gọi nhân viên từ trang menu QR";
     const note =
         typeof customNote === "string" && customNote.trim().length > 0 ? customNote.trim() : defaultNote;
@@ -513,9 +516,8 @@ async function fetchMenuWithFallback(path) {
     if (/Failed to fetch|NetworkError|Load failed|không đọc được JSON/i.test(m)) {
         throw new Error(
             m +
-                " — Backend: http://" +
-                (window.location.hostname || "127.0.0.1") +
-                ":8080/api (cùng Wi‑Fi, mở firewall cổng 8080 nếu cần)."
+                " — Backend: " + PROD_API_BASE +
+                " (kiểm tra kết nối Internet hoặc trạng thái dịch vụ trên Render)."
         );
     }
     throw lastErr;
