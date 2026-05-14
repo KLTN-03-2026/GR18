@@ -1,27 +1,28 @@
 
 (function () {
+    // config.js đã set window.API_BASE theo hostname (local vs production).
+    // qr-session.js chỉ cho phép override bằng localStorage["restaurant_api_base"] khi cần dev.
     var host = window.location.hostname || "";
     var isLocalHost = host === "localhost" || host === "127.0.0.1";
-    // Production (Vercel) -> Render backend; localhost dev -> backend cùng máy.
-    var PROD_API = "https://gr18.onrender.com/api";
-    var defaultApi = isLocalHost ? ("http://" + host + ":8080/api") : PROD_API;
-    var API = defaultApi;
+    var API = (window.API_BASE || "").replace(/\/+$/, "");
     try {
         var rawStored = localStorage.getItem("restaurant_api_base");
         if (rawStored && String(rawStored).trim()) {
             var u = new URL(String(rawStored).trim());
             if (!isLocalHost && (u.hostname === "127.0.0.1" || u.hostname === "localhost")) {
-                // Trang chạy ngoài LAN nhưng cache còn lưu loopback → bỏ qua, ép sang prod.
+                // Trang chạy ngoài LAN nhưng cache còn lưu loopback → bỏ qua override.
             } else {
                 API = String(rawStored).trim().replace(/\/+$/, "");
+                window.API_BASE = API;
             }
         }
     } catch (e1) {
         var s = localStorage.getItem("restaurant_api_base");
-        if (s && String(s).trim()) API = String(s).trim().replace(/\/+$/, "");
+        if (s && String(s).trim()) {
+            API = String(s).trim().replace(/\/+$/, "");
+            window.API_BASE = API;
+        }
     }
-
-    if (!host) API = PROD_API;
 
     window.RESTAURANT_API_BASE = API;
 

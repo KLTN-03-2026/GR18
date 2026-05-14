@@ -45,11 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const PHONE_VN = /^0[35789][0-9]{8}$/;
 
     function getApiBase() {
-        const b =
-            typeof window.RESTAURANT_API_BASE === 'string' && window.RESTAURANT_API_BASE.trim()
-                ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, '')
-                : 'https://gr18.onrender.com/api';
-        return b;
+        return typeof window.API_BASE === 'string'
+            ? window.API_BASE.trim().replace(/\/+$/, '')
+            : '';
     }
 
     /** Đã có phiên đăng nhập: không cho mở form đăng ký thêm tài khoản. */

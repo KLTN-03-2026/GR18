@@ -1,5 +1,5 @@
 (function () {
-    const API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
 
     function getToken() {
         return localStorage.getItem("accessToken") || localStorage.getItem("token") || "";

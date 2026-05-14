@@ -72,7 +72,7 @@ function unlockChatbotPageScroll() {
     window.addEventListener("pageshow", syncChatViewportLayers);
 })();
 
-const CHATBOT_API_BASE = window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api";
+const CHATBOT_API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
 const CHAT_ENDPOINTS = [`${CHATBOT_API_BASE}/chat`, `${CHATBOT_API_BASE}/chatbot`];
 const MENU_FALLBACK_IMAGE =
     "data:image/svg+xml," +
@@ -266,8 +266,7 @@ function appendFoodList(items, suggestionLogId) {
         div.className = "food-card";
         div.onclick = () => {
             if (suggestionLogId && item.id) {
-                const base = CHATBOT_API_BASE.replace(/\/+$/, "");
-                fetch(`${base}/chat/suggestion-feedback`, {
+                fetch(`${CHATBOT_API_BASE}/chat/suggestion-feedback`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

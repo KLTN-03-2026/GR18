@@ -1,4 +1,4 @@
-const RESTAURANT_ROOT = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+const RESTAURANT_ROOT = (window.API_BASE || "").replace(/\/+$/, "");
 const MENU_ADMIN_BASE = `${RESTAURANT_ROOT}/admin`;
 const MENU_IMAGE_FALLBACK =
     "data:image/svg+xml," +

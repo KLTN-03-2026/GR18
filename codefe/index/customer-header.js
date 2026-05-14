@@ -82,11 +82,9 @@
     }
 
     function getApiBase() {
-        var b =
-            typeof window.RESTAURANT_API_BASE === "string" && window.RESTAURANT_API_BASE.trim()
-                ? window.RESTAURANT_API_BASE.trim().replace(/\/+$/, "")
-                : "https://gr18.onrender.com/api";
-        return b;
+        return typeof window.API_BASE === "string"
+            ? window.API_BASE.trim().replace(/\/+$/, "")
+            : "";
     }
 
     function persistUserPhone(phone) {

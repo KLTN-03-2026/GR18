@@ -2,7 +2,7 @@
    danhgia.js — Đánh giá: xem công khai, gửi theo đơn đã thanh toán, sửa/xóa của tôi
    ================================================================ */
 function dgApiBase() {
-    return (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+    return (window.API_BASE || "").replace(/\/+$/, "");
 }
 
 function dgToken() {

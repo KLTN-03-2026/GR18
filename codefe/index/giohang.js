@@ -3,7 +3,7 @@
  * Cần mã QR hợp lệ trong session (mở menu với ?t=...).
  */
 (function () {
-    var API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+    var API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     var DEMO_ORDERS_KEY = "guestDemoOrders";
     var LAST_GUEST_NAME_KEY = "guestLastName";
     var isSubmittingOrder = false;

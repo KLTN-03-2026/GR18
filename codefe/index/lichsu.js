@@ -3,7 +3,7 @@
  */
 
 const BASE_URL = String(
-    (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "https://gr18.onrender.com/api"
+    (typeof window !== "undefined" && window.API_BASE) || ""
 ).replace(/\/+$/, "");
 
 document.addEventListener("DOMContentLoaded", () => {
