@@ -5,6 +5,7 @@ import com.restaurant.ai.GeminiMenuSuggestionService;
 import com.restaurant.chat.intent.ChatIntent;
 import com.restaurant.chat.intent.IntentFilters;
 import com.restaurant.chat.intent.IntentMatcher;
+import com.restaurant.chat.intent.PriceFilter;
 import com.restaurant.dto.response.ChatResponse;
 import com.restaurant.dto.response.menu_items.MenuItemResponse;
 import com.restaurant.entity.AiSystemConfig;
@@ -44,8 +45,8 @@ public class ChatMenuAssistant {
     private static final int DEFAULT_SUGGESTION_LIMIT = 5;
     /** Khi liệt kê theo chủ đề (sushi / hải sản) cho phép hiện rộng hơn. */
     private static final int LISTING_LIMIT = 12;
-    /** Mức trần giá mặc định cho intent BUDGET nếu khách không nói rõ. */
-    private static final int DEFAULT_BUDGET_CAP_VND = 120_000;
+    /** Thông điệp khi đã lọc theo điều kiện giá nhưng không còn món nào. */
+    private static final String NO_MATCH_MESSAGE = "Hiện không có món phù hợp yêu cầu của bạn.";
 
     private final MenuItemRepository menuItemRepository;
     private final CategoryRepository categoryRepository;
@@ -162,7 +163,7 @@ public class ChatMenuAssistant {
             case VEGETARIAN       -> handleVegetarian(sessionId, user);
             case MOST_EXPENSIVE   -> handleMostExpensive(sessionId, user);
             case CHEAPEST         -> handleCheapest(sessionId, user, msg);
-            case BUDGET           -> handleBudget(sessionId, user, msg);
+            case BUDGET           -> handleBudget(sessionId, user, raw, msg);
             case TOP_SELLING      -> handleTopSelling(sessionId, user);
             case TOP_RATED        -> handleTopRated(sessionId, user);
             case LOW_RATED        -> handleLowRated(sessionId, user);
@@ -281,24 +282,32 @@ public class ChatMenuAssistant {
     }
 
     /**
-     * Intent BUDGET — "món dưới 80k / túi tiền sinh viên".
-     *
-     * <p>Quy tắc:
+     * Intent BUDGET — câu hỏi theo giá:
      * <ul>
-     *   <li>Lọc tất cả món trong cap giá.</li>
-     *   <li>Khách <b>explicit</b> đồ uống → trả đồ uống trong cap.</li>
-     *   <li>Còn lại (mặc định) → ưu tiên FOOD trước. Beverage chỉ được điền nếu food chưa đủ
-     *       (qua {@link IntentFilters#foodFirstThenBeverages}).</li>
-     *   <li>Có diversify theo category để khách thấy nhiều lựa chọn khác nhau.</li>
+     *   <li>"món dưới 50k" / "&lt;50"  → max-only</li>
+     *   <li>"món trên 100k" / "&gt;100" → min-only</li>
+     *   <li>"từ 50k đến 100k"         → range</li>
+     *   <li>"rẻ" / "tiết kiệm" / "ngân sách" không kèm số → không cap; chỉ sắp xếp giá tăng dần</li>
      * </ul>
+     *
+     * <p>Trình tự xử lý:
+     * <ol>
+     *   <li>Parse {@link PriceFilter} <b>trước</b>.</li>
+     *   <li>Lọc menu theo khoảng giá ngay trong code (không phụ thuộc AI).</li>
+     *   <li>Mới gửi danh sách đã lọc sang Gemini rerank (nếu có).</li>
+     *   <li>Pool sau lọc rỗng ⇒ trả thông điệp "Hiện không có món phù hợp yêu cầu của bạn."</li>
+     * </ol>
      */
-    private ChatResponse handleBudget(String sessionId, User user, String msg) {
-        int cap = IntentMatcher.extractPriceCapVnd(msg).orElse(DEFAULT_BUDGET_CAP_VND);
+    private ChatResponse handleBudget(String sessionId, User user, String raw, String msg) {
+        PriceFilter filter = IntentMatcher.extractPriceFilter(msg);
+
         List<MenuItem> all = loadActivePool();
-        List<MenuItem> within = IntentFilters.filterByMaxPrice(all, cap);
+        List<MenuItem> within = filter.isEmpty()
+                ? new ArrayList<>(all)
+                : IntentFilters.filterByPriceRange(all, filter.minVnd(), filter.maxVnd());
+
         if (within.isEmpty()) {
-            return softFallback(sessionId, user,
-                    "Chưa thấy món nào phù hợp mức giá đó. Anh/chị thử mức khác hoặc xem trang Menu nhé.");
+            return replyPersist(sessionId, user, NO_MATCH_MESSAGE);
         }
 
         boolean wantsBeverage = IntentMatcher.isBeverageIntent(msg)
@@ -306,33 +315,61 @@ public class ChatMenuAssistant {
         within = IntentFilters.sortPriceAsc(within);
 
         List<MenuItem> picks;
-        String suffix;
         if (wantsBeverage) {
             List<MenuItem> bev = IntentFilters.onlyBeverages(within);
             picks = IntentFilters.diversifyByCategory(bev, DEFAULT_SUGGESTION_LIMIT, 3);
-            suffix = "đồ uống ~" + (cap / 1000) + "k trở xuống 🥤";
         } else if (IntentMatcher.shouldExcludeBeverages(ChatIntent.BUDGET, msg)) {
-            // Food-first: thử food-only trước; nếu thiếu mới điền beverage
             List<MenuItem> food = IntentFilters.excludeBeverages(within);
             List<MenuItem> foodDiversified = IntentFilters.diversifyByCategory(
                     food, DEFAULT_SUGGESTION_LIMIT, 2);
             if (foodDiversified.size() >= DEFAULT_SUGGESTION_LIMIT) {
                 picks = foodDiversified;
             } else {
-                // Không đủ món ăn — điền thêm đồ uống cuối
                 picks = IntentFilters.foodFirstThenBeverages(within, DEFAULT_SUGGESTION_LIMIT);
             }
-            suffix = "món ăn ~" + (cap / 1000) + "k trở xuống 👌";
         } else {
             picks = IntentFilters.diversifyByCategory(within, DEFAULT_SUGGESTION_LIMIT, 2);
-            suffix = "vài món có giá hợp lý (~" + (cap / 1000) + "k trở xuống) 👌";
         }
 
         if (picks.isEmpty()) {
-            return softFallback(sessionId, user,
-                    "Chưa thấy món nào phù hợp mức giá đó. Anh/chị thử mức khác nhé.");
+            return replyPersist(sessionId, user, NO_MATCH_MESSAGE);
         }
-        return buildRule(sessionId, user, "Đây là " + suffix, picks);
+
+        // Gửi danh sách đã lọc sang Gemini để rerank (nếu bật & có key).
+        AiSuggestionSource source = AiSuggestionSource.RULE_ENGINE;
+        AiSystemConfig cfg = aiMenuRecommendationService.loadConfig();
+        if (Boolean.TRUE.equals(cfg.getGeminiEnabled())
+                && StringUtils.hasText(geminiApiKey) && !picks.isEmpty()) {
+            int to = cfg.getGeminiTimeoutMs() != null ? cfg.getGeminiTimeoutMs() : 2800;
+            List<Long> geminiIds = geminiMenuSuggestionService.suggestOrderedIds(raw, picks, to);
+            if (!geminiIds.isEmpty()) {
+                picks = mergeByGeminiOrder(picks, geminiIds);
+                source = AiSuggestionSource.HYBRID;
+            }
+        }
+
+        String title = buildBudgetTitle(filter, wantsBeverage);
+        return buildMenuResponseWithLog(sessionId, user, title, picks, source);
+    }
+
+    /** Tiêu đề trả về phụ thuộc khoảng giá khách yêu cầu (không hardcode mức cố định). */
+    private static String buildBudgetTitle(PriceFilter f, boolean wantsBeverage) {
+        String subject = wantsBeverage ? "đồ uống" : "món";
+        if (f.isRange()) {
+            return "Top " + subject + " giá từ " + formatK(f.minVnd()) + " đến " + formatK(f.maxVnd()) + " 👌";
+        }
+        if (f.hasMax()) {
+            return "Top " + subject + " có giá dưới " + formatK(f.maxVnd()) + " 💰";
+        }
+        if (f.hasMin()) {
+            return "Top " + subject + " có giá trên " + formatK(f.minVnd()) + " 💎";
+        }
+        return "Top " + subject + " có giá tiết kiệm 💰";
+    }
+
+    /** Đổi VND sang chuỗi "Xk" cho thân thiện. */
+    private static String formatK(int vnd) {
+        return (vnd / 1000) + "k";
     }
 
     private ChatResponse handleTopSelling(String sessionId, User user) {

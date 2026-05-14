@@ -225,6 +225,32 @@ public final class IntentFilters {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lọc danh sách theo khoảng giá. {@code minVnd}/{@code maxVnd} {@code null} = không giới hạn
+     * ở chiều đó. Biên dùng quan hệ {@code >=} và {@code <=} (inclusive cả hai đầu).
+     */
+    public static List<MenuItem> filterByPriceRange(List<MenuItem> pool, Integer minVnd, Integer maxVnd) {
+        if (minVnd == null && maxVnd == null) {
+            return new ArrayList<>(pool);
+        }
+        return pool.stream()
+                .filter(m -> {
+                    BigDecimal p = m.getPrice();
+                    if (p == null) {
+                        return false;
+                    }
+                    double v = p.doubleValue();
+                    if (minVnd != null && v < minVnd) {
+                        return false;
+                    }
+                    if (maxVnd != null && v > maxVnd) {
+                        return false;
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+    }
+
     // ============================================================
     // SORTING — sold then rating (default for "interesting picks")
     // ============================================================

@@ -114,14 +114,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     List<Order> findCompletedPaidWithItemsByUserId(@Param("userId") Long userId);
 
-    /** Đơn khách vãng lai (không user) tại bàn: hoàn tất + đã thanh toán. */
+    /**
+     * Đơn tại bàn (xác thực bằng QR token) đã hoàn tất + đã thanh toán.
+     * KHÔNG lọc theo o.user IS NULL: khi khách đặt bàn trước có tài khoản, placeOrderInternal()
+     * sẽ gán order.user = reservation.user → đơn không còn là "guest order" thuần. Nhưng khách
+     * vẫn ngồi tại bàn và phải có quyền đánh giá. Xác thực theo qrCodeToken là đủ.
+     */
     @Query("""
             SELECT o FROM Order o
             JOIN FETCH o.orderItems oi
             JOIN FETCH oi.menuItem mi
             JOIN FETCH o.table t
             WHERE t.id = :tableId
-            AND o.user IS NULL
             AND o.status = 'COMPLETED'
             AND o.paymentStatus = 'PAID'
             ORDER BY o.paidAt DESC
