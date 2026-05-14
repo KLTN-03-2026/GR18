@@ -960,3 +960,9 @@ function updateStats(data) {
         trendEl.textContent = `${percent >= 0 ? "+" : ""}${percent}% so với hôm qua`;
     }
 }
+
+// Expose handler inline (onclick="...") cho HTML.
+window.calendarPrev = calendarPrev;
+window.calendarNext = calendarNext;
+window.openAddNew = openAddNew;
+window.updateReservation = updateReservation;

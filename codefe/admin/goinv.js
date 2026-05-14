@@ -1,5 +1,4 @@
 (function () {
-    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     let pendingCalls = [];
     let resolvedCalls = [];
     let currentFilter = "all";
@@ -119,7 +118,7 @@
     async function fetchCalls() {
         const token = getToken();
         if (!token) return;
-        const res = await fetch(`${API_BASE}/staff/call-staff`, {
+        const res = await fetch(`${window.API_BASE}/staff/call-staff`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -137,7 +136,7 @@
     async function resolveCall(callId) {
         const token = getToken();
         if (!token || !callId) return;
-        const res = await fetch(`${API_BASE}/staff/call-staff/${callId}/resolve`, {
+        const res = await fetch(`${window.API_BASE}/staff/call-staff/${callId}/resolve`, {
             method: "PATCH",
             headers: {
                 Authorization: `Bearer ${token}`

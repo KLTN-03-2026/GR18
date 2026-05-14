@@ -3,7 +3,6 @@
  * Cần mã QR hợp lệ trong session (mở menu với ?t=...).
  */
 (function () {
-    var API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     var DEMO_ORDERS_KEY = "guestDemoOrders";
     var LAST_GUEST_NAME_KEY = "guestLastName";
     var isSubmittingOrder = false;
@@ -174,7 +173,7 @@
             return;
         }
         try {
-            var res = await fetch(API_BASE + "/tables/qr/" + encodeURIComponent(token));
+            var res = await fetch(window.API_BASE + "/tables/qr/" + encodeURIComponent(token));
             var json = await res.json();
             if (!res.ok || json.success === false) throw new Error();
             var d = json.data != null ? json.data : json;
@@ -213,7 +212,7 @@
             return;
         }
         try {
-            var res = await fetch(API_BASE + "/orders/guest/table/" + encodeURIComponent(token));
+            var res = await fetch(window.API_BASE + "/orders/guest/table/" + encodeURIComponent(token));
             var json = await res.json();
             if (!res.ok) throw new Error();
             var list = json.data != null ? json.data : json;
@@ -336,7 +335,7 @@
         isSubmittingOrder = true;
 
         try {
-            var res = await fetch(API_BASE + "/orders/guest", {
+            var res = await fetch(window.API_BASE + "/orders/guest", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)

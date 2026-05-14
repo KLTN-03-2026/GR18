@@ -1,5 +1,4 @@
 (function () {
-    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
 
     function getToken() {
         return localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
@@ -39,7 +38,7 @@
 
     async function apiGet(path) {
         const token = getToken();
-        const res = await fetch(`${API_BASE}${path}`, {
+        const res = await fetch(`${window.API_BASE}${path}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json().catch(() => ({}));

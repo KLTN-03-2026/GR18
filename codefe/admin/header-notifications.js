@@ -3,7 +3,6 @@
  * Phụ thuộc: SockJS, Stomp (nạp từ component-loader), Bootstrap dropdown.
  */
 (function () {
-    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     const FEED_STORAGE_KEY = "adminHeaderNotifyFeedV1";
     const MAX_FEED = 24;
     /** Thời gian hiển thị popup giữa phía trên khi có thông báo mới (STOMP). */
@@ -18,7 +17,7 @@
 
     function wsUrl() {
         try {
-            const u = new URL(API_BASE);
+            const u = new URL(window.API_BASE);
             return `${u.origin}/api/ws`;
         } catch {
             return `${(window.API_BASE || "").replace(/\/+$/, "")}/ws`;
@@ -28,7 +27,7 @@
     async function apiGet(path) {
         const token = getToken();
         if (!token) return null;
-        const res = await fetch(`${API_BASE}${path}`, {
+        const res = await fetch(`${window.API_BASE}${path}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json().catch(() => ({}));

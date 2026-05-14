@@ -1,5 +1,4 @@
-/** Cùng quy ước với khu vực khách (`window.API_BASE` set trong `config.js`). */
-const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
+/** `window.API_BASE` được set trong `config.js` (auto-switch local/prod). */
 
 const STAFF_ALLOWED_PAGES = new Set([
     "datcho.html",
@@ -43,7 +42,7 @@ window.logout = async function () {
     if (!confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
 
     try {
-        await fetch(`${API_BASE}/auth/logout`, {
+        await fetch(`${window.API_BASE}/auth/logout`, {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token

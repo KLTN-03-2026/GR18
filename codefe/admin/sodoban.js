@@ -3,9 +3,6 @@
  * GET/POST/PUT/DELETE /tables/admin/* — JWT ADMIN. API: window.API_BASE (config.js auto-switch local/prod)
  */
 (function () {
-    var API_BASE = (typeof window !== "undefined" && window.API_BASE) || "";
-    API_BASE = String(API_BASE).replace(/\/+$/, "");
-
     var FALLBACK_TABLES = [
         { tableNumber: "B01", capacity: 4, location: "Sảnh chính", qrCodeToken: "demo-qr-b01" },
         { tableNumber: "B02", capacity: 2, location: "Cửa sổ", qrCodeToken: "demo-qr-b02" },
@@ -105,7 +102,7 @@
         var jwt = getJwt();
         if (!jwt) return null;
         try {
-            var res = await fetch(API_BASE + "/tables/admin/tables", {
+            var res = await fetch(window.API_BASE + "/tables/admin/tables", {
                 headers: { Authorization: "Bearer " + jwt }
             });
             if (!res.ok) return null;
@@ -125,7 +122,7 @@
         if (opts.body instanceof URLSearchParams && !headers["Content-Type"]) {
             headers["Content-Type"] = "application/x-www-form-urlencoded";
         }
-        var res = await fetch(API_BASE + path, opts);
+        var res = await fetch(window.API_BASE + path, opts);
         var json = await res.json().catch(function () {
             return {};
         });
