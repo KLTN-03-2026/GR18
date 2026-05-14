@@ -70,13 +70,24 @@ function menuSearchQueryNormalized() {
     return normalizeMenuSearchText(document.getElementById("menuSearchInput")?.value || "");
 }
 
+/**
+ * Lọc món theo từ khoá.
+ *
+ * Quy tắc (tránh tìm "sushi" lôi cả "Nigiri" vì xuất hiện trong mô tả):
+ * 1. Ưu tiên match TÊN món trước.
+ * 2. Nếu có ít nhất 1 món khớp tên → CHỈ trả các món đó, KHÔNG xét mô tả.
+ * 3. Chỉ khi không khớp tên nào mới fallback sang mô tả.
+ */
 function filterItemsBySearchQuery(items, qNormalized) {
     if (!qNormalized) return items || [];
-    return (items || []).filter((item) => {
-        const name = normalizeMenuSearchText(item?.name);
-        const desc = normalizeMenuSearchText(item?.description);
-        return menuSearchHaystackMatches(name, qNormalized) || menuSearchHaystackMatches(desc, qNormalized);
-    });
+    const list = items || [];
+    const byName = list.filter((item) =>
+        menuSearchHaystackMatches(normalizeMenuSearchText(item?.name), qNormalized)
+    );
+    if (byName.length > 0) return byName;
+    return list.filter((item) =>
+        menuSearchHaystackMatches(normalizeMenuSearchText(item?.description), qNormalized)
+    );
 }
 
 function refreshMenuGrid() {
@@ -124,10 +135,10 @@ async function api(url, options = {}) {
     });
     const json = await res.json();
     if (!res.ok) {
-        throw new Error(json?.message || "Yeu cau that bai");
+        throw new Error(json?.message || "Yêu cầu thất bại");
     }
     if (json && json.success === false) {
-        throw new Error(json?.message || "Yeu cau that bai");
+        throw new Error(json?.message || "Yêu cầu thất bại");
     }
     return json;
 }
@@ -305,9 +316,9 @@ async function deleteItem(id) {
         } else {
             await filterByCategory(currentCategoryId);
         }
-        showActionToast("Xoa mon thanh cong", "success");
+        showActionToast("Xóa món thành công", "success");
     } catch (err) {
-        showActionToast(err.message || "Xoa mon that bai", "error");
+        showActionToast(err.message || "Xóa món thất bại", "error");
     }
 }
 

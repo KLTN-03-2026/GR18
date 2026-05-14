@@ -91,14 +91,37 @@ function initials(name) {
     return (p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
-function formatJoined(iso) {
-    if (!iso) return "—";
+/**
+ * Parse `createdAt` đa dạng kiểu (Jackson trả LocalDateTime dạng mảng [y,M,d,h,m,s,nano],
+ * hoặc chuỗi ISO `"2026-05-14T13:30:00"`, hoặc `"2026-05-14 13:30:00"`, hoặc epoch millis).
+ */
+function parseApiDateTime(v) {
+    if (v == null || v === "") return null;
     try {
-        const d = new Date(iso);
-        return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "short", year: "numeric" });
+        if (Array.isArray(v) && v.length >= 3) {
+            const ms = v.length > 6 && v[6] != null ? Math.floor(Number(v[6]) / 1_000_000) : 0;
+            const d = new Date(v[0], (v[1] || 1) - 1, v[2] || 1, v[3] || 0, v[4] || 0, v[5] || 0, ms);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        if (typeof v === "number") {
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        if (typeof v === "string") {
+            const s = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, "$1T$2");
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
     } catch {
-        return "—";
+        return null;
     }
+    return null;
+}
+
+function formatJoined(raw) {
+    const d = parseApiDateTime(raw);
+    if (!d) return "—";
+    return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function roleLabel(role) {
