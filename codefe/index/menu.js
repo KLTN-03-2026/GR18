@@ -1,7 +1,6 @@
 // ============================================================
-// CONFIG (config.js auto-switch local/production; qr-session.js cho phép override).
+// CONFIG (config.js dat window.API_BASE; qr-session.js co the override qua localStorage).
 // ============================================================
-let API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
 /** Cùng host với trang (LAN dev): chỉ áp dụng khi trang chạy trên LAN, không phải production. */
 function sameHostApiBases() {
     const h = typeof window !== "undefined" && window.location && window.location.hostname;
@@ -15,7 +14,6 @@ function getApiBaseCandidates() {
     const set = new Set();
     if (fromConfig) set.add(fromConfig);
     sameHostApiBases().forEach(function (b) { set.add(b); });
-    if (API_BASE) set.add(API_BASE.replace(/\/+$/, ""));
     return [...set];
 }
 
@@ -194,7 +192,7 @@ function qrCallStaffFromMenu(customNote) {
         hienToast(err.message, "warning");
         return Promise.reject(err);
     }
-    const base = (window.API_BASE || API_BASE || "").replace(/\/$/, "");
+    const base = (window.API_BASE || "").replace(/\/$/, "");
     const defaultNote = "Khách bấm gọi nhân viên từ trang menu QR";
     const note =
         typeof customNote === "string" && customNote.trim().length > 0 ? customNote.trim() : defaultNote;
@@ -449,7 +447,7 @@ async function loadMenu() {
         if (!tryApplyMenuCategoryFromUrl()) {
             renderMenu(danhSachMon);
         }
-        hienThongBao("Không tải được menu từ backend. Đang hiển thị dữ liệu demo. API hiện tại: " + API_BASE);
+        hienThongBao("Không tải được menu từ backend. Đang hiển thị dữ liệu demo. API hiện tại: " + (window.API_BASE || ""));
     }
 }
 
@@ -501,7 +499,6 @@ async function fetchMenuWithFallback(path) {
             if (json && json.success === false) {
                 throw new Error(json.message || "Lỗi từ server");
             }
-            API_BASE = base;
             window.API_BASE = base;
             window.RESTAURANT_API_BASE = base;
             return json;
@@ -1029,3 +1026,10 @@ function renderStars(rating) {
         ${'<i class="fa-regular fa-star"></i>'.repeat(empty)}
     `;
 }
+
+// Expose handler inline (onclick="...") cho HTML.
+window.chonMenuCategoryTab = chonMenuCategoryTab;
+window.xemThem = xemThem;
+window.thayDoiSoLuong = thayDoiSoLuong;
+window.xacNhanThemGio = xacNhanThemGio;
+window.toggleQrCategoryDropdown = toggleQrCategoryDropdown;

@@ -1,6 +1,4 @@
 (function () {
-    var API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
-
     /** Thứ tự id món ưu tiên (giữ thứ tự chọn). */
     var pinnedOrder = [];
     var menuItemsCache = [];
@@ -32,7 +30,7 @@
     }
 
     async function apiGet(path) {
-        var res = await fetch(API_BASE + path, {
+        var res = await fetch(window.API_BASE + path, {
             headers: { Authorization: "Bearer " + getToken() }
         });
         var json = await res.json().catch(function () {
@@ -45,7 +43,7 @@
     }
 
     async function apiPut(path, body) {
-        var res = await fetch(API_BASE + path, {
+        var res = await fetch(window.API_BASE + path, {
             method: "PUT",
             headers: {
                 Authorization: "Bearer " + getToken(),

@@ -926,3 +926,7 @@ function dgCapNhatBadge() {
     } catch (e) {}
 }
 
+// Expose handler inline (onclick / onsubmit) cho HTML.
+window.dgOnSubmit = dgOnSubmit;
+window.dgFilter = dgFilter;
+window.dgXemThem = dgXemThem;

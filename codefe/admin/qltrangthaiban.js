@@ -1,5 +1,4 @@
 (function () {
-    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     const STATUS = {
         AVAILABLE: { label: "TRỐNG", cls: "empty-table" },
         OCCUPIED: { label: "ĐANG DÙNG", cls: "active-table" },
@@ -16,7 +15,7 @@
 
     function wsUrl() {
         try {
-            const u = new URL(API_BASE);
+            const u = new URL(window.API_BASE);
             return `${u.origin}/api/ws`;
         } catch {
             return `${(window.API_BASE || "").replace(/\/+$/, "")}/ws`;
@@ -76,7 +75,7 @@
     async function fetchTables() {
         const tk = token();
         if (!tk) return [];
-        const res = await fetch(`${API_BASE}/tables/staff/tables`, {
+        const res = await fetch(`${window.API_BASE}/tables/staff/tables`, {
             headers: { Authorization: `Bearer ${tk}` }
         });
         const json = await res.json().catch(() => ({}));
@@ -92,7 +91,7 @@
     async function updateStatus(tableId, nextStatus) {
         const tk = token();
         if (!tk) return;
-        const url = `${API_BASE}/tables/staff/tables/${encodeURIComponent(tableId)}/status?status=${encodeURIComponent(nextStatus)}`;
+        const url = `${window.API_BASE}/tables/staff/tables/${encodeURIComponent(tableId)}/status?status=${encodeURIComponent(nextStatus)}`;
         const res = await fetch(url, {
             method: "PATCH",
             headers: { Authorization: `Bearer ${tk}` }

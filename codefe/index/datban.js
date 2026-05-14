@@ -5,8 +5,6 @@
 
 const LOGIN_PAGE = "../dangnhap.html";
 const AFTER_LOGIN_PATH = "index/datban.html";
-const API_BASE = ((typeof window !== "undefined" && window.API_BASE) || "").replace(/\/+$/, "");
-
 let bookingLocations = [];
 let bookingTables = [];
 
@@ -215,7 +213,7 @@ function refillTablePreference() {
 async function loadBookingOptions() {
     const wrap = document.getElementById("locationOptions");
     try {
-        const res = await axios.get(`${API_BASE}/tables/booking-options`);
+        const res = await axios.get(`${window.API_BASE}/tables/booking-options`);
         const data = res.data?.data;
         if (data && res.data.success !== false) {
             bookingLocations = Array.isArray(data.locations) ? data.locations : [];
@@ -322,7 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
 
-                const response = await axios.post(`${API_BASE}/reservations`, payload, {
+                const response = await axios.post(`${window.API_BASE}/reservations`, payload, {
                     headers: { Authorization: `Bearer ${authToken}` }
                 });
 

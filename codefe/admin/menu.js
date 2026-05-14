@@ -871,3 +871,11 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMenu();
     loadCategories();
 });
+
+// Expose handler inline (onclick="...") cho HTML.
+window.openCategoryModal = openCategoryModal;
+window.openCreateModal = openCreateModal;
+window.changeViewMode = changeViewMode;
+window.submitMenuModal = submitMenuModal;
+window.deleteSelectedCategory = deleteSelectedCategory;
+window.saveSelectedCategory = saveSelectedCategory;
