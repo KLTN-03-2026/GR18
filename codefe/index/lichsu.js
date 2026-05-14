@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
     const tableBody = document.getElementById("historyTableBody");
+    /** Container card cho mobile (<768px). Có thể null trên trang phiên bản cũ. */
+    const cardList = document.getElementById("historyCardList");
     const btnAll = document.getElementById("filterAll");
     const btnOrder = document.getElementById("filterOrder");
     const btnBooking = document.getElementById("filterBooking");
@@ -32,13 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let cachedOrders = [];
 
     if (!token) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center py-5">
-                    <i class="fa-solid fa-user-lock fa-2x text-muted mb-3 d-block" aria-hidden="true"></i>
-                    <p class="text-muted fw-semibold mb-0">Vui lòng đăng nhập để xem lịch sử.</p>
-                </td>
-            </tr>`;
+        const loginPrompt = `
+            <i class="fa-solid fa-user-lock fa-2x text-muted mb-3 d-block" aria-hidden="true"></i>
+            <p class="text-muted fw-semibold mb-0">Vui lòng đăng nhập để xem lịch sử.</p>`;
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-5">${loginPrompt}</td></tr>`;
+        if (cardList) cardList.innerHTML = `<div class="text-center py-5">${loginPrompt}</div>`;
         const fg = document.querySelector(".history-card .filter-group");
         if (fg) fg.style.display = "none";
         return;
@@ -184,25 +184,65 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /** Đặt cùng một thông điệp cho table (desktop) + card list (mobile). */
+    function setHistoryMessage(html, extraTrClass = "") {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-5 ${extraTrClass}">${html}</td></tr>`;
+        if (cardList) cardList.innerHTML = `<div class="text-center py-5 ${extraTrClass}">${html}</div>`;
+    }
+
     function showLoading() {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center py-5">
-                    <div class="spinner-border text-orange" role="status"></div>
-                    <p class="mt-2 text-muted mb-0">Đang tải...</p>
-                </td>
-            </tr>`;
+        setHistoryMessage(`
+            <div class="spinner-border text-orange" role="status"></div>
+            <p class="mt-2 text-muted mb-0">Đang tải...</p>`);
         renderPagination(0);
     }
 
     function showFetchError() {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-danger py-4">
-                    Không thể kết nối máy chủ.
-                </td>
-            </tr>`;
+        setHistoryMessage(`Không thể kết nối máy chủ.`, "text-danger");
         renderPagination(0);
+    }
+
+    // ============================================================
+    // Mobile card markup (dùng chung cho 3 nhánh render)
+    // ============================================================
+    function bookingCardHtml(item) {
+        const date = formatDate(item.reservationTime);
+        const statusKey = String(item.status || "").toUpperCase();
+        const badgeClass = bookingStatusBadgeClass(statusKey);
+        const statusVN = bookingStatusLabel(statusKey);
+        return `
+        <div class="history-card-item" data-action="booking" data-id="${item.id}" role="button" tabindex="0">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <span class="small text-muted">${date}</span>
+                <span class="${badgeClass}">${escapeHtml(statusVN)}</span>
+            </div>
+            <div class="fw-bold text-orange mb-1">Đặt bàn</div>
+            <div class="text-secondary small">${bookingRowSummary(item)}</div>
+        </div>`;
+    }
+
+    function orderCardHtml(o) {
+        const date = formatDate(o.createdAt);
+        const st = orderStatusLabel(o.status);
+        let badgeClass = "badge bg-warning text-dark";
+        if (o.status === "COMPLETED") badgeClass = "badge bg-success";
+        else if (o.status === "CANCELLED") badgeClass = "badge bg-danger";
+        else if (o.status === "PREPARING" || o.status === "SERVING") badgeClass = "badge bg-info text-dark";
+        const pay = paymentLabel(o.paymentStatus);
+        const brief = `Bàn ${escapeHtml(o.tableNumber || "?")} · ${formatVND(o.totalAmount)} · ${escapeHtml(pay)}`;
+        return `
+        <div class="history-card-item" data-action="order" data-id="${o.id}" role="button" tabindex="0">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <span class="small text-muted">${date}</span>
+                <span class="${badgeClass}">${escapeHtml(st)}</span>
+            </div>
+            <div class="fw-bold text-primary mb-1">Đơn món</div>
+            <div class="text-secondary small">${brief}</div>
+        </div>`;
+    }
+
+    function setCardList(html) {
+        if (cardList) cardList.innerHTML = html;
     }
 
     function getPageSlice(items) {
@@ -289,10 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderBookingRows(bookings) {
         if (!bookings || !bookings.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">Không có lịch sử đặt bàn.</td>
-                </tr>`;
+            setHistoryMessage("Không có lịch sử đặt bàn.", "text-muted");
             renderPagination(0);
             return;
         }
@@ -309,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${date}</td>
                     <td><b class="text-orange">Đặt bàn</b></td>
                     <td>${bookingRowSummary(item)}</td>
-                    <td><span class="${badgeClass}">${statusVN}</span></td>
+                    <td><span class="${badgeClass}">${escapeHtml(statusVN)}</span></td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm px-3"
                             onclick="openBookingDetail(${item.id})">
@@ -319,15 +356,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 </tr>`;
             })
             .join("");
+        setCardList(pageItems.map(bookingCardHtml).join(""));
         renderPagination(total);
     }
 
     function renderOrderRows(orders) {
         if (!orders || !orders.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">Không có đơn hàng.</td>
-                </tr>`;
+            setHistoryMessage("Không có đơn hàng.", "text-muted");
             renderPagination(0);
             return;
         }
@@ -352,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${date}</td>
                     <td><b class="text-primary">Đơn món</b></td>
                     <td>${brief}</td>
-                    <td><span class="${badgeClass}">${st}</span></td>
+                    <td><span class="${badgeClass}">${escapeHtml(st)}</span></td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm px-3"
                             onclick="openOrderDetail(${o.id})">
@@ -362,6 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </tr>`;
             })
             .join("");
+        setCardList(pageItems.map(orderCardHtml).join(""));
         renderPagination(total);
     }
 
@@ -374,10 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
         rows.sort((a, b) => b.ts - a.ts);
 
         if (!rows.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">Chưa có lịch sử.</td>
-                </tr>`;
+            setHistoryMessage("Chưa có lịch sử.", "text-muted");
             renderPagination(0);
             return;
         }
@@ -396,7 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${date}</td>
                         <td><b class="text-orange">Đặt bàn</b></td>
                         <td>${bookingRowSummary(item)}</td>
-                        <td><span class="${badgeClass}">${statusVN}</span></td>
+                        <td><span class="${badgeClass}">${escapeHtml(statusVN)}</span></td>
                         <td>
                             <button type="button" class="btn btn-outline-danger btn-sm px-3"
                                 onclick="openBookingDetail(${item.id})">
@@ -421,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${date}</td>
                         <td><b class="text-primary">Đơn món</b></td>
                         <td>${brief}</td>
-                        <td><span class="${badgeClass}">${st}</span></td>
+                        <td><span class="${badgeClass}">${escapeHtml(st)}</span></td>
                         <td>
                             <button type="button" class="btn btn-outline-danger btn-sm px-3"
                                 onclick="openOrderDetail(${o.id})">
@@ -431,6 +464,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     </tr>`;
             })
             .join("");
+        setCardList(
+            pageItems
+                .map((r) => (r.kind === "booking" ? bookingCardHtml(r.booking) : orderCardHtml(r.order)))
+                .join("")
+        );
         renderPagination(total);
     }
 
@@ -637,6 +675,27 @@ document.addEventListener("DOMContentLoaded", () => {
         currentPage = next;
         renderCurrentTabFromCache();
     });
+
+    // Mobile card list: delegate click + keyboard (Enter / Space) cho mỗi card item.
+    if (cardList) {
+        const openFromCard = (card) => {
+            const id = Number(card.dataset.id);
+            if (!Number.isFinite(id)) return;
+            if (card.dataset.action === "booking") window.openBookingDetail(id);
+            else if (card.dataset.action === "order") window.openOrderDetail(id);
+        };
+        cardList.addEventListener("click", (e) => {
+            const card = e.target.closest(".history-card-item");
+            if (card) openFromCard(card);
+        });
+        cardList.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            const card = e.target.closest(".history-card-item");
+            if (!card) return;
+            e.preventDefault();
+            openFromCard(card);
+        });
+    }
 
     setFilterActive("all");
     refresh();

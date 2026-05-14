@@ -457,10 +457,16 @@
             var res = await fetch(resolveHeaderMarkupUrl());
             if (!res.ok) return;
             var html = await res.text();
-            var holder = document.createElement("div");
-            holder.id = "customer-header-root";
-            holder.innerHTML = html;
-            oldHeader.replaceWith(holder);
+            // Quan trọng: KHÔNG bọc nav vào <div> wrapper.
+            // `position: sticky` chỉ "dính" trong phạm vi parent — nếu parent là
+            // wrapper chỉ cao bằng nav thì sticky không có không gian để dính →
+            // header trôi theo trang khi cuộn. Chèn thẳng <nav> làm con của <body>.
+            var tpl = document.createElement("template");
+            tpl.innerHTML = html.trim();
+            var nav = tpl.content.querySelector("nav, header") || tpl.content.firstElementChild;
+            if (!nav) return;
+            nav.id = nav.id || "customer-header-root";
+            oldHeader.replaceWith(nav);
             bindHeaderData();
         } catch {}
     }

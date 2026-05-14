@@ -171,9 +171,12 @@ public final class IntentMatcher {
         if (isCheapestIntent(msg)) {
             return false;
         }
+        // Khách nêu khoảng giá rõ ràng (>, <, dưới, trên, "từ A đến B"…) → BUDGET.
+        if (!extractPriceFilter(msg).isEmpty()) {
+            return true;
+        }
         return msg.contains("rẻ") || msg.contains("tiết kiệm") || msg.contains("sinh viên")
-                || msg.contains("túi tiền") || msg.contains("ngân sách") || msg.contains("dưới ")
-                || msg.contains("nhỏ hơn") || msg.matches(".*\\b\\d{1,3}\\s*k\\b.*")
+                || msg.contains("túi tiền") || msg.contains("ngân sách")
                 || msg.contains("budget");
     }
 
@@ -349,24 +352,123 @@ public final class IntentMatcher {
                 || msg.contains("lạ lạ") || msg.contains("hay ho");
     }
 
-    /** Sử dụng cho intent BUDGET — trích mức giá tối đa từ câu. */
+    /**
+     * Sử dụng cho intent BUDGET — trích mức giá tối đa từ câu.
+     * Giữ lại để tương thích ngược; nội bộ delegate sang {@link #extractPriceFilter(String)}.
+     */
     public static java.util.Optional<Integer> extractPriceCapVnd(String msg) {
-        java.util.regex.Matcher m1 = java.util.regex.Pattern
-                .compile("(?:dưới|không quá|<=)\\s*(\\d+)\\s*[kK]\\b").matcher(msg);
-        if (m1.find()) {
-            return java.util.Optional.of(Integer.parseInt(m1.group(1)) * 1000);
+        PriceFilter f = extractPriceFilter(msg);
+        return f.hasMax() ? java.util.Optional.of(f.maxVnd()) : java.util.Optional.empty();
+    }
+
+    /**
+     * Trích khoảng giá từ câu chat. Hỗ trợ:
+     * <ul>
+     *   <li>"từ 50k đến 100k" / "50k - 100k" / "khoảng 50-100k" → range</li>
+     *   <li>"dưới 100k" / "không quá 100k" / "&lt;100" / "&lt;= 100k" / "tối đa 100k" → max only</li>
+     *   <li>"trên 100k" / "hơn 100k" / "&gt;100" / "&gt;= 100k" / "tối thiểu 100k"
+     *       / "100k trở lên" → min only</li>
+     *   <li>"dưới 50000" / "trên 200000" (VND nguyên) → max/min</li>
+     * </ul>
+     * Quy ước số: có hậu tố "k"/"K" hoặc giá trị &lt; 1000 → coi là nghìn đồng (×1000).
+     */
+    public static PriceFilter extractPriceFilter(String msgRaw) {
+        if (msgRaw == null || msgRaw.isBlank()) {
+            return PriceFilter.NONE;
         }
-        java.util.regex.Matcher m2 = java.util.regex.Pattern
-                .compile("(?:dưới|không quá)\\s*(\\d{4,})\\s*(đ|dong|vnd)?").matcher(msg);
-        if (m2.find()) {
-            return java.util.Optional.of(Integer.parseInt(m2.group(1)));
+        String msg = msgRaw.toLowerCase(Locale.ROOT);
+
+        // 1) Range "A - B" / "A đến B" / "từ A đến B".
+        //    Yêu cầu ÍT NHẤT một số có hậu tố "k" hoặc cả hai số đều ≥ 1000 (VND nguyên)
+        //    để tránh nhầm với "7-9 người", "4-5 chỗ", "2 đến 3 ly".
+        java.util.regex.Matcher range = java.util.regex.Pattern
+                .compile("(\\d+)\\s*([kK]?)\\s*(?:-|–|—|đến|den|tới|toi|~)\\s*(\\d+)\\s*([kK]?)")
+                .matcher(msg);
+        if (range.find()) {
+            boolean kA = !range.group(2).isEmpty();
+            boolean kB = !range.group(4).isEmpty();
+            long rawA = Long.parseLong(range.group(1));
+            long rawB = Long.parseLong(range.group(3));
+            boolean priceLike = kA || kB || (rawA >= 1000 && rawB >= 1000);
+            if (priceLike) {
+                int a = toVnd(range.group(1), kA);
+                int b = toVnd(range.group(3), kB);
+                return new PriceFilter(Math.min(a, b), Math.max(a, b));
+            }
         }
-        java.util.regex.Matcher m3 = java.util.regex.Pattern
+
+        // 2) Max only.
+        //    - "<=" / "<" + số (k tuỳ chọn) — comparator rõ ràng, luôn coi là giá.
+        //    - Từ Việt ("dưới", "không quá", "tối đa", "nhỏ hơn") + số — yêu cầu có "k"
+        //      HOẶC số ≥ 1000 để tránh nhầm "dưới 5 phút".
+        java.util.regex.Matcher mMaxOp = java.util.regex.Pattern
+                .compile("(?:<=|<)\\s*(\\d+)\\s*([kK]?)").matcher(msg);
+        if (mMaxOp.find()) {
+            boolean k = !mMaxOp.group(2).isEmpty();
+            return new PriceFilter(null, toVnd(mMaxOp.group(1), k));
+        }
+        java.util.regex.Matcher mMaxWord = java.util.regex.Pattern
+                .compile("(?:dưới|duoi|không\\s*quá|khong\\s*qua|tối\\s*đa|toi\\s*da|nhỏ\\s*hơn|nho\\s*hon)\\s*(\\d+)\\s*([kK]?)")
+                .matcher(msg);
+        if (mMaxWord.find()) {
+            boolean k = !mMaxWord.group(2).isEmpty();
+            long raw = Long.parseLong(mMaxWord.group(1));
+            if (k || raw >= 1000) {
+                return new PriceFilter(null, toVnd(mMaxWord.group(1), k));
+            }
+        }
+
+        // 3) Min only — comparator + từ Việt, áp dụng quy tắc tương tự max.
+        java.util.regex.Matcher mMinOp = java.util.regex.Pattern
+                .compile("(?:>=|>)\\s*(\\d+)\\s*([kK]?)").matcher(msg);
+        if (mMinOp.find()) {
+            boolean k = !mMinOp.group(2).isEmpty();
+            return new PriceFilter(toVnd(mMinOp.group(1), k), null);
+        }
+        java.util.regex.Matcher mMinWord = java.util.regex.Pattern
+                .compile("(?:trên|tren|hơn|hon|lớn\\s*hơn|lon\\s*hon|tối\\s*thiểu|toi\\s*thieu|từ\\s+ít\\s*nhất)\\s*(\\d+)\\s*([kK]?)")
+                .matcher(msg);
+        if (mMinWord.find()) {
+            boolean k = !mMinWord.group(2).isEmpty();
+            long raw = Long.parseLong(mMinWord.group(1));
+            if (k || raw >= 1000) {
+                return new PriceFilter(toVnd(mMinWord.group(1), k), null);
+            }
+        }
+        java.util.regex.Matcher mUp = java.util.regex.Pattern
+                .compile("(\\d+)\\s*([kK]?)\\s*(?:trở\\s*lên|tro\\s*len)")
+                .matcher(msg);
+        if (mUp.find()) {
+            boolean k = !mUp.group(2).isEmpty();
+            long raw = Long.parseLong(mUp.group(1));
+            if (k || raw >= 1000) {
+                return new PriceFilter(toVnd(mUp.group(1), k), null);
+            }
+        }
+
+        // 4) "Xk" trần trụi kèm từ khoá tài chính → coi là max.
+        java.util.regex.Matcher mBareK = java.util.regex.Pattern
                 .compile("(?<![0-9])(\\d{1,3})\\s*[kK]\\b").matcher(msg);
-        if (m3.find() && (msg.contains("dưới") || msg.contains("lọc") || msg.contains("ngân sách"))) {
-            return java.util.Optional.of(Integer.parseInt(m3.group(1)) * 1000);
+        if (mBareK.find() && (msg.contains("lọc") || msg.contains("loc")
+                || msg.contains("ngân sách") || msg.contains("ngan sach")
+                || msg.contains("túi tiền") || msg.contains("tui tien")
+                || msg.contains("budget"))) {
+            return new PriceFilter(null, Integer.parseInt(mBareK.group(1)) * 1000);
         }
-        return java.util.Optional.empty();
+
+        return PriceFilter.NONE;
+    }
+
+    /** Quy đổi chuỗi số sang VND. Có "k" hoặc giá trị nhỏ (&lt;1000) → ×1000. */
+    private static int toVnd(String numStr, boolean kSuffix) {
+        long n = Long.parseLong(numStr);
+        if (kSuffix || n < 1000) {
+            n *= 1000;
+        }
+        if (n > Integer.MAX_VALUE) {
+            n = Integer.MAX_VALUE;
+        }
+        return (int) n;
     }
 
     /** Nhận diện cụm "N người" (1..20). */

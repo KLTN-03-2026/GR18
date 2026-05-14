@@ -312,7 +312,7 @@ window.addEventListener("load", async () => {
         if (sectionSashimi) sectionSashimi.style.display = "none";
         if (sectionTatca) sectionTatca.style.display = "";
 
-        searchMenu(keyword);
+        renderMenu(sortMenuCombosAndMainsFirst(searchMenu(danhSachMon, keyword)));
     };
 
     input?.addEventListener("input", () => {
@@ -451,29 +451,56 @@ async function loadMenu() {
     }
 }
 
-function searchMenu(keyword) {
-    const q = keyword
-        .trim()
+function normalizeVietnamese(str = "") {
+    return str
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .trim();
+}
 
-    const filtered = sortMenuCombosAndMainsFirst(
-        danhSachMon.filter((item) => {
-            const name = (item.name || item.ten || "")
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "");
-            const descRaw = item.description || item.moTa || "";
-            const desc = String(descRaw)
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "");
-            return name.includes(q) || desc.includes(q);
-        })
+function searchMenu(menu, keyword) {
+    if (!keyword || !String(keyword).trim()) {
+        return menu || [];
+    }
+
+    const rawKeyword = keyword.toLowerCase().trim();
+    const normalizedKeyword = normalizeVietnamese(keyword);
+
+    const list = menu || [];
+
+    function containsPhrase(text, search) {
+        return text.includes(search);
+    }
+
+    // B1: Tìm tên gốc có dấu
+    let results = list.filter(item =>
+        containsPhrase(
+            (item?.name || "").toLowerCase(),
+            rawKeyword
+        )
     );
 
-    renderMenu(filtered);
+    if (results.length) return results;
+
+    // B2: Tìm tên không dấu
+    results = list.filter(item =>
+        containsPhrase(
+            normalizeVietnamese(item?.name || ""),
+            normalizedKeyword
+        )
+    );
+
+    if (results.length) return results;
+
+    // B3: Cuối cùng mới tìm trong mô tả
+    return list.filter(item =>
+        containsPhrase(
+            normalizeVietnamese(item?.description || ""),
+            normalizedKeyword
+        )
+    );
 }
 
 async function fetchMenuWithFallback(path) {
@@ -688,19 +715,7 @@ function getBaseItemsForView() {
     const input = document.getElementById("searchInput");
     const kw = (input && input.value.trim()) || "";
     if (!kw) return danhSachMon;
-    const q = kw
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    return sortMenuCombosAndMainsFirst(
-        danhSachMon.filter((item) => {
-            const name = (item.name || item.ten || "")
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "");
-            return name.includes(q);
-        })
-    );
+    return sortMenuCombosAndMainsFirst(searchMenu(danhSachMon, kw));
 }
 
 function updateMenuFilterHeader(filteredTotal) {

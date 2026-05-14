@@ -181,9 +181,9 @@ public class ReviewService {
     public ReviewListItemDto submitGuestReview(GuestSubmitReviewRequest request) {
         Order order = orderRepository.findDetailById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
-        if (order.getUser() != null) {
-            throw new IllegalStateException("Đơn này gắn tài khoản — vui lòng đăng nhập để đánh giá");
-        }
+        // Khách ngồi tại bàn (xác thực bằng QR token in trên bàn) được phép đánh giá đơn
+        // của bàn đó kể cả khi đơn đã gắn tài khoản (do placeOrderInternal claim từ reservation.user).
+        // Việc trùng review đã được chặn bởi check `findByOrder_Id` bên dưới.
         assertOrderMatchesGuestQr(order, request.getQrCodeToken().trim());
         if (order.getStatus() != OrderStatus.COMPLETED) {
             throw new IllegalStateException("Chỉ có thể đánh giá sau khi đơn hàng đã hoàn thành");

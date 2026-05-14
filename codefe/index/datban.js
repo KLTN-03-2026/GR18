@@ -278,7 +278,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const guests = document.getElementById("guests").value;
+            const guestsEl = document.getElementById("guests");
+            const guests = guestsEl ? guestsEl.value : "";
+            const guestCount = parseInt(guests, 10);
+
+            // Trên 10 khách: không cho đặt online, hướng dẫn liên hệ trực tiếp.
+            if (!Number.isFinite(guestCount) || guestCount < 1) {
+                toastWarn("Vui lòng nhập số lượng khách hợp lệ.");
+                guestsEl?.focus();
+                return;
+            }
+            if (guestCount > 10) {
+                toastWarn(
+                    "Vui lòng liên hệ trực tiếp với nhà hàng để đặt bàn cho số lượng khách lớn."
+                );
+                guestsEl?.focus();
+                guestsEl?.select?.();
+                return;
+            }
+
             const phoneEl = document.getElementById("customerPhone");
             const customerPhone = (phoneEl?.value || "").trim();
             const noteTxt = document.getElementById("note").value;
@@ -308,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const payload = {
                 reservationTime,
-                numberOfGuests: parseInt(guests, 10),
+                numberOfGuests: guestCount,
                 customerName: userInfo.fullName || "Khách hàng",
                 customerPhone,
                 tableId: tableId && Number.isFinite(tableId) ? tableId : null,
