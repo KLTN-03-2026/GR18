@@ -53,8 +53,8 @@ html.chatbot-scroll-locked body {
 /* Nút nổi — absolute trong .chat-container để cùng di chuyển khi --vh thu hẹp */
 .chat-launcher {
     position: absolute;
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-    right: calc(20px + env(safe-area-inset-right, 0px));
+    bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+    right: calc(30px + env(safe-area-inset-right, 0px));
     width: 60px;
     height: 60px;
     background: var(--orange-main);
@@ -65,7 +65,17 @@ html.chatbot-scroll-locked body {
     cursor: pointer;
     transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-    z-index: 2;
+    z-index: 999;
+}
+
+/* Mobile: gần mép hơn + cỡ 56px theo guideline. */
+@media (max-width: 767.98px) {
+    .chat-launcher {
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        right: calc(16px + env(safe-area-inset-right, 0px));
+        width: 56px;
+        height: 56px;
+    }
 }
 
 .chat-launcher:hover {

@@ -112,3 +112,63 @@ body { font-family: 'Segoe UI', sans-serif; }
 .history-pagination-wrap .pagination .page-item.disabled .page-link {
     opacity: 0.5;
 }
+
+/* ============================================================
+   Mobile (<768px): table → card list, tabs full-width,
+   social floating buttons sang phải dưới để không đè nội dung.
+   ============================================================ */
+.history-card-item {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    cursor: pointer;
+}
+.history-card-item:hover,
+.history-card-item:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    outline: none;
+}
+.history-card-item:last-child {
+    margin-bottom: 0;
+}
+.history-card-item .badge {
+    padding: 6px 14px;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 767.98px) {
+    .history-wrapper { padding-bottom: 96px; /* chừa chỗ cho floating buttons */ }
+    .history-card { padding: 16px !important; border-radius: 16px; }
+
+    /* Filter tabs full-width, mỗi nút flex:1 */
+    .history-card .filter-group {
+        width: 100%;
+        display: flex;
+    }
+    .history-card .filter-group > .btn {
+        flex: 1 1 0;
+        padding-left: 8px;
+        padding-right: 8px;
+        font-size: 0.875rem;
+    }
+
+    /* Floating social: chuyển sang góc phải dưới, z-index cao, không đè nội dung */
+    .floating-contact {
+        left: auto;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1050;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .contact-circle {
+        width: 42px;
+        height: 42px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+}

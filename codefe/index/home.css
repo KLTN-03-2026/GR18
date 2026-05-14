@@ -109,3 +109,113 @@ body {
 .img-box img {
     transition: 0.3s;
 }
+
+/* Map iframe luôn fill khung dù markup có width/height cứng */
+.map-box iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* ============================================================
+   Responsive cho mobile (<768px)
+   - Hero hạ xuống ~200px, không chiếm hết viewport.
+   - Combo "Bò wagyu" stack dọc thay vì ngang, ảnh full width.
+   - Card món ăn nổi bật ảnh thấp hơn, không quá dài.
+   - Footer map thấp lại, chữ căn trái cho dễ đọc.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .hero-placeholder {
+        height: 220px;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        letter-spacing: 1px;
+    }
+
+    .img-box {
+        height: 160px;
+    }
+
+    /* Combo: bỏ ngang, ảnh trên + text dưới */
+    .combo-box {
+        flex-direction: column;
+        padding: 1.25rem !important;
+        gap: 1rem !important;
+        align-items: stretch !important;
+    }
+    .combo-img-placeholder {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        flex-shrink: 1;
+    }
+    .combo-content h2.display-6 {
+        font-size: 1.5rem;
+    }
+    .combo-desc {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        max-width: 100%;
+    }
+
+    /* Footer */
+    footer .col-md-6.text-end {
+        text-align: left !important;
+        margin-top: 1.25rem;
+    }
+    .map-box {
+        height: 220px;
+    }
+    .social-icons {
+        text-align: center;
+    }
+    .social-icons a i {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Khoảng giữa (≥768px nhưng <992px): combo vẫn ngang, nhưng ảnh nhỏ hơn để không phá grid */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .combo-img-placeholder {
+        width: 300px;
+        height: 220px;
+    }
+    .combo-box {
+        padding: 2rem !important;
+        gap: 1.5rem !important;
+    }
+}
+
+/* ============================================================
+   Catch-all responsive — mobile <768px:
+   - Mọi ảnh co theo container (max-width:100%, height:auto).
+   - .container chừa lề 16px hai bên cho thoáng.
+   - Hero ảnh phủ kín, object-fit:cover.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .hero-placeholder img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Reset gutter negative-margin của Bootstrap row trên mobile để
+       cột không tràn quá padding của container 16px hai bên. */
+    .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}

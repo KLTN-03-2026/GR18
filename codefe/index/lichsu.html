@@ -19,15 +19,14 @@
 
             <div class="history-card shadow-lg p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="btn-group filter-group shadow-sm">
+                    <div class="btn-group filter-group shadow-sm" role="group" aria-label="Lọc lịch sử">
                         <button id="filterAll" class="btn btn-orange-filter active px-4">Tất cả</button>
                         <button id="filterOrder" class="btn btn-light-filter px-3">Đơn hàng</button>
                         <button id="filterBooking" class="btn btn-light-filter px-3">Đặt bàn</button>
                     </div>
-                
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-hover align-middle custom-table">
                         <thead>
                             <tr>
@@ -47,6 +46,14 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile (<768px): cards thay cho table -->
+                <div id="historyCardList" class="d-block d-md-none history-card-list">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-orange" role="status"></div>
+                        <p class="mt-2 text-muted">Đang tải lịch sử của bạn...</p>
+                    </div>
                 </div>
                 <div class="history-pagination-wrap d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
                     <span id="historyPaginationMeta" class="small text-muted"></span>
