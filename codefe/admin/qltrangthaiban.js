@@ -1,5 +1,5 @@
 (function () {
-    const API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     const STATUS = {
         AVAILABLE: { label: "TRỐNG", cls: "empty-table" },
         OCCUPIED: { label: "ĐANG DÙNG", cls: "active-table" },
@@ -19,7 +19,7 @@
             const u = new URL(API_BASE);
             return `${u.origin}/api/ws`;
         } catch {
-            return "https://gr18.onrender.com/api/ws";
+            return `${(window.API_BASE || "").replace(/\/+$/, "")}/ws`;
         }
     }
 

@@ -1,5 +1,5 @@
 // ================= CONFIG =================
-const API_BASE_URL = (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "https://gr18.onrender.com/api";
+const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE) || "";
 
 // ================= AXIOS =================
 const axiosInstance = axios.create({
@@ -255,7 +255,7 @@ async function syncTableStatus(tableId, status) {
 
     try {
         const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
-        const base = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+        const base = (window.API_BASE || "").replace(/\/+$/, "");
         const pathId = encodeURIComponent(idStr);
         const st = encodeURIComponent(String(status));
         const res = await fetch(`${base}/tables/staff/tables/${pathId}/status?status=${st}`, {

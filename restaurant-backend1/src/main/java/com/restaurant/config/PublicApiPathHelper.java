@@ -40,6 +40,10 @@ public final class PublicApiPathHelper {
         if (path.startsWith("/error")) {
             return true;
         }
+        // /chat & /chatbot KHÔNG nằm trong danh sách anonymous: endpoint vẫn permitAll
+        // ở SecurityConfig, nhưng cần để JWT filter chạy để parse token (nếu có) và
+        // set Authentication. Nếu skip filter, user đã đăng nhập vẫn bị coi là null
+        // → chatbot không đặt bàn được.
         return path.startsWith("/auth")
                 || path.startsWith("/menu")
                 || path.startsWith("/categories")
@@ -50,8 +54,6 @@ public final class PublicApiPathHelper {
                 || path.startsWith("/ws")
                 || path.startsWith("/swagger")
                 || path.startsWith("/v3")
-                || path.startsWith("/api-docs")
-                || path.startsWith("/chat")
-                || path.startsWith("/chatbot");
+                || path.startsWith("/api-docs");
     }
 }

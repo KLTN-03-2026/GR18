@@ -3,7 +3,7 @@
  * Phụ thuộc: SockJS, Stomp (nạp từ component-loader), Bootstrap dropdown.
  */
 (function () {
-    const API_BASE = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+    const API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
     const FEED_STORAGE_KEY = "adminHeaderNotifyFeedV1";
     const MAX_FEED = 24;
     /** Thời gian hiển thị popup giữa phía trên khi có thông báo mới (STOMP). */
@@ -21,7 +21,7 @@
             const u = new URL(API_BASE);
             return `${u.origin}/api/ws`;
         } catch {
-            return "https://gr18.onrender.com/api/ws";
+            return `${(window.API_BASE || "").replace(/\/+$/, "")}/ws`;
         }
     }
 

@@ -5,7 +5,7 @@
 
 const LOGIN_PAGE = "../dangnhap.html";
 const AFTER_LOGIN_PATH = "index/datban.html";
-const API_BASE = (typeof window !== "undefined" && window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+const API_BASE = ((typeof window !== "undefined" && window.API_BASE) || "").replace(/\/+$/, "");
 
 let bookingLocations = [];
 let bookingTables = [];

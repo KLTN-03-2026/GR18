@@ -1,9 +1,9 @@
 /**
  * Quản lý bàn & QR: danh sách, thêm / sửa / xóa (API admin), QR menu theo token.
- * GET/POST/PUT/DELETE /tables/admin/* — JWT ADMIN. API: window.RESTAURANT_API_BASE || https://gr18.onrender.com/api
+ * GET/POST/PUT/DELETE /tables/admin/* — JWT ADMIN. API: window.API_BASE (config.js auto-switch local/prod)
  */
 (function () {
-    var API_BASE = (typeof window !== "undefined" && window.RESTAURANT_API_BASE) || "https://gr18.onrender.com/api";
+    var API_BASE = (typeof window !== "undefined" && window.API_BASE) || "";
     API_BASE = String(API_BASE).replace(/\/+$/, "");
 
     var FALLBACK_TABLES = [

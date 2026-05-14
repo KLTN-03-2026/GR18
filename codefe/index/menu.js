@@ -1,8 +1,7 @@
 // ============================================================
-// CONFIG (qr-session.js đặt RESTAURANT_API_BASE trước khi load file này)
+// CONFIG (config.js auto-switch local/production; qr-session.js cho phép override).
 // ============================================================
-const PROD_API_BASE = "https://gr18.onrender.com/api";
-let API_BASE = window.RESTAURANT_API_BASE || PROD_API_BASE;
+let API_BASE = (window.API_BASE || "").replace(/\/+$/, "");
 /** Cùng host với trang (LAN dev): chỉ áp dụng khi trang chạy trên LAN, không phải production. */
 function sameHostApiBases() {
     const h = typeof window !== "undefined" && window.location && window.location.hostname;
@@ -12,13 +11,11 @@ function sameHostApiBases() {
     return [(window.location.protocol + "//" + h + ":8080/api").replace(/\/+$/, "")];
 }
 function getApiBaseCandidates() {
-    const fromSession = (window.RESTAURANT_API_BASE || "").replace(/\/+$/, "");
+    const fromConfig = (window.API_BASE || "").replace(/\/+$/, "");
     const set = new Set();
-    if (fromSession) set.add(fromSession);
+    if (fromConfig) set.add(fromConfig);
     sameHostApiBases().forEach(function (b) { set.add(b); });
-    [API_BASE, PROD_API_BASE]
-        .filter(Boolean)
-        .forEach(function (b) { set.add(b.replace(/\/+$/, "")); });
+    if (API_BASE) set.add(API_BASE.replace(/\/+$/, ""));
     return [...set];
 }
 
@@ -197,7 +194,7 @@ function qrCallStaffFromMenu(customNote) {
         hienToast(err.message, "warning");
         return Promise.reject(err);
     }
-    const base = (window.RESTAURANT_API_BASE || API_BASE || PROD_API_BASE).replace(/\/$/, "");
+    const base = (window.API_BASE || API_BASE || "").replace(/\/$/, "");
     const defaultNote = "Khách bấm gọi nhân viên từ trang menu QR";
     const note =
         typeof customNote === "string" && customNote.trim().length > 0 ? customNote.trim() : defaultNote;
@@ -505,6 +502,7 @@ async function fetchMenuWithFallback(path) {
                 throw new Error(json.message || "Lỗi từ server");
             }
             API_BASE = base;
+            window.API_BASE = base;
             window.RESTAURANT_API_BASE = base;
             return json;
         } catch (err) {
@@ -516,7 +514,7 @@ async function fetchMenuWithFallback(path) {
     if (/Failed to fetch|NetworkError|Load failed|không đọc được JSON/i.test(m)) {
         throw new Error(
             m +
-                " — Backend: " + PROD_API_BASE +
+                " — Backend: " + (window.API_BASE || "") +
                 " (kiểm tra kết nối Internet hoặc trạng thái dịch vụ trên Render)."
         );
     }

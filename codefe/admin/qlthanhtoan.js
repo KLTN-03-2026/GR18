@@ -3,7 +3,7 @@
  * qua PATCH /staff/orders/{id}/payment. Tách biệt với điều phối đơn US18 (donhang.js — Order.status).
  */
 
-const BASE_URL = (window.RESTAURANT_API_BASE || "https://gr18.onrender.com/api").replace(/\/+$/, "");
+const BASE_URL = (window.API_BASE || "").replace(/\/+$/, "");
 
 function getPaymentToken() {
     return localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
