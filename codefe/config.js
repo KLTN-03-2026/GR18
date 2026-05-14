@@ -5,7 +5,7 @@
 const API_BASE =
     window.location.hostname === "localhost"
         ? "http://localhost:8080/api"
-        : "http://157.66.219.65/api";
+        : "https://157-66-219-65.sslip.io/api";
 
 window.API_BASE = API_BASE;
 // Backward-compat: một số script cũ có thể vẫn đọc RESTAURANT_API_BASE.
