@@ -41,7 +41,8 @@ public class TableController {
     @GetMapping("/qr/{token}/active-order")
     @Operation(summary = "Khách QR: đơn mở hiện tại của bàn (null nếu chưa có)")
     public ResponseEntity<ApiResponse<GuestOrderResponse>> getActiveOrderByQr(@PathVariable String token) {
-        GuestOrderResponse active = orderService.getActiveOrderByQrToken(token);
+        var open = orderService.getActiveOrderSummariesByQrToken(token);
+        GuestOrderResponse active = open.isEmpty() ? null : open.get(0);
         return ResponseEntity.ok(ApiResponse.success(active));
     }
 

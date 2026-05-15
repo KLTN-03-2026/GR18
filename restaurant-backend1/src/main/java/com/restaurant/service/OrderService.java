@@ -21,6 +21,7 @@ import com.restaurant.dto.request.StaffPlaceOrderRequest;
 import com.restaurant.entity.Reservation;
 import com.restaurant.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -68,7 +70,7 @@ public class OrderService {
         if (!Boolean.TRUE.equals(table.getIsActive())) {
             throw new IllegalArgumentException("Bàn không còn hoạt động.");
         }
-        findOpenOrderByTableIdLocked(table.getId()).ifPresent(open -> {
+        findOpenOrderByTableId(table.getId()).ifPresent(open -> {
             throw new IllegalStateException(
                     "Bàn đang có đơn chưa thanh toán (#" + open.getId() + "). Hãy thêm món vào đơn hiện tại.");
         });
@@ -78,7 +80,7 @@ public class OrderService {
     }
 
     /**
-     * Tạo đơn mới hoặc append nếu bàn đã có đơn mở (pessimistic lock tránh duplicate).
+     * Tạo đơn mới hoặc append nếu bàn đã có đơn mở.
      */
     private Order createOrAppendOnTable(
             RestaurantTable table,
@@ -87,9 +89,9 @@ public class OrderService {
             String note,
             List<OrderRequest.OrderItemRequest> itemRequests) {
 
-        Optional<Order> openLocked = findOpenOrderByTableIdLocked(table.getId());
-        if (openLocked.isPresent()) {
-            Order existing = orderRepository.findDetailById(openLocked.get().getId()).orElse(openLocked.get());
+        Optional<Order> open = findOpenOrderByTableId(table.getId());
+        if (open.isPresent()) {
+            Order existing = orderRepository.findDetailById(open.get().getId()).orElse(open.get());
             if (itemRequests != null && !itemRequests.isEmpty()) {
                 return appendItemsToOrder(existing, itemRequests, false);
             }
@@ -99,26 +101,24 @@ public class OrderService {
     }
 
     public Optional<Order> findOpenOrderByTableId(Long tableId) {
-        List<Order> active = orderRepository.findActiveOrdersByTableWithTable(tableId);
+        List<Order> active = orderRepository.findActiveOrdersByTable(tableId);
         if (active.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(active.get(0));
     }
 
-    private Optional<Order> findOpenOrderByTableIdLocked(Long tableId) {
-        List<Order> locked = orderRepository.findOpenOrdersByTableIdForUpdate(tableId);
-        if (locked.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(locked.get(0));
-    }
-
     @Transactional(readOnly = true)
     public GuestOrderResponse getActiveOrderByQrToken(String qrToken) {
-        RestaurantTable table = tableRepository.findByQrCodeToken(qrToken)
+        RestaurantTable table = requireTableByQrToken(qrToken);
+        return findOpenOrderByTableId(table.getId())
+                .map(order -> toGuestOrderResponse(order, table))
+                .orElse(null);
+    }
+
+    private RestaurantTable requireTableByQrToken(String qrToken) {
+        return tableRepository.findByQrCodeToken(qrToken)
                 .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ hoặc đã hết hạn"));
-        return findOpenOrderByTableId(table.getId()).map(this::toGuestOrderResponse).orElse(null);
     }
 
     public GuestOrderResponse appendItemsToGuestOrder(Long orderId, GuestAppendOrderItemsRequest request) {
@@ -129,12 +129,12 @@ public class OrderService {
         if (order.getTable() == null || !table.getId().equals(order.getTable().getId())) {
             throw new IllegalArgumentException("Đơn hàng không thuộc bàn này");
         }
-        Optional<Order> openOnTable = findOpenOrderByTableIdLocked(table.getId());
+        Optional<Order> openOnTable = findOpenOrderByTableId(table.getId());
         if (openOnTable.isEmpty() || !openOnTable.get().getId().equals(orderId)) {
             throw new IllegalStateException("Đơn không còn active trên bàn này");
         }
         Order updated = appendItemsToOrder(order, request.getItems(), false);
-        return toGuestOrderResponse(updated);
+        return toGuestOrderResponse(updated, table);
     }
 
     public void releaseTableIfNoOpenOrders(Long tableId) {
@@ -168,9 +168,14 @@ public class OrderService {
      * </ul>
      */
     private Reservation resolveReservationLinkingQrOrder(RestaurantTable table) {
-        return reservationRepository
-                .findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(table.getId(), ReservationStatus.ARRIVED)
-                .orElseGet(() -> fallbackTodayConfirmedReservationForTable(table));
+        try {
+            return reservationRepository
+                    .findFirstByTable_IdAndStatusOrderByUpdatedAtDesc(table.getId(), ReservationStatus.ARRIVED)
+                    .orElseGet(() -> fallbackTodayConfirmedReservationForTable(table));
+        } catch (Exception e) {
+            log.warn("Không liên kết đặt bàn cho bàn {}: {}", table.getId(), e.getMessage());
+            return null;
+        }
     }
 
     private Reservation fallbackTodayConfirmedReservationForTable(RestaurantTable table) {
@@ -232,7 +237,7 @@ public class OrderService {
             MenuItem menuItem = menuItemRepository.findById(itemReq.getMenuItemId())
                     .orElseThrow(() -> new IllegalArgumentException("Món ăn không tồn tại: " + itemReq.getMenuItemId()));
 
-            if (!menuItem.getIsAvailable()) {
+            if (!Boolean.TRUE.equals(menuItem.getIsAvailable())) {
                 throw new IllegalArgumentException("Món '" + menuItem.getName() + "' hiện không có sẵn");
             }
 
@@ -257,12 +262,16 @@ public class OrderService {
         table.setStatus(TableStatus.OCCUPIED);
         tableRepository.save(table);
 
-        messagingTemplate.convertAndSend(
-                "/topic/orders/new",
-                Map.of(
-                        "type", "ORDER_NEW",
-                        "orderId", savedOrder.getId(),
-                        "tableNumber", table.getTableNumber() != null ? table.getTableNumber() : ""));
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/orders/new",
+                    Map.of(
+                            "type", "ORDER_NEW",
+                            "orderId", savedOrder.getId(),
+                            "tableNumber", table.getTableNumber() != null ? table.getTableNumber() : ""));
+        } catch (Exception e) {
+            log.warn("Bỏ qua push WebSocket đơn mới {}: {}", savedOrder.getId(), e.getMessage());
+        }
 
         return savedOrder;
     }
@@ -429,7 +438,9 @@ public class OrderService {
             }
         }
 
-        order.setTotalAmount(order.getTotalAmount().add(delta));
+        BigDecimal currentTotal =
+                order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        order.setTotalAmount(currentTotal.add(delta));
         Order saved = orderRepository.save(order);
         orderRepository.flush();
 
@@ -450,7 +461,11 @@ public class OrderService {
                 order.getTable() != null && order.getTable().getTableNumber() != null
                         ? order.getTable().getTableNumber()
                         : "");
-        messagingTemplate.convertAndSend("/topic/orders/" + orderId + "/items-appended", kitchenPayload);
+        try {
+            messagingTemplate.convertAndSend("/topic/orders/" + orderId + "/items-appended", kitchenPayload);
+        } catch (Exception e) {
+            log.warn("Bỏ qua push WebSocket thêm món đơn {}: {}", orderId, e.getMessage());
+        }
     }
 
     private OrderItem findMergeableLine(Order order, Long menuItemId, String noteNorm) {
@@ -614,15 +629,20 @@ public class OrderService {
 
     public GuestOrderResponse createGuestOrderResponse(OrderRequest request) {
         Order order = createOrder(request);
-        return toGuestOrderResponse(orderRepository.findDetailById(order.getId()).orElse(order));
+        Order detail = orderRepository.findDetailById(order.getId()).orElse(order);
+        RestaurantTable table = detail.getTable();
+        if (table == null && request.getQrToken() != null) {
+            table = tableRepository.findByQrCodeToken(request.getQrToken()).orElse(null);
+        }
+        return toGuestOrderResponse(detail, table);
     }
 
+    @Transactional(readOnly = true)
     public List<GuestOrderResponse> getActiveOrderSummariesByQrToken(String qrToken) {
-        GuestOrderResponse single = getActiveOrderByQrToken(qrToken);
-        if (single == null) {
-            return List.of();
-        }
-        return List.of(single);
+        RestaurantTable table = requireTableByQrToken(qrToken);
+        return orderRepository.findActiveOrdersByTable(table.getId()).stream()
+                .map(order -> toGuestOrderResponse(order, table))
+                .toList();
     }
 
     // A1: Lịch sử đơn hàng của user (US08) — map DTO trong transaction (open-in-view=false)
@@ -644,10 +664,15 @@ public class OrderService {
     }
 
     private GuestOrderResponse toGuestOrderResponse(Order order) {
+        return toGuestOrderResponse(order, order.getTable());
+    }
+
+    private GuestOrderResponse toGuestOrderResponse(Order order, RestaurantTable tableHint) {
+        RestaurantTable table = tableHint != null ? tableHint : order.getTable();
         return GuestOrderResponse.builder()
                 .id(order.getId())
-                .tableId(order.getTable() != null ? order.getTable().getId() : null)
-                .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
+                .tableId(table != null ? table.getId() : null)
+                .tableNumber(table != null ? table.getTableNumber() : null)
                 .guestName(order.getGuestName())
                 .status(order.getStatus())
                 .paymentStatus(order.getPaymentStatus())

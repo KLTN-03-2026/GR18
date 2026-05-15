@@ -389,6 +389,35 @@ function dgEsc(s) {
     return d.innerHTML;
 }
 
+function dgNotify(msg, type) {
+    var text = msg || (type === "error" ? "Có lỗi xảy ra." : "Đánh giá thành công!");
+    var box = document.getElementById("dg-submit-feedback");
+    if (box) {
+        box.className =
+            "alert mt-3 mb-0 alert-" + (type === "error" ? "danger" : "success");
+        box.innerHTML =
+            '<i class="fa-solid ' +
+            (type === "error" ? "fa-circle-xmark" : "fa-circle-check") +
+            ' me-2"></i>' +
+            dgEsc(text);
+        box.classList.remove("d-none");
+        try {
+            box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (e0) {}
+        if (type !== "error") {
+            window.setTimeout(function () {
+                box.classList.add("d-none");
+            }, 8000);
+        }
+    }
+    if (typeof toastr !== "undefined") {
+        if (type === "error") toastr.error(text);
+        else toastr.success(text);
+    } else if (type === "error") {
+        window.alert(text);
+    }
+}
+
 function dgEditOpen(id, list, isGuest) {
     _dgEditIsGuest = !!isGuest;
     var r = (list || []).find(function (x) {
@@ -441,7 +470,7 @@ async function dgEditSave() {
         comment: (ta.value || "").trim()
     };
     if (body.rating < 1 || body.rating > 5 || !body.comment) {
-        toastr.warning("Vui lòng chọn số sao và nhập nội dung hợp lệ.");
+        dgNotify("Vui lòng chọn số sao và nhập nội dung hợp lệ.", "error");
         return;
     }
     try {
@@ -461,7 +490,7 @@ async function dgEditSave() {
         if (!res.ok || json.success === false) {
             throw new Error(json.message || "Không cập nhật được");
         }
-        toastr.success(json.message || "Đã cập nhật đánh giá");
+        dgNotify(json.message || "Đã cập nhật đánh giá.", "success");
         var m = document.getElementById("dg-edit-modal");
         if (m && typeof bootstrap !== "undefined") {
             var inst = bootstrap.Modal.getInstance(m);
@@ -476,7 +505,7 @@ async function dgEditSave() {
         }
         dgFetchReviews();
     } catch (e) {
-        toastr.error(e.message || "Lỗi");
+        dgNotify(e.message || "Lỗi", "error");
     }
 }
 
@@ -494,7 +523,7 @@ async function dgDeleteReview(id, isGuest) {
         if (!res.ok || json.success === false) {
             throw new Error(json.message || "Không xóa được");
         }
-        toastr.success(json.message || "Đã xóa đánh giá");
+        dgNotify(json.message || "Đã xóa đánh giá.", "success");
         if (isGuest) {
             dgLoadMyGuestReviews();
             dgLoadEligibleGuestOrders();
@@ -504,7 +533,7 @@ async function dgDeleteReview(id, isGuest) {
         }
         dgFetchReviews();
     } catch (e) {
-        toastr.error(e.message || "Lỗi");
+        dgNotify(e.message || "Lỗi", "error");
     }
 }
 
@@ -524,7 +553,7 @@ function dgOnSubmit(e) {
         comment: (c.value || "").trim()
     };
     if (!orderId || !menuItemId || payload.rating < 1 || !payload.comment) {
-        toastr.warning("Vui lòng chọn đơn, món, số sao và nhập nội dung.");
+        dgNotify("Vui lòng chọn đơn, món, số sao và nhập nội dung.", "error");
         return false;
     }
     var btn = document.getElementById("dg-btn-send");
@@ -545,7 +574,7 @@ function dgOnSubmit(e) {
     if (guest) {
         var qt = dgQr();
         if (!qt) {
-            toastr.error("Thiếu mã bàn (QR). Mở lại trang từ mã QR tại bàn.");
+            dgNotify("Thiếu mã bàn (QR). Mở lại trang từ mã QR tại bàn.", "error");
             if (btn) btn.disabled = false;
             return false;
         }
@@ -568,7 +597,8 @@ function dgOnSubmit(e) {
             if (!res.ok || json.success === false) {
                 throw new Error(json.message || "Gửi thất bại");
             }
-            toastr.success(json.message || "Đánh giá thành công");
+            var okMsg = json.message || "Đánh giá thành công! Cảm ơn bạn đã chia sẻ.";
+            dgNotify(okMsg, "success");
             c.value = "";
             if (guest) {
                 dgLoadEligibleGuestOrders();
@@ -581,7 +611,7 @@ function dgOnSubmit(e) {
             dgFetchReviews();
         })
         .catch(function (err) {
-            toastr.error(err.message || "Lỗi gửi đánh giá");
+            dgNotify(err.message || "Lỗi gửi đánh giá", "error");
             // Nếu đã đánh giá rồi, reload danh sách để hiện đánh giá cũ cho user xem/xóa
             if (err.message && err.message.indexOf("đánh giá") !== -1) {
                 if (_dgGuestMode) dgLoadMyGuestReviews();

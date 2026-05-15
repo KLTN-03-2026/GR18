@@ -4,6 +4,7 @@ import com.restaurant.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import jakarta.persistence.PersistenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -90,6 +91,15 @@ public class GlobalExceptionHandler {
         log.warn("Data integrity violation: {}", ex.getMessage());
         return ApiResponse.error(
                 "Thao tác vi phạm ràng buộc dữ liệu (ví dụ: email/phone trùng hoặc bản ghi đang được tham chiếu)");
+    }
+
+    @ExceptionHandler(PersistenceException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePersistence(PersistenceException ex) {
+        log.error("Database persistence error: ", ex);
+        String hint = ex.getMessage() != null && ex.getMessage().contains("reservation_id")
+                ? "Thiếu cột reservation_id trên bảng orders — chạy db/manual/guest_order_qr_hotfix.sql hoặc bật ddl-auto=update."
+                : "Đã xảy ra lỗi cơ sở dữ liệu. Vui lòng thử lại sau.";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(hint));
     }
 
     @ExceptionHandler(Exception.class)
