@@ -50,16 +50,22 @@
     }
 
     function toast(msg, isError) {
+        var text = msg || (isError ? "Có lỗi xảy ra." : "Đánh giá thành công! Cảm ơn bạn.");
         var body = document.getElementById("qr-review-toast-body");
         var el = document.getElementById("qr-review-toast");
-        if (!body || !el || typeof bootstrap === "undefined") {
-            window.alert(msg);
-            return;
+        if (body && el && typeof bootstrap !== "undefined") {
+            body.textContent = text;
+            el.classList.remove("text-bg-dark", "text-bg-danger", "text-bg-success");
+            el.classList.add(isError ? "text-bg-danger" : "text-bg-success");
+            var inst = bootstrap.Toast.getOrCreateInstance(el, { delay: isError ? 5000 : 4000 });
+            inst.show();
         }
-        body.textContent = msg;
-        el.classList.remove("text-bg-dark", "text-bg-danger", "text-bg-success");
-        el.classList.add(isError ? "text-bg-danger" : "text-bg-success");
-        bootstrap.Toast.getOrCreateInstance(el, { delay: isError ? 4500 : 2800 }).show();
+        if (typeof toastr !== "undefined") {
+            if (isError) toastr.error(text);
+            else toastr.success(text);
+        } else if (!body || !el) {
+            window.alert(text);
+        }
     }
 
     function paintStars(wrap, rating) {
@@ -187,10 +193,16 @@
             if (!res.ok || json.success === false) {
                 throw new Error(json.message || "Gửi thất bại");
             }
-            toast(json.message || "Đánh giá thành công!", false);
+            var okMsg = json.message || "Đánh giá thành công! Cảm ơn bạn đã chia sẻ.";
+            if (_qrRevModal) {
+                _qrRevModal.hide();
+            }
             c.value = "";
             if (d) d.innerHTML = '<option value="">-- Chọn món trong đơn --</option>';
             await loadEligible();
+            window.setTimeout(function () {
+                toast(okMsg, false);
+            }, 350);
         } catch (e) {
             toast(e.message || "Lỗi gửi đánh giá", true);
         } finally {
