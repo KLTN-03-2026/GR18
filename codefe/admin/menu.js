@@ -115,6 +115,7 @@ function uniqueCategories(categories) {
     const seen = new Set();
     const result = [];
     (categories || []).forEach((c) => {
+        if (c && c.isActive === false) return;
         if (isCorruptedCategoryName(c?.name)) return;
         const key = normalizeCategoryKey(c?.name);
         if (!key || seen.has(key)) return;
@@ -662,6 +663,14 @@ async function deleteSelectedCategory() {
         currentCategoryId = null;
         await loadCategories();
         await loadMenu();
+        if (select) {
+            if (categoryCache.length) {
+                select.value = String(categoryCache[0].id);
+            } else {
+                select.value = CATEGORY_MODAL_NEW;
+            }
+            bindCategoryEditForm();
+        }
     } catch (err) {
         showActionToast(err.message || "Không xóa được danh mục.", "error");
     }

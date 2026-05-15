@@ -38,9 +38,9 @@ public class AdminMenuController {
     // ===== CATEGORY CRUD =====
 
     @GetMapping("/categories")
-    @Operation(summary = "Lấy tất cả danh mục (kể cả ẩn)")
+    @Operation(summary = "Lấy danh mục đang hiển thị (đã xóa/ẩn sẽ không trả về)")
     public ResponseEntity<ApiResponse<List<Category>>> getAllCategories() {
-        return ResponseEntity.ok(ApiResponse.success(categoryRepository.findAll()));
+        return ResponseEntity.ok(ApiResponse.success(categoryRepository.findByIsActiveTrueOrderBySortOrderAsc()));
     }
 
     @PostMapping("/categories")
@@ -77,16 +77,22 @@ public class AdminMenuController {
     }
 
     @DeleteMapping("/categories/{id}")
-    @Operation(summary = "Xóa danh mục (chỉ khi không còn món)")
+    @Operation(summary = "Xóa danh mục (chỉ khi không còn món đang hiển thị)")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
-        List<MenuItem> items = menuItemRepository.findByCategoryIdAndIsActiveTrue(id);
-        if (!items.isEmpty()) {
-            throw new IllegalStateException("Không thể xóa danh mục vì vẫn còn " + items.size() + " món ăn");
+        List<MenuItem> activeItems = menuItemRepository.findByCategoryIdAndIsActiveTrue(id);
+        if (!activeItems.isEmpty()) {
+            throw new IllegalStateException(
+                    "Không thể xóa danh mục vì vẫn còn " + activeItems.size() + " món ăn đang hiển thị");
         }
-        category.setIsActive(false);
-        categoryRepository.save(category);
+        List<MenuItem> allItems = menuItemRepository.findByCategoryId(id);
+        if (allItems.isEmpty()) {
+            categoryRepository.delete(category);
+        } else {
+            category.setIsActive(false);
+            categoryRepository.save(category);
+        }
         return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa danh mục"));
     }
 
