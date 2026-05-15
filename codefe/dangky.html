@@ -17,6 +17,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="dangky.css" />
+    <link rel="stylesheet" href="password-toggle.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
   </head>
   <body>
@@ -90,17 +91,23 @@
                 </div>
 
                 <div class="mb-3">
-                  <div class="input-group">
+                  <div class="input-group password-input-group">
                     <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
-                    <input type="password" id="password" class="form-control border-start-0" placeholder="Mật khẩu" />
+                    <input type="password" id="password" class="form-control border-start-0" placeholder="Mật khẩu" autocomplete="new-password" />
+                    <button type="button" class="password-toggle-btn" aria-label="Hiện mật khẩu" aria-pressed="false" tabindex="0">
+                      <i class="fa-solid fa-eye password-toggle-icon" aria-hidden="true"></i>
+                    </button>
                   </div>
                   <div class="invalid-feedback d-block" id="err-password"></div>
                 </div>
 
                 <div class="mb-4">
-                  <div class="input-group">
+                  <div class="input-group password-input-group">
                     <span class="input-group-text bg-transparent"><i class="fa-solid fa-lock text-warning"></i></span>
-                    <input type="password" id="confirmPassword" class="form-control border-start-0" placeholder="Xác nhận mật khẩu" />
+                    <input type="password" id="confirmPassword" class="form-control border-start-0" placeholder="Xác nhận mật khẩu" autocomplete="new-password" />
+                    <button type="button" class="password-toggle-btn" aria-label="Hiện mật khẩu" aria-pressed="false" tabindex="0">
+                      <i class="fa-solid fa-eye password-toggle-icon" aria-hidden="true"></i>
+                    </button>
                   </div>
                   <div class="invalid-feedback d-block" id="err-confirmPassword"></div>
                 </div>
@@ -141,6 +148,7 @@
     <script src="config.js"></script>
     <script src="index/qr-session.js"></script>
     <script src="index/customer-header.js"></script>
+    <script src="password-toggle.js"></script>
     <script src="dangky.js"></script>
   </body>
 </html>
