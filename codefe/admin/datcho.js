@@ -908,19 +908,6 @@ function formatCounterPadded(num) {
     return String(n).padStart(2, "0");
 }
 
-function countRiskNoShow(rows, dayStr) {
-    const now = Date.now();
-    const rowsSafe = Array.isArray(rows) ? rows : [];
-    return rowsSafe.filter((r) => {
-        const st = normalizeReservationStatus(r.status);
-        if (st !== "CONFIRMED") return false;
-        const t = parseReservationDate(r.reservationTime);
-        if (!t) return false;
-        if (formatInputDate(t) !== dayStr) return false;
-        return t.getTime() < now;
-    }).length;
-}
-
 function calcGrowth(todayGuests) {
     if (todayGuests === 0) return 0;
     const yesterday = todayGuests * 0.85;
@@ -943,16 +930,12 @@ function updateStats(data) {
         if (st === "PENDING") pending++;
     });
 
-    const risk = countRiskNoShow(rows, selectedDate);
-
     const totalEl = document.getElementById("totalGuests");
     const confirmedEl = document.getElementById("confirmedCount");
     const pendingEl = document.getElementById("pendingCount");
-    const riskEl = document.getElementById("riskCount");
     if (totalEl) totalEl.textContent = formatStatCountPlain(totalGuests);
     if (confirmedEl) confirmedEl.textContent = formatCounterPadded(confirmed);
     if (pendingEl) pendingEl.textContent = formatCounterPadded(pending);
-    if (riskEl) riskEl.textContent = formatCounterPadded(risk);
 
     const trendEl = document.getElementById("guestTrendText");
     if (trendEl) {
