@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,8 +104,12 @@ public class UserManagementService {
     }
 
     private String normalizeAllowedPagesJson(String raw, UserRole role) {
-        if (role != UserRole.STAFF) return null;
-        if (raw == null || raw.isBlank()) return null;
+        if (role != UserRole.STAFF) {
+            return null;
+        }
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
         try {
             List<String> pages = objectMapper.readValue(raw, new TypeReference<List<String>>() {});
             List<String> sanitized = pages.stream()
@@ -145,6 +150,29 @@ public class UserManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy user"));
         user.setIsActive(isActive);
         userRepository.save(user);
+    }
+
+    /**
+     * Xóa tài khoản (admin). Không xóa được nếu còn dữ liệu liên kết (đặt bàn, đơn, đánh giá…).
+     */
+    public void deleteUser(Long userId, Long actingAdminId) {
+        if (actingAdminId != null && actingAdminId.equals(userId)) {
+            throw new IllegalArgumentException("Không thể xóa tài khoản đang đăng nhập");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy user"));
+        if (user.getRole() == UserRole.ADMIN) {
+            long activeAdmins = userRepository.countByRoleAndIsActiveTrue(UserRole.ADMIN);
+            if (activeAdmins <= 1 && Boolean.TRUE.equals(user.getIsActive())) {
+                throw new IllegalStateException("Không thể xóa quản trị viên hoạt động cuối cùng");
+            }
+        }
+        try {
+            userRepository.delete(user);
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalStateException(
+                    "Không thể xóa tài khoản đã có đơn hàng, đặt bàn hoặc đánh giá. Hãy khóa tài khoản thay vì xóa.");
+        }
     }
 
     /**

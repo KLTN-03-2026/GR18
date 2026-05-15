@@ -3,11 +3,13 @@ package com.restaurant.exception;
 import com.restaurant.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -74,6 +76,20 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleAccessDenied(AccessDeniedException ex) {
         return ApiResponse.error("Bạn không có quyền thực hiện hành động này");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public ApiResponse<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ApiResponse.error("Phương thức HTTP không được hỗ trợ cho API này");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiResponse<Void> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+        return ApiResponse.error(
+                "Thao tác vi phạm ràng buộc dữ liệu (ví dụ: email/phone trùng hoặc bản ghi đang được tham chiếu)");
     }
 
     @ExceptionHandler(Exception.class)

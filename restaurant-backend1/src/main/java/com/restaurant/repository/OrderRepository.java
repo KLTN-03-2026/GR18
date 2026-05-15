@@ -83,6 +83,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findOpenOrdersByTableIdForUpdate(@Param("tableId") Long tableId);
 
     @Query("""
+        SELECT o FROM Order o
+        JOIN FETCH o.table t
+        WHERE t.id = :tableId
+        AND o.status <> 'CANCELLED'
+        AND NOT (o.status = 'COMPLETED' AND o.paymentStatus = 'PAID')
+        ORDER BY o.createdAt DESC
+        """)
+    List<Order> findActiveOrdersByTableWithTable(@Param("tableId") Long tableId);
+
+    @Query("""
         SELECT COALESCE(SUM(o.totalAmount), 0)
         FROM Order o
         WHERE o.paymentStatus = 'PAID'

@@ -73,6 +73,36 @@
      * Đồng bộ activeOrderId từ GET /tables/qr/{token}/active-order.
      * @returns {Promise<object|null>} đơn mở hoặc null
      */
+    function applySyncedOpenOrder(order) {
+        if (order && order.id != null) {
+            window.setActiveOrderId(order.id);
+            return order;
+        }
+        window.clearActiveOrderId();
+        return null;
+    }
+
+    /** Fallback khi server chưa có GET /tables/qr/{token}/active-order */
+    async function syncActiveOrderLegacy(token) {
+        var res = await fetch(
+            window.API_BASE + "/orders/guest/table/" + encodeURIComponent(token)
+        );
+        var json = await res.json().catch(function () {
+            return {};
+        });
+        if (!res.ok || json.success === false) {
+            return null;
+        }
+        var list = json.data != null ? json.data : json;
+        if (!Array.isArray(list) || !list.length) {
+            return null;
+        }
+        var open = list.find(function (o) {
+            return o && o.paymentStatus !== "PAID";
+        });
+        return open || list[0];
+    }
+
     window.syncActiveOrderFromApi = async function () {
         var token = typeof window.getActiveQrToken === "function" ? window.getActiveQrToken() : "";
         if (!token || !window.API_BASE) {
@@ -86,18 +116,21 @@
             var json = await res.json().catch(function () {
                 return {};
             });
-            if (!res.ok || json.success === false) {
-                return null;
+            if (res.ok && json.success !== false) {
+                return applySyncedOpenOrder(json.data != null ? json.data : null);
             }
-            var order = json.data != null ? json.data : null;
-            if (order && order.id != null) {
-                window.setActiveOrderId(order.id);
-                return order;
+            if (res.status === 404 || res.status === 405 || res.status >= 500) {
+                var legacy = await syncActiveOrderLegacy(token);
+                return applySyncedOpenOrder(legacy);
             }
-            window.clearActiveOrderId();
             return null;
         } catch (e) {
-            return null;
+            try {
+                var legacyOrder = await syncActiveOrderLegacy(token);
+                return applySyncedOpenOrder(legacyOrder);
+            } catch (e2) {
+                return null;
+            }
         }
     };
 
