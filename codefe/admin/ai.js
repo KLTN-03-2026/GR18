@@ -29,6 +29,45 @@
         return v.toLocaleString("vi-VN") + " đ";
     }
 
+    /** Jackson Instant: ISO string, epoch seconds (number), hoặc [seconds, nanos]. */
+    function aiParseInstant(v) {
+        if (v == null || v === "") return null;
+        try {
+            if (typeof v === "string") {
+                var s = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, "$1T$2");
+                var d = new Date(s);
+                return isNaN(d.getTime()) ? null : d;
+            }
+            if (typeof v === "number") {
+                var n = v;
+                if (Math.abs(n) < 1e12) n = n * 1000;
+                var dn = new Date(n);
+                return isNaN(dn.getTime()) ? null : dn;
+            }
+            if (Array.isArray(v)) {
+                if (v.length === 2 && typeof v[0] === "number") {
+                    var sec = Number(v[0]);
+                    var nano = v[1] != null ? Number(v[1]) : 0;
+                    var di = new Date(sec * 1000 + Math.floor(nano / 1e6));
+                    return isNaN(di.getTime()) ? null : di;
+                }
+                if (v.length >= 3) {
+                    var ms = v.length > 6 && v[6] != null ? Math.floor(Number(v[6]) / 1e6) : 0;
+                    var da = new Date(v[0], (v[1] || 1) - 1, v[2] || 1, v[3] || 0, v[4] || 0, v[5] || 0, ms);
+                    return isNaN(da.getTime()) ? null : da;
+                }
+            }
+        } catch (e) {
+            /* ignore */
+        }
+        return null;
+    }
+
+    function aiFormatInstant(v) {
+        var d = aiParseInstant(v);
+        return d ? d.toLocaleString("vi-VN") : "—";
+    }
+
     async function apiGet(path) {
         var res = await fetch(window.API_BASE + path, {
             headers: { Authorization: "Bearer " + getToken() }
@@ -216,7 +255,7 @@
         }
         var up = $("ai-config-updated");
         if (up && c.updatedAt) {
-            up.textContent = "Cập nhật lần cuối: " + new Date(c.updatedAt).toLocaleString("vi-VN");
+            up.textContent = "Cập nhật lần cuối: " + aiFormatInstant(c.updatedAt);
         }
     }
 
@@ -335,13 +374,13 @@
         tbody.innerHTML = pageData.rows
             .map(function (row) {
                 var acc = row.acceptedMenuItemId != null ? "#" + row.acceptedMenuItemId : "—";
-                var at = row.acceptedAt ? new Date(row.acceptedAt).toLocaleString("vi-VN") : "—";
+                var at = row.acceptedAt ? aiFormatInstant(row.acceptedAt) : "—";
                 return (
                     "<tr><td class=\"small\">" +
                     esc(row.id) +
                     "</td>" +
                     "<td class=\"small\">" +
-                    esc(new Date(row.createdAt).toLocaleString("vi-VN")) +
+                    esc(aiFormatInstant(row.createdAt)) +
                     "</td>" +
                     "<td><span class=\"badge badge-status-ai\">" +
                     esc(row.source) +
