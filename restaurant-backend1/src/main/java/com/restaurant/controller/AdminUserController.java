@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -104,6 +106,27 @@ public class AdminUserController {
             @RequestParam boolean isActive) {
         userManagementService.toggleUserStatus(userId, isActive);
         return ok(null, isActive ? "Đã kích hoạt tài khoản" : "Đã vô hiệu hóa tài khoản");
+    }
+
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "Xóa tài khoản (không xóa được nếu còn dữ liệu liên kết)")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        Long actingAdminId = parseUserId(authentication);
+        userManagementService.deleteUser(userId, actingAdminId);
+        return ok(null, "Đã xóa tài khoản");
+    }
+
+    private static Long parseUserId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(authentication.getName());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static <T> ResponseEntity<ApiResponse<T>> ok(T data) {

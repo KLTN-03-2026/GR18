@@ -99,7 +99,7 @@ public class OrderService {
     }
 
     public Optional<Order> findOpenOrderByTableId(Long tableId) {
-        List<Order> active = orderRepository.findActiveOrdersByTable(tableId);
+        List<Order> active = orderRepository.findActiveOrdersByTableWithTable(tableId);
         if (active.isEmpty()) {
             return Optional.empty();
         }

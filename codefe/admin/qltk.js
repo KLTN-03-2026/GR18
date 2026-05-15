@@ -530,7 +530,12 @@ async function deleteUser(id) {
         showToast("Đã xóa tài khoản.");
         await loadMembers();
     } catch (e) {
-        showToast(e.message || "Xóa thất bại", true);
+        const msg = e.message || "Xóa thất bại";
+        if (/ràng buộc|đơn hàng|đặt bàn|đánh giá|tham chiếu/i.test(msg)) {
+            showToast(msg + " Bạn có thể dùng «Khóa» thay vì xóa.", true);
+        } else {
+            showToast(msg, true);
+        }
     }
 }
 
