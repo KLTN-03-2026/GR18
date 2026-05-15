@@ -18,6 +18,10 @@
             <h2 class="fw-bold mb-4 text-white">Lịch sử đặt món / Đặt bàn</h2>
 
             <div class="history-card shadow-lg p-4">
+                <div id="historyRefreshBar" class="history-refresh-bar d-none" aria-live="polite" aria-busy="false">
+                    <span class="spinner-border spinner-border-sm text-orange" role="status" aria-hidden="true"></span>
+                    <span class="small text-muted mb-0">Đang cập nhật trạng thái...</span>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="btn-group filter-group shadow-sm" role="group" aria-label="Lọc lịch sử">
                         <button id="filterAll" class="btn btn-orange-filter active px-4">Tất cả</button>
