@@ -45,6 +45,62 @@
         return "";
     }
 
+    var ACTIVE_ORDER_ID_KEY = "activeOrderId";
+
+    window.getActiveOrderId = function () {
+        try {
+            var v = sessionStorage.getItem(ACTIVE_ORDER_ID_KEY);
+            return v && String(v).trim() ? String(v).trim() : "";
+        } catch (e) {
+            return "";
+        }
+    };
+
+    window.setActiveOrderId = function (orderId) {
+        if (orderId == null || orderId === "") return;
+        try {
+            sessionStorage.setItem(ACTIVE_ORDER_ID_KEY, String(orderId));
+        } catch (e) {}
+    };
+
+    window.clearActiveOrderId = function () {
+        try {
+            sessionStorage.removeItem(ACTIVE_ORDER_ID_KEY);
+        } catch (e) {}
+    };
+
+    /**
+     * Đồng bộ activeOrderId từ GET /tables/qr/{token}/active-order.
+     * @returns {Promise<object|null>} đơn mở hoặc null
+     */
+    window.syncActiveOrderFromApi = async function () {
+        var token = typeof window.getActiveQrToken === "function" ? window.getActiveQrToken() : "";
+        if (!token || !window.API_BASE) {
+            window.clearActiveOrderId();
+            return null;
+        }
+        try {
+            var res = await fetch(
+                window.API_BASE + "/tables/qr/" + encodeURIComponent(token) + "/active-order"
+            );
+            var json = await res.json().catch(function () {
+                return {};
+            });
+            if (!res.ok || json.success === false) {
+                return null;
+            }
+            var order = json.data != null ? json.data : null;
+            if (order && order.id != null) {
+                window.setActiveOrderId(order.id);
+                return order;
+            }
+            window.clearActiveOrderId();
+            return null;
+        } catch (e) {
+            return null;
+        }
+    };
+
     /** Ưu tiên query hiện tại, không thì session đã lưu. */
     window.getActiveQrToken = function () {
         var u = tokenFromUrl();

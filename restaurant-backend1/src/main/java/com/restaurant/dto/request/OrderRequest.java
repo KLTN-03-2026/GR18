@@ -20,6 +20,9 @@ public class OrderRequest {
 
     private String note;
 
+    /** Idempotency key từ client (tuỳ chọn) — tránh double-submit tạo hai đơn. */
+    private String clientRequestId;
+
     @NotNull
     private List<OrderItemRequest> items;
 

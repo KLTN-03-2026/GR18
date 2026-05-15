@@ -5,6 +5,8 @@ import com.restaurant.dto.response.RestaurantTableResponse;
 import com.restaurant.dto.response.TableBookingOptionsResponse;
 import com.restaurant.entity.RestaurantTable;
 import com.restaurant.entity.enums.TableStatus;
+import com.restaurant.dto.response.order.GuestOrderResponse;
+import com.restaurant.service.OrderService;
 import com.restaurant.service.TableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,12 +29,20 @@ import java.util.Map;
 public class TableController {
 
     private final TableService tableService;
+    private final OrderService orderService;
 
     @GetMapping("/qr/{token}")
     @Operation(summary = "Quét mã QR → lấy thông tin bàn và menu (Public)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> scanQrCode(@PathVariable String token) {
         Map<String, Object> data = tableService.buildQrScanWelcomeData(token);
         return ResponseEntity.ok(ApiResponse.success(data, "Chào mừng bạn đến với nhà hàng!"));
+    }
+
+    @GetMapping("/qr/{token}/active-order")
+    @Operation(summary = "Khách QR: đơn mở hiện tại của bàn (null nếu chưa có)")
+    public ResponseEntity<ApiResponse<GuestOrderResponse>> getActiveOrderByQr(@PathVariable String token) {
+        GuestOrderResponse active = orderService.getActiveOrderByQrToken(token);
+        return ResponseEntity.ok(ApiResponse.success(active));
     }
 
     @GetMapping("/booking-options")

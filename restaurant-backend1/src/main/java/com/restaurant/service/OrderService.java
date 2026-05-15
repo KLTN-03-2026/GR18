@@ -14,6 +14,7 @@ import com.restaurant.entity.enums.ReservationStatus;
 import com.restaurant.entity.enums.PaymentMethod;
 import com.restaurant.entity.enums.PaymentStatus;
 import com.restaurant.entity.enums.TableStatus;
+import com.restaurant.dto.request.GuestAppendOrderItemsRequest;
 import com.restaurant.dto.request.OrderRequest;
 import com.restaurant.dto.request.StaffAppendOrderItemsRequest;
 import com.restaurant.dto.request.StaffPlaceOrderRequest;
@@ -37,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -52,16 +54,11 @@ public class OrderService {
     private final NotificationService notificationService;
     private final ReservationRepository reservationRepository;
 
-    /** Khách / QR – theo {@link OrderRequest#getQrToken()}. */
+    /** Khách / QR – theo {@link OrderRequest#getQrToken()}. Một bàn chỉ một đơn mở. */
     public Order createOrder(OrderRequest request) {
         RestaurantTable table = tableRepository.findByQrCodeToken(request.getQrToken())
                 .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ hoặc đã hết hạn"));
-        return placeOrderInternal(
-                table,
-                request.getUserId(),
-                request.getGuestName(),
-                request.getNote(),
-                request.getItems());
+        return createOrAppendOnTable(table, request.getUserId(), request.getGuestName(), request.getNote(), request.getItems());
     }
 
     /** Nhân viên chọn {@code tableId}; logic gán user / đặt bàn như QR. */
@@ -71,9 +68,96 @@ public class OrderService {
         if (!Boolean.TRUE.equals(table.getIsActive())) {
             throw new IllegalArgumentException("Bàn không còn hoạt động.");
         }
+        findOpenOrderByTableIdLocked(table.getId()).ifPresent(open -> {
+            throw new IllegalStateException(
+                    "Bàn đang có đơn chưa thanh toán (#" + open.getId() + "). Hãy thêm món vào đơn hiện tại.");
+        });
         Order saved = placeOrderInternal(table, null, req.getGuestName(), req.getNote(), req.getItems());
         Order detail = orderRepository.findDetailById(saved.getId()).orElse(saved);
         return toStaffOrderResponse(detail);
+    }
+
+    /**
+     * Tạo đơn mới hoặc append nếu bàn đã có đơn mở (pessimistic lock tránh duplicate).
+     */
+    private Order createOrAppendOnTable(
+            RestaurantTable table,
+            Long userIdFromRequestOrNull,
+            String guestName,
+            String note,
+            List<OrderRequest.OrderItemRequest> itemRequests) {
+
+        Optional<Order> openLocked = findOpenOrderByTableIdLocked(table.getId());
+        if (openLocked.isPresent()) {
+            Order existing = orderRepository.findDetailById(openLocked.get().getId()).orElse(openLocked.get());
+            if (itemRequests != null && !itemRequests.isEmpty()) {
+                return appendItemsToOrder(existing, itemRequests, false);
+            }
+            return existing;
+        }
+        return placeOrderInternal(table, userIdFromRequestOrNull, guestName, note, itemRequests);
+    }
+
+    public Optional<Order> findOpenOrderByTableId(Long tableId) {
+        List<Order> active = orderRepository.findActiveOrdersByTable(tableId);
+        if (active.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(active.get(0));
+    }
+
+    private Optional<Order> findOpenOrderByTableIdLocked(Long tableId) {
+        List<Order> locked = orderRepository.findOpenOrdersByTableIdForUpdate(tableId);
+        if (locked.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(locked.get(0));
+    }
+
+    @Transactional(readOnly = true)
+    public GuestOrderResponse getActiveOrderByQrToken(String qrToken) {
+        RestaurantTable table = tableRepository.findByQrCodeToken(qrToken)
+                .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ hoặc đã hết hạn"));
+        return findOpenOrderByTableId(table.getId()).map(this::toGuestOrderResponse).orElse(null);
+    }
+
+    public GuestOrderResponse appendItemsToGuestOrder(Long orderId, GuestAppendOrderItemsRequest request) {
+        RestaurantTable table = tableRepository.findByQrCodeToken(request.getQrToken())
+                .orElseThrow(() -> new IllegalArgumentException("Mã QR không hợp lệ hoặc đã hết hạn"));
+        Order order = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        if (order.getTable() == null || !table.getId().equals(order.getTable().getId())) {
+            throw new IllegalArgumentException("Đơn hàng không thuộc bàn này");
+        }
+        Optional<Order> openOnTable = findOpenOrderByTableIdLocked(table.getId());
+        if (openOnTable.isEmpty() || !openOnTable.get().getId().equals(orderId)) {
+            throw new IllegalStateException("Đơn không còn active trên bàn này");
+        }
+        Order updated = appendItemsToOrder(order, request.getItems(), false);
+        return toGuestOrderResponse(updated);
+    }
+
+    public void releaseTableIfNoOpenOrders(Long tableId) {
+        if (tableId == null) {
+            return;
+        }
+        if (!findOpenOrderByTableId(tableId).isEmpty()) {
+            return;
+        }
+        RestaurantTable table = tableRepository.findById(tableId).orElse(null);
+        if (table == null || !Boolean.TRUE.equals(table.getIsActive())) {
+            return;
+        }
+        table.setStatus(TableStatus.AVAILABLE);
+        tableRepository.save(table);
+        try {
+            messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "AVAILABLE");
+            messagingTemplate.convertAndSend(
+                    "/topic/staff/tables/status",
+                    Map.of("tableId", table.getId(), "status", TableStatus.AVAILABLE.name()));
+        } catch (Exception ignored) {
+            // Không chặn thanh toán nếu WS lỗi
+        }
     }
 
     /**
@@ -223,18 +307,12 @@ public class OrderService {
             menuItemRepository.save(mi);
         });
 
-        // Giải phóng bàn (DB + thông báo realtime)
+        Order saved = orderRepository.save(order);
         RestaurantTable table = order.getTable();
         if (table != null) {
-            table.setStatus(TableStatus.AVAILABLE);
-            tableRepository.save(table);
-            messagingTemplate.convertAndSend("/topic/tables/" + table.getId() + "/status", "AVAILABLE");
-            messagingTemplate.convertAndSend(
-                    "/topic/staff/tables/status",
-                    Map.of("tableId", table.getId(), "status", TableStatus.AVAILABLE.name()));
+            releaseTableIfNoOpenOrders(table.getId());
         }
-
-        return orderRepository.save(order);
+        return saved;
     }
 
     /** Trả DTO thay vì entity {@link Order} để tránh lỗi lazy {@code table} khi ghi JSON (open-in-view=false). */
@@ -286,9 +364,30 @@ public class OrderService {
         }
         Order order = orderRepository.findDetailById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
-        assertOrderAllowsStaffAppend(order);
+        appendItemsToOrder(order, itemRequests, true);
+        Order reloaded = orderRepository.findDetailById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
+        return buildStaffOrderDetailResponse(reloaded);
+    }
 
-        LocalDateTime addedMark = LocalDateTime.now();
+    /**
+     * Thêm / gộp món vào đơn mở. {@code staffAppend=true} áp dụng rule nhân viên + {@code addedToOrderAt}.
+     */
+    private Order appendItemsToOrder(
+            Order order,
+            List<OrderRequest.OrderItemRequest> itemRequests,
+            boolean staffAppend) {
+
+        if (itemRequests == null || itemRequests.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách món không được rỗng");
+        }
+        if (staffAppend) {
+            assertOrderAllowsStaffAppend(order);
+        } else {
+            assertOrderAllowsGuestAppend(order);
+        }
+
+        LocalDateTime addedMark = staffAppend ? LocalDateTime.now() : null;
         List<OrderItem> newLines = new ArrayList<>();
         BigDecimal delta = BigDecimal.ZERO;
 
@@ -298,28 +397,49 @@ public class OrderService {
             if (!Boolean.TRUE.equals(menuItem.getIsAvailable())) {
                 throw new IllegalArgumentException("Món '" + menuItem.getName() + "' hiện không có sẵn");
             }
-            BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()));
-            OrderItem orderItem = OrderItem.builder()
-                    .order(order)
-                    .menuItem(menuItem)
-                    .quantity(itemReq.getQuantity())
-                    .unitPrice(menuItem.getPrice())
-                    .subtotal(subtotal)
-                    .note(itemReq.getNote())
-                    .status(OrderItemStatus.PENDING)
-                    .addedToOrderAt(addedMark)
-                    .build();
-            order.getOrderItems().add(orderItem);
-            newLines.add(orderItem);
-            delta = delta.add(subtotal);
+
+            String noteNorm = normalizeItemNote(itemReq.getNote());
+            OrderItem mergeTarget = findMergeableLine(order, menuItem.getId(), noteNorm);
+            int addQty = itemReq.getQuantity() != null ? itemReq.getQuantity() : 0;
+            if (addQty <= 0) {
+                throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
+            }
+
+            if (mergeTarget != null) {
+                int newQty = mergeTarget.getQuantity() + addQty;
+                BigDecimal lineSubtotal = mergeTarget.getUnitPrice().multiply(BigDecimal.valueOf(newQty));
+                mergeTarget.setQuantity(newQty);
+                mergeTarget.setSubtotal(lineSubtotal);
+                delta = delta.add(mergeTarget.getUnitPrice().multiply(BigDecimal.valueOf(addQty)));
+            } else {
+                BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(addQty));
+                OrderItem orderItem = OrderItem.builder()
+                        .order(order)
+                        .menuItem(menuItem)
+                        .quantity(addQty)
+                        .unitPrice(menuItem.getPrice())
+                        .subtotal(subtotal)
+                        .note(itemReq.getNote())
+                        .status(OrderItemStatus.PENDING)
+                        .addedToOrderAt(addedMark)
+                        .build();
+                order.getOrderItems().add(orderItem);
+                newLines.add(orderItem);
+                delta = delta.add(subtotal);
+            }
         }
 
         order.setTotalAmount(order.getTotalAmount().add(delta));
-        orderRepository.save(order);
+        Order saved = orderRepository.save(order);
         orderRepository.flush();
 
-        List<Long> newIds = newLines.stream().map(OrderItem::getId).filter(id -> id != null).toList();
+        publishItemsAppendedEvent(saved, newLines);
+        return saved;
+    }
 
+    private void publishItemsAppendedEvent(Order order, List<OrderItem> newLines) {
+        Long orderId = order.getId();
+        List<Long> newIds = newLines.stream().map(OrderItem::getId).filter(id -> id != null).toList();
         java.util.Map<String, Object> kitchenPayload = new java.util.HashMap<>();
         kitchenPayload.put("type", "ORDER_ITEMS_APPENDED");
         kitchenPayload.put("orderId", orderId);
@@ -331,10 +451,52 @@ public class OrderService {
                         ? order.getTable().getTableNumber()
                         : "");
         messagingTemplate.convertAndSend("/topic/orders/" + orderId + "/items-appended", kitchenPayload);
+    }
 
-        Order reloaded = orderRepository.findDetailById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
-        return buildStaffOrderDetailResponse(reloaded);
+    private OrderItem findMergeableLine(Order order, Long menuItemId, String noteNorm) {
+        if (order.getOrderItems() == null) {
+            return null;
+        }
+        for (OrderItem line : order.getOrderItems()) {
+            if (line.getStatus() == OrderItemStatus.CANCELLED) {
+                continue;
+            }
+            if (line.getMenuItem() == null || !menuItemId.equals(line.getMenuItem().getId())) {
+                continue;
+            }
+            if (notesMatch(line.getNote(), noteNorm)) {
+                return line;
+            }
+        }
+        return null;
+    }
+
+    private static String normalizeItemNote(String note) {
+        return note == null ? "" : note.trim();
+    }
+
+    private static boolean notesMatch(String existingNote, String normalizedIncoming) {
+        return normalizeItemNote(existingNote).equals(normalizedIncoming);
+    }
+
+    private void assertOrderAllowsGuestAppend(Order order) {
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new IllegalStateException("Đơn hàng đã thanh toán");
+        }
+        if (order.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            throw new IllegalStateException("Đơn hàng đã hoàn tiền");
+        }
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Đơn hàng đã hủy");
+        }
+        if (order.getStatus() == OrderStatus.COMPLETED) {
+            throw new IllegalStateException("Đơn đã hoàn tất — không thể gọi thêm món");
+        }
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PREPARING
+                && order.getStatus() != OrderStatus.SERVING) {
+            throw new IllegalStateException("Không thể thêm món vào đơn này");
+        }
     }
 
     private void assertOrderAllowsStaffAppend(Order order) {
@@ -452,16 +614,15 @@ public class OrderService {
 
     public GuestOrderResponse createGuestOrderResponse(OrderRequest request) {
         Order order = createOrder(request);
-        return toGuestOrderResponse(order);
+        return toGuestOrderResponse(orderRepository.findDetailById(order.getId()).orElse(order));
     }
 
     public List<GuestOrderResponse> getActiveOrderSummariesByQrToken(String qrToken) {
-        List<Order> orders = getActiveOrdersByQrToken(qrToken);
-        List<GuestOrderResponse> result = new ArrayList<>();
-        for (Order order : orders) {
-            result.add(toGuestOrderResponse(order));
+        GuestOrderResponse single = getActiveOrderByQrToken(qrToken);
+        if (single == null) {
+            return List.of();
         }
-        return result;
+        return List.of(single);
     }
 
     // A1: Lịch sử đơn hàng của user (US08) — map DTO trong transaction (open-in-view=false)

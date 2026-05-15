@@ -1,5 +1,5 @@
-/**
- * Giỏ hàng + gửi đơn khách vãng lai (POST /orders/guest).
+﻿/**
+ * Giỏ hàng + gửi đơn khách vãng lai (POST /orders/guest hoặc append đơn mở).
  * Cần mã QR hợp lệ trong session (mở menu với ?t=...).
  */
 (function () {
@@ -13,6 +13,51 @@
 
     function formatVND(n) {
         return Number(n).toLocaleString("vi-VN") + "\u00a0đ";
+    }
+
+    function updateSubmitButtonLabel() {
+        var btn = $("btn-submit-order");
+        if (!btn) return;
+        var hasActive = typeof getActiveOrderId === "function" && !!getActiveOrderId();
+        btn.textContent = hasActive ? "Gọi thêm món" : "Gửi yêu cầu đặt món";
+    }
+
+    function updateActiveOrderHint(order) {
+        var hint = $("active-order-hint");
+        if (!hint) return;
+        if (order && order.id != null) {
+            hint.classList.remove("d-none");
+            hint.textContent = "Đang gọi thêm vào đơn #" + order.id + " (cùng phiên bàn).";
+            return;
+        }
+        var id = typeof getActiveOrderId === "function" ? getActiveOrderId() : "";
+        if (id) {
+            hint.classList.remove("d-none");
+            hint.textContent = "Đang gọi thêm vào đơn #" + id + ".";
+            return;
+        }
+        hint.classList.add("d-none");
+        hint.textContent = "";
+    }
+
+    function applyOrderFromResponse(orderData) {
+        if (orderData && orderData.id != null && typeof setActiveOrderId === "function") {
+            setActiveOrderId(orderData.id);
+        }
+        updateActiveOrderHint(orderData);
+        updateSubmitButtonLabel();
+    }
+
+    async function resolveActiveOrderId(token) {
+        var cached = typeof getActiveOrderId === "function" ? getActiveOrderId() : "";
+        if (typeof syncActiveOrderFromApi === "function") {
+            var synced = await syncActiveOrderFromApi();
+            if (synced && synced.id != null) {
+                return String(synced.id);
+            }
+            return "";
+        }
+        return cached;
     }
 
     function renderCart() {
@@ -126,6 +171,7 @@
                 renderCart();
             });
         });
+        updateSubmitButtonLabel();
     }
 
     function clearCart() {
@@ -217,8 +263,18 @@
             if (!res.ok) throw new Error();
             var list = json.data != null ? json.data : json;
             if (!Array.isArray(list) || !list.length) {
+                if (typeof clearActiveOrderId === "function") clearActiveOrderId();
+                updateActiveOrderHint(null);
+                updateSubmitButtonLabel();
                 box.innerHTML = '<p class="small text-muted mb-0">Chưa có đơn đang xử lý cho bàn này.</p>';
                 return;
+            }
+            var open = list[0];
+            if (open && open.paymentStatus === "PAID") {
+                if (typeof clearActiveOrderId === "function") clearActiveOrderId();
+                updateActiveOrderHint(null);
+            } else {
+                applyOrderFromResponse(open);
             }
             box.innerHTML =
                 '<h6 class="fw-bold mb-2">Đơn đang xử lý</h6><ul class="list-group list-group-flush">' +
@@ -313,21 +369,17 @@
                     note: (i.ghiChu || "").trim() || undefined
                 };
             })
-            .filter(function (x) { return Number.isFinite(x.menuItemId) && x.menuItemId > 0; });
+            .filter(function (x) {
+                return Number.isFinite(x.menuItemId) && x.menuItemId > 0;
+            });
 
         if (!validItems.length) {
             showAlert("Giỏ hàng có dữ liệu không hợp lệ. Vui lòng thêm món lại từ menu.", "error");
             return;
         }
 
-        var body = {
-            guestName: guestName,
-            qrToken: token,
-            note: note || undefined,
-            items: validItems
-        };
-
         var btn = $("btn-submit-order");
+        var prevLabel = btn ? btn.textContent : "";
         if (btn) {
             btn.disabled = true;
             btn.textContent = "Đang gửi…";
@@ -335,28 +387,92 @@
         isSubmittingOrder = true;
 
         try {
-            var res = await fetch(window.API_BASE + "/orders/guest", {
+            var activeOrderId = await resolveActiveOrderId(token);
+            var url;
+            var payload;
+
+            if (activeOrderId) {
+                url = window.API_BASE + "/orders/guest/" + encodeURIComponent(activeOrderId) + "/items";
+                payload = { qrToken: token, items: validItems };
+            } else {
+                url = window.API_BASE + "/orders/guest";
+                payload = {
+                    guestName: guestName,
+                    qrToken: token,
+                    note: note || undefined,
+                    items: validItems,
+                    clientRequestId:
+                        "guest-" + token + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9)
+                };
+            }
+
+            var res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
+                body: JSON.stringify(payload)
             });
             var json = await res.json().catch(function () {
                 return {};
             });
             var msg = json.message || (json.data && json.data.message) || "";
             if (!res.ok || json.success === false) {
-                showAlert(msg || json.error || "Gửi đơn thất bại (" + res.status + ")", "error");
-                return;
+                if (activeOrderId && (res.status === 400 || res.status === 404 || res.status === 409)) {
+                    if (typeof clearActiveOrderId === "function") clearActiveOrderId();
+                    activeOrderId = "";
+                    var retryRes = await fetch(window.API_BASE + "/orders/guest", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            guestName: guestName,
+                            qrToken: token,
+                            note: note || undefined,
+                            items: validItems,
+                            clientRequestId:
+                                "guest-" + token + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9)
+                        })
+                    });
+                    var retryJson = await retryRes.json().catch(function () {
+                        return {};
+                    });
+                    if (retryRes.ok && retryJson.success !== false) {
+                        json = retryJson;
+                        res = retryRes;
+                        msg = retryJson.message || "";
+                    } else {
+                        showAlert(
+                            msg || retryJson.error || "Gửi đơn thất bại (" + res.status + ")",
+                            "error"
+                        );
+                        return;
+                    }
+                } else {
+                    showAlert(msg || json.error || "Gửi đơn thất bại (" + res.status + ")", "error");
+                    return;
+                }
             }
+
+            var orderData = json.data != null ? json.data : json;
+            applyOrderFromResponse(orderData);
+
             if (typeof luuGioHangChung === "function") luuGioHangChung([]);
-            try { localStorage.setItem(LAST_GUEST_NAME_KEY, guestName); } catch (e0) {}
+            try {
+                localStorage.setItem(LAST_GUEST_NAME_KEY, guestName);
+            } catch (e0) {}
             if ($("orderNote")) $("orderNote").value = "";
-            showAlert(msg || "Đặt món thành công!", "success");
+            showAlert(
+                msg || (activeOrderId ? "Đã gọi thêm món!" : "Đặt món thành công!"),
+                "success"
+            );
             renderCart();
             loadOrderStatus();
             setGuestModeText("");
         } catch (e) {
-            // Fallback demo mode khi backend chưa có endpoint /orders/guest
+            var body = {
+                guestName: guestName,
+                qrToken: token,
+                note: note || undefined,
+                items: validItems
+            };
             addDemoOrder(token, body);
             if (typeof luuGioHangChung === "function") luuGioHangChung([]);
             showAlert("Backend chưa sẵn sàng. Đơn đã được lưu demo tại trình duyệt.", "error");
@@ -365,8 +481,10 @@
         } finally {
             isSubmittingOrder = false;
             if (btn) {
-                btn.disabled = false;
-                btn.textContent = "Gửi yêu cầu đặt món";
+                var cartLeft = typeof layGioHangChung === "function" ? layGioHangChung() : [];
+                if (!cartLeft.length) btn.setAttribute("disabled", "disabled");
+                else btn.removeAttribute("disabled");
+                updateSubmitButtonLabel();
             }
         }
     }
@@ -380,7 +498,9 @@
     function readDemoOrders(token) {
         try {
             var all = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || "[]");
-            return all.filter(function (o) { return o.qrToken === token; });
+            return all.filter(function (o) {
+                return o.qrToken === token;
+            });
         } catch (e) {
             return [];
         }
@@ -391,21 +511,28 @@
         try {
             all = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || "[]");
         } catch (e) {}
+        var demoId = Date.now();
         all.unshift({
-            id: Date.now(),
+            id: demoId,
             qrToken: token,
             status: "PENDING",
             guestName: payload.guestName,
             createdAt: new Date().toISOString()
         });
         localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(all.slice(0, 30)));
+        if (typeof setActiveOrderId === "function") setActiveOrderId(demoId);
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", async function () {
         try {
             var lastName = localStorage.getItem(LAST_GUEST_NAME_KEY);
             if (lastName && $("guestName")) $("guestName").value = lastName;
         } catch (e) {}
+        var token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
+        if (token && typeof syncActiveOrderFromApi === "function") {
+            var synced = await syncActiveOrderFromApi();
+            updateActiveOrderHint(synced);
+        }
         renderCart();
         loadTableInfo();
         loadOrderStatus();

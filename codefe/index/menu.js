@@ -219,6 +219,31 @@ function qrCallStaffFromMenu(customNote) {
         });
 }
 
+async function initQrActiveOrderBanner() {
+    const token = typeof getActiveQrToken === "function" ? getActiveQrToken() : "";
+    if (!token || typeof syncActiveOrderFromApi !== "function") return;
+    try {
+        const order = await syncActiveOrderFromApi();
+        if (!order || order.id == null) return;
+        const msg =
+            "Đơn #" + order.id + " đang mở tại bàn — món bạn chọn sẽ được gộp vào đơn này.";
+        const el = document.getElementById("table-qr-banner");
+        const pill = document.getElementById("qr-table-pill");
+        if (pill) {
+            const prev = pill.getAttribute("title") || "";
+            pill.setAttribute("title", prev ? prev + " · " + msg : msg);
+        }
+        if (el && !pill) {
+            el.className = "alert alert-info border-0 mb-2 py-2 text-center small";
+            el.innerHTML =
+                '<i class="fa-solid fa-receipt me-2"></i>' + escapeHtml(msg);
+            el.classList.remove("d-none");
+        }
+    } catch (e) {
+        /* không chặn menu */
+    }
+}
+
 async function initQrBanner() {
     const el = document.getElementById("table-qr-banner");
     const pill = document.getElementById("qr-table-pill");
@@ -283,6 +308,7 @@ async function initQrBanner() {
 // ============================================================
 window.addEventListener("load", async () => {
     await initQrBanner();
+    await initQrActiveOrderBanner();
     initQrLanding();
     if (typeof syncHeaderCartVisibility === "function") syncHeaderCartVisibility();
     capNhatBadgeGioHang();
