@@ -1,5 +1,6 @@
 package com.restaurant.controller;
 
+import com.restaurant.dto.request.GuestAppendOrderItemsRequest;
 import com.restaurant.dto.request.OrderRequest;
 import com.restaurant.dto.request.StaffAppendOrderItemsRequest;
 import com.restaurant.dto.request.StaffPlaceOrderRequest;
@@ -47,6 +48,15 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<GuestOrderResponse>>> getOrdersByQrToken(@PathVariable String qrToken) {
         List<GuestOrderResponse> orders = orderService.getActiveOrderSummariesByQrToken(qrToken);
         return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    @PostMapping("/orders/guest/{orderId}/items")
+    @Operation(summary = "Khách QR: gọi thêm món vào đơn đang mở")
+    public ResponseEntity<ApiResponse<GuestOrderResponse>> appendGuestOrderItems(
+            @PathVariable Long orderId,
+            @Valid @RequestBody GuestAppendOrderItemsRequest request) {
+        GuestOrderResponse order = orderService.appendItemsToGuestOrder(orderId, request);
+        return ResponseEntity.ok(ApiResponse.success(order, "Đã thêm món vào đơn."));
     }
 
     // ===== AUTHENTICATED: Khách đăng nhập đặt món =====

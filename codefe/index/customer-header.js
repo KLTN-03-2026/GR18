@@ -364,6 +364,10 @@
 
         var guestAuth = document.getElementById("header-auth-guest");
         if (guestAuth) guestAuth.style.display = "none";
+
+        if (typeof syncActiveOrderFromApi === "function") {
+            syncActiveOrderFromApi().catch(function () {});
+        }
     }
 
             async function logout() {
