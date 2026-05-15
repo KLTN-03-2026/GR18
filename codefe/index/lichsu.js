@@ -27,11 +27,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const paginationNav = document.getElementById("historyPaginationNav");
     const paginationEl = document.getElementById("historyPagination");
     const paginationMeta = document.getElementById("historyPaginationMeta");
+    const refreshBar = document.getElementById("historyRefreshBar");
     const PAGE_SIZE = 10;
+    const POLL_INTERVAL_MS = 10000;
     let currentTab = "all";
     let currentPage = 1;
     let cachedBookings = [];
     let cachedOrders = [];
+    let lastBookingSig = "";
+    let lastOrderSig = "";
+    let pollTimer = null;
+    let isPolling = false;
+    let isInitialLoad = true;
 
     if (!token) {
         const loginPrompt = `
@@ -198,8 +205,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showFetchError() {
-        setHistoryMessage(`Không thể kết nối máy chủ.`, "text-danger");
+        setHistoryMessage(
+            `Không tải được dữ liệu.<br><span class="small">Lỗi kết nối — vui lòng thử lại sau.</span>`,
+            "text-danger"
+        );
         renderPagination(0);
+    }
+
+    function setRefreshIndicator(visible) {
+        if (!refreshBar) return;
+        refreshBar.classList.toggle("d-none", !visible);
+        refreshBar.setAttribute("aria-busy", visible ? "true" : "false");
+    }
+
+    function bookingsSignature(list) {
+        return (list || [])
+            .map(
+                (b) =>
+                    `${b.id}:${String(b.status || "").toUpperCase()}:${b.tableNumber || ""}:${b.numberOfGuests || ""}`
+            )
+            .join("|");
+    }
+
+    function ordersSignature(list) {
+        return (list || [])
+            .map(
+                (o) =>
+                    `${o.id}:${o.status || ""}:${o.paymentStatus || ""}:${o.totalAmount || 0}`
+            )
+            .join("|");
+    }
+
+    function hasHistoryChanged(bookings, orders) {
+        const bSig = bookingsSignature(bookings);
+        const oSig = ordersSignature(orders);
+        if (bSig === lastBookingSig && oSig === lastOrderSig) return false;
+        lastBookingSig = bSig;
+        lastOrderSig = oSig;
+        return true;
     }
 
     // ============================================================
@@ -484,25 +527,75 @@ document.addEventListener("DOMContentLoaded", () => {
         renderMerged(cachedBookings, cachedOrders);
     }
 
-    async function refresh() {
-        showLoading();
+    function applyHistoryToView(bookings, orders) {
+        cachedBookings = bookings;
+        cachedOrders = orders;
+        renderCurrentTabFromCache();
+    }
+
+    async function loadReservationHistory() {
+        return fetchBookings();
+    }
+
+    async function loadOrderHistory() {
+        return fetchOrders();
+    }
+
+    /** Tải cả hai nguồn; chỉ render lại khi dữ liệu đổi (tránh nhấp nháy / trùng DOM). */
+    async function syncHistoryFromApi(options = {}) {
+        const { silent = false, forceRender = false } = options;
+        if (isPolling) return;
+
+        isPolling = true;
+        if (silent) setRefreshIndicator(true);
+        else if (isInitialLoad) showLoading();
+
         try {
-            if (currentTab === "booking") {
-                cachedBookings = await fetchBookings();
-                renderBookingRows(cachedBookings);
-            } else if (currentTab === "order") {
-                cachedOrders = await fetchOrders();
-                renderOrderRows(cachedOrders);
-            } else {
-                const [bookings, orders] = await Promise.all([fetchBookings(), fetchOrders()]);
-                cachedBookings = bookings;
-                cachedOrders = orders;
-                renderMerged(cachedBookings, cachedOrders);
-            }
+            const [bookings, orders] = await Promise.all([loadReservationHistory(), loadOrderHistory()]);
+            const changed = forceRender || hasHistoryChanged(bookings, orders);
+            if (changed) applyHistoryToView(bookings, orders);
         } catch (e) {
             console.error(e);
-            showFetchError();
+            if (!silent || isInitialLoad) showFetchError();
+        } finally {
+            isPolling = false;
+            isInitialLoad = false;
+            setRefreshIndicator(false);
         }
+    }
+
+    /** Làm mới toàn bộ (đổi tab, sau hủy bàn, lần đầu vào trang). */
+    async function refresh(options = {}) {
+        const { full = true } = options;
+        if (full) {
+            lastBookingSig = "";
+            lastOrderSig = "";
+        }
+        await syncHistoryFromApi({ silent: !full, forceRender: full });
+    }
+
+    async function pollHistory() {
+        if (document.hidden) return;
+        const modalEl = document.getElementById("reservationDetailModal");
+        if (modalEl && modalEl.classList.contains("show")) return;
+        await syncHistoryFromApi({ silent: true });
+    }
+
+    function startHistoryPolling() {
+        stopHistoryPolling();
+        pollTimer = window.setInterval(pollHistory, POLL_INTERVAL_MS);
+    }
+
+    function stopHistoryPolling() {
+        if (pollTimer != null) {
+            window.clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    function onPageVisibleAgain() {
+        pollHistory();
+        startHistoryPolling();
     }
 
     window.openBookingDetail = async (id) => {
@@ -517,17 +610,11 @@ document.addEventListener("DOMContentLoaded", () => {
         detailModal.show();
 
         try {
-            const response = await axios.get(`${BASE_URL}/reservations/me?page=0&size=50`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            let list =
-                response.data &&
-                response.data.success &&
-                response.data.data &&
-                response.data.data.content
-                    ? response.data.data.content
-                    : [];
+            let list = cachedBookings;
+            if (!list.length) {
+                list = await loadReservationHistory();
+                cachedBookings = list;
+            }
             const item = Array.isArray(list) ? list.find((r) => r.id === id) : null;
 
             if (!item) {
@@ -698,6 +785,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setFilterActive("all");
-    refresh();
+    refresh({ full: true });
+    startHistoryPolling();
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopHistoryPolling();
+        else onPageVisibleAgain();
+    });
+
+    window.addEventListener("focus", () => {
+        if (!document.hidden) onPageVisibleAgain();
+    });
+
+    window.addEventListener("beforeunload", stopHistoryPolling);
 });
 

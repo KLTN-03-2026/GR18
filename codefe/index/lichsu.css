@@ -28,6 +28,35 @@ body { font-family: 'Segoe UI', sans-serif; }
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);
     border-radius: 20px;
+    position: relative;
+}
+
+.history-refresh-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 107, 53, 0.08);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    width: fit-content;
+    animation: historyRefreshFadeIn 0.2s ease;
+}
+
+@keyframes historyRefreshFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.history-card .badge,
+.history-card-item .badge {
+    transition: background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.history-card tbody tr,
+.history-card-item {
+    transition: opacity 0.2s ease;
 }
 
 /* Bộ lọc (ALL, Đơn hàng, Đặt bàn) */
