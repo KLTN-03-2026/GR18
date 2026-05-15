@@ -28,6 +28,9 @@
     border-radius: 0 12px 12px 0 !important;
     padding: 10px 15px;
 }
+.custom-input.password-input-group .form-control {
+    border-radius: 0 !important;
+}
 .custom-input .input-group-text {
     border-radius: 12px 0 0 12px !important;
 }
