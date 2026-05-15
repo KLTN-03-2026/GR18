@@ -31,7 +31,7 @@ public class MenuService {
                 SELECT m.id, m.name, m.description, m.price, m.image_url, m.avg_rating, c.name AS category_name
                 FROM menu_items m
                 JOIN categories c ON c.id = m.category_id
-                WHERE m.id = ? AND m.is_active = 1
+                WHERE m.id = ? AND m.is_active = 1 AND m.is_available = 1 AND c.is_active = 1
                 LIMIT 1
                 """;
         List<MenuItemPublicResponse> rows = jdbcTemplate.query(sql, (rs, i) -> mapper.fromResultSet(rs), id);
@@ -44,7 +44,7 @@ public class MenuService {
                 SELECT m.id, m.name, m.description, m.price, m.image_url, m.avg_rating, c.name AS category_name
                 FROM menu_items m
                 JOIN categories c ON c.id = m.category_id
-                WHERE m.is_active = 1 AND m.is_available = 1
+                WHERE m.is_active = 1 AND m.is_available = 1 AND c.is_active = 1
                   AND (m.name LIKE ? OR m.description LIKE ?)
                 ORDER BY m.id DESC
                 LIMIT 50
