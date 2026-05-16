@@ -34,8 +34,13 @@ async function handleGoogleLogin(response) {
         }
     } catch (error) {
         console.error('Lỗi Google Login:', error);
-        const msg = error.response?.data?.message || "Không thể kết nối đến server";
-        toastr.error('Đăng nhập Google thất bại: ' + msg);
+        const status = error.response?.status;
+        const msg =
+            error.response?.data?.message ||
+            (status === 403
+                ? 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                : 'Không thể kết nối đến server');
+        toastr.error(msg, status === 403 ? 'Đăng nhập thất bại' : 'Đăng nhập Google thất bại');
     }
 }
 
@@ -72,7 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error('Login Error:', error);
-                const msg = error.response?.data?.message || 'Sai tài khoản hoặc mật khẩu!';
+                const status = error.response?.status;
+                const msg =
+                    error.response?.data?.message ||
+                    (status === 403
+                        ? 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                        : 'Sai tài khoản hoặc mật khẩu!');
                 toastr.error(msg, 'Đăng nhập thất bại');
             } finally {
                 loginBtn.disabled = false;
