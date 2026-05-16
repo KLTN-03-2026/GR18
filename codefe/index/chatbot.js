@@ -199,12 +199,6 @@ async function askLocalAssistant(text) {
         };
     }
 
-    if (containsAny(normalized, ["gio hang", "cart", "don hang"])) {
-        return {
-            reply: `Bạn có thể kiểm tra giỏ hàng tại ${appendQrToHrefIfAny("giohang.html")}. Nếu cần, mình sẽ gợi ý thêm món phù hợp với món bạn đã chọn.`
-        };
-    }
-
     if (containsAny(normalized, ["xin chao", "hello", "hi", "chao"])) {
         return {
             reply: "Xin chào! Mình có thể hỗ trợ gợi ý món ăn, chỉ đường sang trang đặt bàn, hoặc tìm món theo khẩu vị/giá."
@@ -212,7 +206,7 @@ async function askLocalAssistant(text) {
     }
 
     return {
-        reply: "Mình đã ghi nhận câu hỏi của bạn. Bạn có thể thử các từ khoá: 'gợi ý món', 'đặt bàn', 'xem giỏ hàng' để mình hỗ trợ nhanh hơn."
+        reply: "Mình đã ghi nhận câu hỏi của bạn. Bạn có thể thử các từ khoá: 'gợi ý món', 'đặt bàn' để mình hỗ trợ nhanh hơn."
     };
 }
 
@@ -314,7 +308,6 @@ function renderQuickActions() {
     wrapper.innerHTML = `
         <button type="button" class="quick-btn" data-msg="Gợi ý món nổi bật">Gợi ý món</button>
         <button type="button" class="quick-btn" data-msg="Mình muốn đặt bàn">Đặt bàn</button>
-        <button type="button" class="quick-btn" data-msg="Xem giỏ hàng giúp mình">Giỏ hàng</button>
     `;
 
     wrapper.addEventListener("click", (e) => {
