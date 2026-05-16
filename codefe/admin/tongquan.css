@@ -27,12 +27,47 @@ body.tongquan-page .text-slate-400 {
     color: #9ca3af !important;
 }
 
-/* Hộp ngày */
+/* Hộp ngày + chọn ngày */
 body.tongquan-page .date-display,
 body.tongquan-page .bg-surface-container {
     background-color: #1f2937 !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #e5e7eb;
+}
+
+body.tongquan-page .dash-date-picker-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body.tongquan-page .dash-date-picker-wrap:hover {
+    border-color: rgba(249, 115, 22, 0.45) !important;
+    background-color: #253044 !important;
+}
+
+body.tongquan-page .dash-date-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+body.tongquan-page .dash-date-input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
 }
 
 /* Stat cards */

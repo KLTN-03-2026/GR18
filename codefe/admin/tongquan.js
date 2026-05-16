@@ -20,6 +20,101 @@
         return `${y}-${m}-${day}T${endOfDay ? "23:59:59" : "00:00:00"}`;
     }
 
+    function startOfLocalDay(d) {
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+    }
+
+    function isSameLocalDay(a, b) {
+        return (
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate()
+        );
+    }
+
+    function parseDateInputValue(value) {
+        if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+        const [y, m, d] = value.split("-").map(Number);
+        const parsed = new Date(y, m - 1, d);
+        if (
+            parsed.getFullYear() !== y ||
+            parsed.getMonth() !== m - 1 ||
+            parsed.getDate() !== d
+        ) {
+            return null;
+        }
+        return parsed;
+    }
+
+    function formatDateParam(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+    }
+
+    function updateDateDisplay(selectedDate) {
+        const dateEl = $("dash-date");
+        const picker = $("dash-date-picker");
+        if (dateEl) {
+            dateEl.textContent = selectedDate.toLocaleDateString("vi-VN", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+        }
+        if (picker) picker.value = formatDateParam(selectedDate);
+    }
+
+    function updateStatLabels(selectedDate) {
+        const today = startOfLocalDay(new Date());
+        const isToday = isSameLocalDay(selectedDate, today);
+        const short = selectedDate.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+
+        const revLabel = $("stat-label-revenue");
+        const pendingLabel = $("stat-label-pending");
+        const paidLabel = $("stat-label-paid");
+        const revTrend = document.querySelector("#stat-revenue")?.closest(".stat-card")?.querySelector(".stat-trend");
+        const pendingTrend = document.querySelector("#stat-pending")?.closest(".stat-card")?.querySelector(".stat-trend");
+        const paidTrend = document.querySelector("#stat-paid-today")?.closest(".stat-card")?.querySelector(".stat-trend");
+
+        if (revLabel) revLabel.textContent = isToday ? "Doanh thu hôm nay" : `Doanh thu ngày ${short}`;
+        if (paidLabel) paidLabel.textContent = isToday ? "Đã thanh toán hôm nay" : `Đã thanh toán ngày ${short}`;
+        if (pendingLabel) {
+            pendingLabel.textContent = isToday ? "Đơn đang xử lý" : "Đơn đang xử lý (hiện tại)";
+        }
+        if (revTrend) revTrend.textContent = "Đơn đã thanh toán trong ngày";
+        if (pendingTrend) {
+            pendingTrend.textContent = isToday
+                ? "Mới · Chuẩn bị · Phục vụ"
+                : "Chỉ số realtime — không theo ngày đã chọn";
+        }
+        if (paidTrend) paidTrend.textContent = "Số đơn hoàn tất trong ngày";
+
+        const chartTitle = $("dash-chart-title");
+        const chartSub = $("dash-chart-subtitle");
+        if (chartTitle) {
+            chartTitle.textContent = isToday
+                ? "Doanh thu 7 ngày gần nhất"
+                : `Doanh thu 7 ngày (đến ${short})`;
+        }
+        if (chartSub) chartSub.textContent = "Theo ngày thanh toán";
+    }
+
+    function filterPaidOrdersByDate(orders, selectedDate) {
+        const key = isoKeyLocal(selectedDate);
+        return (Array.isArray(orders) ? orders : []).filter((o) => {
+            if (!o || !o.paidAt) return false;
+            const d = new Date(o.paidAt);
+            return !Number.isNaN(d.getTime()) && isoKeyLocal(d) === key;
+        });
+    }
+
     function greetingLine() {
         const h = new Date().getHours();
         if (h < 12) return "Chào buổi sáng";
@@ -280,20 +375,28 @@
             .join("");
     }
 
-    async function loadDashboard() {
+    async function loadDashboard(selectedDate) {
         const tag = $("dash-tagline");
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 6);
+        const anchor = startOfLocalDay(selectedDate || new Date());
+        const today = startOfLocalDay(new Date());
+        const isToday = isSameLocalDay(anchor, today);
+
+        const chartStart = new Date(anchor);
+        chartStart.setDate(chartStart.getDate() - 6);
+        const rangeEndDay = isToday ? new Date() : anchor;
+
+        updateDateDisplay(anchor);
+        updateStatLabels(anchor);
 
         try {
+            const dateQuery = encodeURIComponent(formatDateParam(anchor));
             const [overview, top, revenue, recent] = await Promise.all([
-                apiGet("/admin/statistics/overview"),
+                apiGet(`/admin/statistics/overview?date=${dateQuery}`),
                 apiGet("/admin/statistics/top-selling?limit=5"),
                 apiGet(
-                    `/admin/statistics/revenue?start=${encodeURIComponent(localDateTimeParam(start, false))}&end=${encodeURIComponent(localDateTimeParam(end, true))}`
+                    `/admin/statistics/revenue?start=${encodeURIComponent(localDateTimeParam(chartStart, false))}&end=${encodeURIComponent(localDateTimeParam(rangeEndDay, true))}`
                 ),
-                apiGet("/staff/orders/paid-recent?limit=8")
+                apiGet("/staff/orders/paid-recent?limit=50")
             ]);
 
             const rev = overview.todayRevenue != null ? Number(overview.todayRevenue) : 0;
@@ -307,16 +410,29 @@
             if (elPending) elPending.textContent = String(pending);
             if (elPaid) elPaid.textContent = String(paidToday);
 
-            const chartAnchor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-            renderChart(chartAnchor, revenue && revenue.dailyBreakdown);
+            renderChart(chartStart, revenue && revenue.dailyBreakdown);
             renderTopSelling(top);
-            renderRecentOrders(recent);
+            renderRecentOrders(filterPaidOrdersByDate(recent, anchor).slice(0, 8));
 
             if (tag) {
-                tag.innerHTML =
-                    '<span class="material-symbols-outlined filled text-sm">auto_awesome</span> Dữ liệu theo hệ thống — ' +
-                    pending +
-                    " đơn đang cần xử lý.";
+                const dayLabel = anchor.toLocaleDateString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric"
+                });
+                if (isToday) {
+                    tag.innerHTML =
+                        '<span class="material-symbols-outlined filled text-sm">auto_awesome</span> Dữ liệu theo hệ thống — ' +
+                        pending +
+                        " đơn đang cần xử lý.";
+                } else {
+                    tag.innerHTML =
+                        '<span class="material-symbols-outlined filled text-sm">calendar_month</span> Thống kê ngày ' +
+                        escapeHtml(dayLabel) +
+                        " — " +
+                        paidToday +
+                        " đơn đã thanh toán.";
+                }
             }
         } catch (e) {
             console.warn(e);
@@ -337,18 +453,30 @@
         const greet = $("dash-greeting");
         if (greet) greet.textContent = greetingLine() + ", " + displayUserName() + "!";
 
-        const dateEl = $("dash-date");
-        if (dateEl) {
-            const d = new Date();
-            dateEl.textContent = d.toLocaleDateString("vi-VN", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric"
+        const picker = $("dash-date-picker");
+        const today = startOfLocalDay(new Date());
+        if (picker) {
+            picker.max = formatDateParam(today);
+            picker.value = formatDateParam(today);
+            picker.addEventListener("change", function () {
+                const picked = parseDateInputValue(picker.value);
+                if (!picked) return;
+                if (picked > today) {
+                    picker.value = formatDateParam(today);
+                    return;
+                }
+                loadDashboard(picked);
             });
         }
 
-        loadDashboard();
-        setInterval(loadDashboard, 120000);
+        updateDateDisplay(today);
+        loadDashboard(today);
+
+        setInterval(function () {
+            const current = parseDateInputValue(picker && picker.value) || today;
+            if (isSameLocalDay(current, today)) {
+                loadDashboard(today);
+            }
+        }, 120000);
     });
 })();
