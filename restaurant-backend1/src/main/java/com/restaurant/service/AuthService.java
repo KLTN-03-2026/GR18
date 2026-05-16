@@ -95,6 +95,9 @@ public class AuthService {
         }
 
         User user = token.getUser();
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new DisabledException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        }
         return buildAuthResponse(user);
     }
 
@@ -294,12 +297,20 @@ public class AuthService {
                             return userRepository.save(newUser);
                         });
 
+                if (!Boolean.TRUE.equals(user.getIsActive())) {
+                    throw new DisabledException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+                }
+
                 // 4. Tận dụng hàm buildAuthResponse xịn của nhóm để trả về JWT
                 return buildAuthResponse(user);
 
             } else {
                 throw new BadCredentialsException("Google ID Token không hợp lệ");
             }
+        } catch (DisabledException e) {
+            throw e;
+        } catch (BadCredentialsException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi xác thực Google: " + e.getMessage());
         }
