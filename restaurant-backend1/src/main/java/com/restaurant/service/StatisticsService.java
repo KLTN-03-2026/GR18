@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -36,16 +37,29 @@ public class StatisticsService {
     }
 
     public Map<String, Object> getTodayOverview() {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-        LocalDateTime now = LocalDateTime.now();
-        BigDecimal todayRevenue = orderRepository.sumRevenueByDateRange(startOfDay, now);
-        long pendingOrders = orderRepository.countByStatusIn(
-                List.of(OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.SERVING));
-        long ordersPaidToday = orderRepository.countPaidOrdersBetween(startOfDay, now);
+        return getOverviewForDate(LocalDate.now());
+    }
+
+    /** Tổng quan theo một ngày (mặc định hôm nay). Ngày quá khứ: không có đơn đang xử lý realtime. */
+    public Map<String, Object> getOverviewForDate(LocalDate date) {
+        LocalDate target = date != null ? date : LocalDate.now();
+        boolean isToday = target.equals(LocalDate.now());
+        LocalDateTime startOfDay = target.atStartOfDay();
+        LocalDateTime end = isToday ? LocalDateTime.now() : target.atTime(23, 59, 59);
+
+        BigDecimal dayRevenue = orderRepository.sumRevenueByDateRange(startOfDay, end);
+        long ordersPaid = orderRepository.countPaidOrdersBetween(startOfDay, end);
+        long pendingOrders = isToday
+                ? orderRepository.countByStatusIn(
+                        List.of(OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.SERVING))
+                : 0L;
+
         return Map.of(
-                "todayRevenue", todayRevenue,
+                "selectedDate", target.toString(),
+                "isToday", isToday,
+                "todayRevenue", dayRevenue,
                 "pendingOrders", pendingOrders,
-                "ordersPaidToday", ordersPaidToday
+                "ordersPaidToday", ordersPaid
         );
     }
 }

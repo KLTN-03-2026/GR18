@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +42,10 @@ public class StatisticsController {
     }
 
     @GetMapping("/overview")
-    @Operation(summary = "Tổng quan hoạt động nhà hàng hôm nay")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getOverview() {
-        return ResponseEntity.ok(ApiResponse.success(statisticsService.getTodayOverview()));
+    @Operation(summary = "Tổng quan hoạt động nhà hàng theo ngày (mặc định hôm nay)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getOverview(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(ApiResponse.success(statisticsService.getOverviewForDate(
+                date != null ? date : LocalDate.now())));
     }
 }

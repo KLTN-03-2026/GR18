@@ -31,17 +31,18 @@
                     </p>
                 </div>
                 <div class="col-12 col-md-4 d-flex justify-content-md-end">
-                    <div class="date-display bg-surface-container border border-outline-variant p-2 rounded-3">
+                    <label class="date-display dash-date-picker-wrap bg-surface-container border border-outline-variant p-2 rounded-3 mb-0" for="dash-date-picker" title="Chọn ngày xem thống kê">
                         <span class="material-symbols-outlined text-sm">calendar_today</span>
                         <span class="small fw-medium" id="dash-date">—</span>
-                    </div>
+                        <input type="date" id="dash-date-picker" class="dash-date-input" aria-label="Chọn ngày thống kê" />
+                    </label>
                 </div>
             </div>
 
             <div class="row g-4 mb-4">
                 <div class="col-md-4">
                     <div class="stat-card">
-                        <p class="stat-label">Doanh thu hôm nay</p>
+                        <p class="stat-label" id="stat-label-revenue">Doanh thu hôm nay</p>
                         <h3 class="stat-value text-primary" id="stat-revenue">—</h3>
                         <p class="stat-trend text-secondary">Đơn đã thanh toán trong ngày</p>
                         <span class="material-symbols-outlined bg-icon text-primary">payments</span>
@@ -49,7 +50,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="stat-card">
-                        <p class="stat-label">Đơn đang xử lý</p>
+                        <p class="stat-label" id="stat-label-pending">Đơn đang xử lý</p>
                         <h3 class="stat-value" id="stat-pending">—</h3>
                         <p class="stat-trend text-secondary">Mới · Chuẩn bị · Phục vụ</p>
                         <span class="material-symbols-outlined bg-icon">shopping_bag</span>
@@ -57,7 +58,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="stat-card">
-                        <p class="stat-label">Đã thanh toán hôm nay</p>
+                        <p class="stat-label" id="stat-label-paid">Đã thanh toán hôm nay</p>
                         <h3 class="stat-value text-secondary" id="stat-paid-today">—</h3>
                         <p class="stat-trend text-secondary">Số đơn hoàn tất trong ngày</p>
                         <span class="material-symbols-outlined bg-icon text-secondary">receipt_long</span>
@@ -69,8 +70,8 @@
                 <div class="col-lg-8">
                     <div class="table-container p-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="table-title">Doanh thu 7 ngày gần nhất</h5>
-                            <span class="small text-secondary">Theo ngày thanh toán</span>
+                            <h5 class="table-title" id="dash-chart-title">Doanh thu 7 ngày gần nhất</h5>
+                            <span class="small text-secondary" id="dash-chart-subtitle">Theo ngày thanh toán</span>
                         </div>
                         <div class="chart-wrapper" id="dash-chart-root">
                             <p class="text-slate-400 small mb-0">Đang tải biểu đồ…</p>
